@@ -1,2 +1,7 @@
 node_modules
-.DS_Store
+dist
+.git
+docs
+test-results
+playwright-report
+.deploy.env

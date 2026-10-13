@@ -1,9 +1,15 @@
 import { gzipSync } from "node:zlib";
+import tailwind from "bun-plugin-tailwind";
 
 /** Fails when the production bundle grows past the budget (gzipped KB). Tighten as the app gets faster, never loosen silently. */
 const BUDGET_KB = { js: 200, css: 40 };
 
-const result = await Bun.build({ entrypoints: ["src/web/index.html"], minify: true, define: { "process.env.NODE_ENV": '"production"' } });
+const result = await Bun.build({
+  entrypoints: ["src/web/index.html"],
+  minify: true,
+  plugins: [tailwind],
+  define: { "process.env.NODE_ENV": '"production"' },
+});
 if (!result.success) {
   for (const log of result.logs) console.error(log);
   process.exit(1);

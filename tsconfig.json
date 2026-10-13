@@ -9,7 +9,10 @@
     "noUncheckedIndexedAccess": true,
     "skipLibCheck": true,
     "noEmit": true,
-    "types": ["bun"]
+    "types": ["bun"],
+    "paths": {
+      "@/*": ["./src/web/*"]
+    }
   },
   "include": ["src", "test", "e2e", "scripts", "playwright.config.ts"]
 }
