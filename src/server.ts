@@ -1,4 +1,5 @@
 import { createHash, randomBytes } from "node:crypto";
+import { font } from "./fonts";
 import index from "./web/index.html";
 
 const PORT = Number(process.env.PORT ?? 8080);
@@ -53,6 +54,7 @@ const server = Bun.serve({
     "/healthz": () => new Response("ok"),
     "/auth/login": { POST: login },
     "/rest/*": proxy,
+    "/fonts/:name": font,
     "/*": index,
   },
 });

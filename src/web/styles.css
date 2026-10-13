@@ -1,41 +1,8 @@
-/* Same tokens as the keep dashboard: Zed "Monochrome" + Ghostty palette. Color only for warnings. */
+/* Legacy layout styles. Colors and fonts come from the shadcn theme in app.css; this file shrinks as #13 rebuilds the UI. */
 :root {
-  --bg: #101010;
-  --surface: #191919;
-  --raised: #1d1d1d;
-  --border: #262626;
-  --border-subtle: #1d1d1d;
-  --border-strong: #454545;
-  --text: #ebebeb;
-  --muted: #939393;
-  --faint: #565656;
-  --track: #262626;
-  --fill: #ebebeb;
-  --crit: #f0605a;
-  --font-ui: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
-  --sidebar: 200px;
+  --sidebar-width: 200px;
   --panel: 320px;
   --bar: 64px;
-  color-scheme: dark;
-}
-
-@media (prefers-color-scheme: light) {
-  :root {
-    --bg: #ebebeb;
-    --surface: #f5f5f5;
-    --raised: #e2e2e2;
-    --border: #c5c5c5;
-    --border-subtle: #d9d9d9;
-    --border-strong: #a0a0a0;
-    --text: #101010;
-    --muted: #686868;
-    --faint: #a0a0a0;
-    --track: #d0d0d0;
-    --fill: #101010;
-    --crit: #c42b25;
-    color-scheme: light;
-  }
 }
 
 *,
@@ -48,9 +15,9 @@
 html,
 body {
   margin: 0;
-  background: var(--bg);
-  color: var(--text);
-  font: 400 13px / 1.4 var(--font-ui);
+  background: var(--background);
+  color: var(--foreground);
+  font: 400 13px / 1.4 var(--font-sans);
   -webkit-font-smoothing: antialiased;
 }
 
@@ -91,12 +58,12 @@ button {
 }
 
 :focus-visible {
-  outline: 1px solid var(--text);
+  outline: 1px solid var(--foreground);
   outline-offset: -1px;
 }
 
 .muted {
-  color: var(--muted);
+  color: var(--muted-foreground);
 }
 
 .small {
@@ -121,12 +88,12 @@ kbd {
 }
 
 .level-crit {
-  color: var(--crit);
+  color: var(--destructive);
 }
 
 .empty {
   padding: 24px 0;
-  color: var(--faint);
+  color: var(--color-faint);
   font-family: var(--font-mono);
   font-size: 12.5px;
 }
@@ -137,7 +104,7 @@ kbd {
   position: fixed;
   inset: 0;
   display: grid;
-  grid-template-columns: var(--sidebar) minmax(0, 1fr);
+  grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr);
   grid-template-areas: "side main";
 }
@@ -148,7 +115,7 @@ kbd {
 }
 
 .shell.with-player.with-panel {
-  grid-template-columns: var(--sidebar) minmax(0, 1fr) var(--panel);
+  grid-template-columns: var(--sidebar-width) minmax(0, 1fr) var(--panel);
   grid-template-areas: "side main panel" "bar bar bar";
 }
 
@@ -181,7 +148,7 @@ kbd {
 .brand-mark {
   width: 10px;
   height: 10px;
-  background: var(--text);
+  background: var(--foreground);
 }
 
 .search-button {
@@ -192,14 +159,14 @@ kbd {
   margin: 0 0 6px;
   padding: 0 8px;
   border: 1px solid var(--border);
-  background: var(--bg);
-  color: var(--muted);
+  background: var(--background);
+  color: var(--muted-foreground);
   cursor: pointer;
 }
 
 .search-button:hover {
-  color: var(--text);
-  border-color: var(--border-strong);
+  color: var(--foreground);
+  border-color: var(--ring);
 }
 
 .search-button span {
@@ -209,13 +176,13 @@ kbd {
 
 kbd {
   font-size: 10.5px;
-  color: var(--faint);
+  color: var(--color-faint);
 }
 
 .nav-label {
   padding: 10px 8px 4px;
   font: 400 10.5px var(--font-mono);
-  color: var(--faint);
+  color: var(--color-faint);
 }
 
 .nav-item {
@@ -227,30 +194,30 @@ kbd {
   padding: 0 8px;
   border: 0;
   background: none;
-  color: var(--muted);
+  color: var(--muted-foreground);
   font: 400 12px var(--font-mono);
   text-align: left;
   cursor: pointer;
 }
 
 .nav-item:hover {
-  background: var(--surface);
-  color: var(--text);
+  background: var(--card);
+  color: var(--foreground);
 }
 
 .nav-item[aria-current="page"] {
   background: var(--border);
-  color: var(--text);
+  color: var(--foreground);
 }
 
 .folder-caret {
   width: 10px;
-  color: var(--faint);
+  color: var(--color-faint);
 }
 
 .nav-empty {
   padding: 4px 10px;
-  color: var(--faint);
+  color: var(--color-faint);
   font-size: 12px;
 }
 
@@ -264,7 +231,7 @@ kbd {
   justify-content: space-between;
   gap: 8px;
   padding: 10px 10px 0;
-  border-top: 1px solid var(--border-subtle);
+  border-top: 1px solid var(--muted);
   font-size: 12px;
 }
 
@@ -281,7 +248,7 @@ kbd {
   min-height: 44px;
   padding: 0 20px;
   border-bottom: 1px solid var(--border);
-  background: var(--bg);
+  background: var(--background);
 }
 
 .page-title {
@@ -321,7 +288,7 @@ kbd {
 
 .section-header h2 {
   font: 400 12px var(--font-mono);
-  color: var(--muted);
+  color: var(--muted-foreground);
 }
 
 /* Buttons */
@@ -332,27 +299,27 @@ kbd {
   justify-content: center;
   height: 28px;
   padding: 0 12px;
-  border: 1px solid var(--border-strong);
-  background: var(--bg);
-  color: var(--text);
+  border: 1px solid var(--ring);
+  background: var(--background);
+  color: var(--foreground);
   font: 400 12.5px var(--font-mono);
   cursor: pointer;
   white-space: nowrap;
 }
 
 .button:hover {
-  background: var(--surface);
+  background: var(--card);
 }
 
 .button:disabled {
-  color: var(--faint);
+  color: var(--color-faint);
   cursor: default;
 }
 
 .button.primary {
-  background: var(--text);
-  border-color: var(--text);
-  color: var(--bg);
+  background: var(--foreground);
+  border-color: var(--foreground);
+  color: var(--background);
 }
 
 .button.primary:hover {
@@ -368,13 +335,13 @@ kbd {
   padding: 0;
   border: 0;
   background: none;
-  color: var(--muted);
+  color: var(--muted-foreground);
   font: 400 12px var(--font-mono);
   cursor: pointer;
 }
 
 .text-button:hover {
-  color: var(--text);
+  color: var(--foreground);
 }
 
 .icon-button {
@@ -385,17 +352,17 @@ kbd {
   padding: 0;
   border: 0;
   background: none;
-  color: var(--muted);
+  color: var(--muted-foreground);
   cursor: pointer;
   position: relative;
 }
 
 .icon-button:hover {
-  color: var(--text);
+  color: var(--foreground);
 }
 
 .icon-button.on {
-  color: var(--text);
+  color: var(--foreground);
 }
 
 .icon-button.on::after {
@@ -406,7 +373,7 @@ kbd {
   width: 4px;
   height: 4px;
   margin-left: -2px;
-  background: var(--text);
+  background: var(--foreground);
 }
 
 .tabs {
@@ -419,7 +386,7 @@ kbd {
   padding: 0 10px;
   border: 0;
   background: none;
-  color: var(--muted);
+  color: var(--muted-foreground);
   font: 400 11.5px var(--font-mono);
   cursor: pointer;
 }
@@ -429,20 +396,20 @@ kbd {
 }
 
 .tab:hover {
-  color: var(--text);
-  background: var(--surface);
+  color: var(--foreground);
+  background: var(--card);
 }
 
 .tab[aria-pressed="true"] {
-  background: var(--text);
-  color: var(--bg);
+  background: var(--foreground);
+  color: var(--background);
 }
 
 .chip {
   display: inline-block;
   padding: 0 6px;
-  border: 1px solid var(--border-strong);
-  color: var(--muted);
+  border: 1px solid var(--ring);
+  color: var(--muted-foreground);
   font: 400 10.5px / 18px var(--font-mono);
   white-space: nowrap;
 }
@@ -452,7 +419,7 @@ kbd {
 .cover {
   position: relative;
   aspect-ratio: 1;
-  background: var(--surface);
+  background: var(--card);
   overflow: hidden;
 }
 
@@ -473,7 +440,7 @@ kbd {
   content: "";
   position: absolute;
   inset: 38%;
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--ring);
 }
 
 /* Album grid */
@@ -497,7 +464,7 @@ kbd {
 
 .album-link .cover {
   margin-bottom: 6px;
-  outline: 1px solid var(--border-subtle);
+  outline: 1px solid var(--muted);
 }
 
 .album-link:hover .cover img {
@@ -531,8 +498,8 @@ kbd {
   width: 30px;
   height: 30px;
   border: 0;
-  background: var(--text);
-  color: var(--bg);
+  background: var(--foreground);
+  color: var(--background);
   cursor: pointer;
   pointer-events: auto;
   opacity: 0;
@@ -562,7 +529,7 @@ kbd {
   gap: 10px;
   min-height: 34px;
   padding: 0 8px;
-  border-bottom: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--muted);
 }
 
 .no-album .track-row {
@@ -572,19 +539,19 @@ kbd {
 .track-head {
   min-height: 26px;
   font: 400 10.5px var(--font-mono);
-  color: var(--faint);
+  color: var(--color-faint);
   border-bottom-color: var(--border);
 }
 
 .track-row:not(.track-head):hover {
-  background: var(--surface);
+  background: var(--card);
 }
 
 /* Rows keep keyboard focus after a click; a full white outline there is too loud, so mark it quietly. */
 .track-row:focus-visible {
   outline: none;
-  background: var(--surface);
-  box-shadow: inset 2px 0 0 var(--text);
+  background: var(--card);
+  box-shadow: inset 2px 0 0 var(--foreground);
 }
 
 .track-row.playing .track-title > :first-child {
@@ -612,7 +579,7 @@ kbd {
   width: 20px;
   border: 0;
   background: none;
-  color: var(--text);
+  color: var(--foreground);
   cursor: pointer;
 }
 
@@ -638,11 +605,11 @@ kbd {
 .disc-header {
   padding: 12px 8px 4px;
   font: 400 10.5px var(--font-mono);
-  color: var(--faint);
+  color: var(--color-faint);
 }
 
 .track-list a:hover {
-  color: var(--text);
+  color: var(--foreground);
   text-decoration: underline;
   text-underline-offset: 3px;
 }
@@ -658,7 +625,7 @@ kbd {
 .eq i {
   width: 2px;
   height: 4px;
-  background: var(--text);
+  background: var(--foreground);
 }
 
 .eq.on i {
@@ -694,7 +661,7 @@ kbd {
 
 .hero-cover {
   flex: 0 0 152px;
-  outline: 1px solid var(--border-subtle);
+  outline: 1px solid var(--muted);
 }
 
 .hero-text {
@@ -747,7 +714,7 @@ kbd {
 
 .bio {
   max-width: 72ch;
-  color: var(--muted);
+  color: var(--muted-foreground);
   font-size: 12.5px;
   display: -webkit-box;
   -webkit-line-clamp: 3;
@@ -783,19 +750,19 @@ kbd {
 }
 
 .tag:hover {
-  border-color: var(--text);
+  border-color: var(--foreground);
 }
 
 .letter-group {
   display: grid;
   grid-template-columns: 48px minmax(0, 1fr);
   padding: 8px 0;
-  border-bottom: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--muted);
 }
 
 .letter {
   font: 400 15px var(--font-mono);
-  color: var(--faint);
+  color: var(--color-faint);
 }
 
 .artist-list {
@@ -816,7 +783,7 @@ kbd {
 
 .artist-list a:hover,
 .folder-list a:hover {
-  background: var(--surface);
+  background: var(--card);
 }
 
 .folder-list {
@@ -828,11 +795,11 @@ kbd {
 
 .folder-list a {
   justify-content: flex-start;
-  color: var(--text);
+  color: var(--foreground);
 }
 
 .folder-list svg {
-  color: var(--muted);
+  color: var(--muted-foreground);
   flex: none;
 }
 
@@ -846,7 +813,7 @@ kbd {
   gap: 16px;
   padding: 0 14px;
   border-top: 1px solid var(--border);
-  background: var(--bg);
+  background: var(--background);
 }
 
 .now {
@@ -907,8 +874,8 @@ kbd {
   width: 30px;
   height: 30px;
   border: 0;
-  background: var(--text);
-  color: var(--bg);
+  background: var(--foreground);
+  color: var(--background);
   cursor: pointer;
 }
 
@@ -958,7 +925,7 @@ kbd {
   position: relative;
   width: 100%;
   height: 3px;
-  background: var(--track);
+  background: var(--border);
   transition: height 100ms;
 }
 
@@ -969,7 +936,7 @@ kbd {
 
 .slider-fill {
   height: 100%;
-  background: var(--fill);
+  background: var(--foreground);
 }
 
 /* Queue and lyrics panel */
@@ -1026,7 +993,7 @@ kbd {
 }
 
 .queue-item:hover {
-  background: var(--surface);
+  background: var(--card);
 }
 
 .queue-text {
@@ -1067,21 +1034,21 @@ kbd {
 }
 
 .lyrics.synced p {
-  color: var(--faint);
+  color: var(--color-faint);
   cursor: pointer;
   transition: color 200ms;
 }
 
 .lyrics.synced p.past {
-  color: var(--muted);
+  color: var(--muted-foreground);
 }
 
 .lyrics.synced p.active {
-  color: var(--text);
+  color: var(--foreground);
 }
 
 .lyrics.synced p:hover {
-  color: var(--text);
+  color: var(--foreground);
 }
 
 /* Search palette */
@@ -1093,14 +1060,14 @@ kbd {
   display: flex;
   justify-content: center;
   padding-top: 10vh;
-  background: rgb(0 0 0 / 0.55);
+  background: color-mix(in oklch, var(--background) 70%, transparent);
 }
 
 .palette {
   width: min(640px, calc(100vw - 32px));
   align-self: flex-start;
-  border: 1px solid var(--border-strong);
-  background: var(--bg);
+  border: 1px solid var(--ring);
+  background: var(--background);
 }
 
 .palette-input {
@@ -1110,7 +1077,7 @@ kbd {
   border: 0;
   border-bottom: 1px solid var(--border);
   background: none;
-  color: var(--text);
+  color: var(--foreground);
   font: 400 14px var(--font-mono);
   outline: none;
 }
@@ -1146,7 +1113,7 @@ kbd {
 
 .palette-empty {
   padding: 16px 12px;
-  color: var(--faint);
+  color: var(--color-faint);
   font: 400 12.5px var(--font-mono);
 }
 
@@ -1177,21 +1144,21 @@ kbd {
   flex-direction: column;
   gap: 6px;
   font: 400 11.5px var(--font-mono);
-  color: var(--muted);
+  color: var(--muted-foreground);
 }
 
 .login-box input {
   height: 36px;
   padding: 0 10px;
-  border: 1px solid var(--border-strong);
-  background: var(--bg);
-  color: var(--text);
+  border: 1px solid var(--ring);
+  background: var(--background);
+  color: var(--foreground);
   font: 400 13px var(--font-mono);
 }
 
 .login-box input:focus {
   outline: none;
-  border-color: var(--text);
+  border-color: var(--foreground);
 }
 
 @media (max-width: 1000px) {
