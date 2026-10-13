@@ -122,7 +122,12 @@ export function TrackList({ songs, showAlbum = true, showArtist = true, numbered
                     index + 1
                   )}
                 </span>
-                <button type="button" className="track-play" onClick={() => player.play(songs, index, { album: asAlbum })} aria-label={`play ${song.title}`}>
+                <button
+                  type="button"
+                  className="track-play"
+                  onClick={() => player.play(songs, index, { album: asAlbum })}
+                  aria-label={`play ${song.title}`}
+                >
                   <Play size={11} />
                 </button>
               </span>
@@ -141,10 +146,22 @@ export function TrackList({ songs, showAlbum = true, showArtist = true, numbered
               )}
               <span className="num muted right">{clock(song.duration)}</span>
               <span className="track-actions">
-                <button type="button" className="icon-button" onClick={() => player.playNext([song])} aria-label={`play ${song.title} next`} title="play next">
+                <button
+                  type="button"
+                  className="icon-button"
+                  onClick={() => player.playNext([song])}
+                  aria-label={`play ${song.title} next`}
+                  title="play next"
+                >
                   <Queue />
                 </button>
-                <button type="button" className="icon-button" onClick={() => player.addToQueue([song])} aria-label={`add ${song.title} to queue`} title="add to queue">
+                <button
+                  type="button"
+                  className="icon-button"
+                  onClick={() => player.addToQueue([song])}
+                  aria-label={`add ${song.title} to queue`}
+                  title="add to queue"
+                >
                   <Plus />
                 </button>
               </span>

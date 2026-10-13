@@ -1,4 +1,4 @@
-import { useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
+import { type KeyboardEvent, type PointerEvent, useRef, useState } from "react";
 import { clock, quality } from "../lib/format";
 import { currentSong, player, usePlayer } from "../lib/player";
 import { navigate } from "../lib/router";
@@ -8,7 +8,19 @@ import { Lyrics, Next, Pause, Play, Previous, Queue, Repeat, Shuffle, Volume } f
 export type Panel = "queue" | "lyrics" | null;
 
 /** A horizontal slider drawn as a flat bar; drag or click anywhere on it, arrow keys nudge it. */
-function Slider({ value, max, onChange, label, step }: { value: number; max: number; onChange: (value: number) => void; label: string; step: number }) {
+function Slider({
+  value,
+  max,
+  onChange,
+  label,
+  step,
+}: {
+  value: number;
+  max: number;
+  onChange: (value: number) => void;
+  label: string;
+  step: number;
+}) {
   const ref = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState<number | null>(null);
   const shown = dragging ?? value;
@@ -71,13 +83,26 @@ export function PlayerBar({ panel, onPanel }: { panel: Panel; onPanel: (panel: P
 
       <div className="transport">
         <div className="controls">
-          <button type="button" className={`icon-button${state.shuffle ? " on" : ""}`} onClick={player.toggleShuffle} aria-label="shuffle" aria-pressed={state.shuffle} title="shuffle (s)">
+          <button
+            type="button"
+            className={`icon-button${state.shuffle ? " on" : ""}`}
+            onClick={player.toggleShuffle}
+            aria-label="shuffle"
+            aria-pressed={state.shuffle}
+            title="shuffle (s)"
+          >
             <Shuffle />
           </button>
           <button type="button" className="icon-button" onClick={player.previous} aria-label="previous" title="previous (shift ←)">
             <Previous />
           </button>
-          <button type="button" className="play-button" onClick={() => player.toggle()} aria-label={state.playing ? "pause" : "play"} title="play / pause (space)">
+          <button
+            type="button"
+            className="play-button"
+            onClick={() => player.toggle()}
+            aria-label={state.playing ? "pause" : "play"}
+            title="play / pause (space)"
+          >
             {state.playing ? <Pause size={14} /> : <Play size={14} />}
           </button>
           <button type="button" className="icon-button" onClick={player.next} aria-label="next" title="next (shift →)">
@@ -101,14 +126,32 @@ export function PlayerBar({ panel, onPanel }: { panel: Panel; onPanel: (panel: P
       </div>
 
       <div className="extras">
-        <span className="quality muted">{state.buffering ? "loading…" : state.error ?? quality(song.suffix, song.bitRate)}</span>
-        <button type="button" className={`icon-button${panel === "lyrics" ? " on" : ""}`} onClick={() => onPanel(panel === "lyrics" ? null : "lyrics")} aria-label="lyrics" title="lyrics (l)">
+        <span className="quality muted">{state.buffering ? "loading…" : (state.error ?? quality(song.suffix, song.bitRate))}</span>
+        <button
+          type="button"
+          className={`icon-button${panel === "lyrics" ? " on" : ""}`}
+          onClick={() => onPanel(panel === "lyrics" ? null : "lyrics")}
+          aria-label="lyrics"
+          title="lyrics (l)"
+        >
           <Lyrics />
         </button>
-        <button type="button" className={`icon-button${panel === "queue" ? " on" : ""}`} onClick={() => onPanel(panel === "queue" ? null : "queue")} aria-label="queue" title="queue (q)">
+        <button
+          type="button"
+          className={`icon-button${panel === "queue" ? " on" : ""}`}
+          onClick={() => onPanel(panel === "queue" ? null : "queue")}
+          aria-label="queue"
+          title="queue (q)"
+        >
           <Queue />
         </button>
-        <button type="button" className="icon-button" onClick={player.toggleMute} aria-label={state.muted ? "unmute" : "mute"} title="mute (m)">
+        <button
+          type="button"
+          className="icon-button"
+          onClick={player.toggleMute}
+          aria-label={state.muted ? "unmute" : "mute"}
+          title="mute (m)"
+        >
           <Volume muted={state.muted || state.volume === 0} />
         </button>
         <div className="volume">

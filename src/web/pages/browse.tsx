@@ -73,7 +73,16 @@ export function AlbumsPage() {
       <PageHeader title="albums" meta={data ? plural(data.length, "album") : undefined}>
         <div className="tabs" role="group" aria-label="sort">
           {SORTS.map(([value, label]) => (
-            <button key={value} type="button" className="tab" aria-pressed={sort === value} onClick={() => (setSort(value), setPages(1))}>
+            <button
+              key={value}
+              type="button"
+              className="tab"
+              aria-pressed={sort === value}
+              onClick={() => {
+                setSort(value);
+                setPages(1);
+              }}
+            >
               {label}
             </button>
           ))}

@@ -38,7 +38,11 @@ export function SearchPalette({ onClose }: { onClose: () => void }) {
     let cancelled = false;
     const id = setTimeout(() => {
       api<{ searchResult3: Results }>("search3", { query, artistCount: 4, albumCount: 6, songCount: 8 })
-        .then((response) => !cancelled && (setResults(response.searchResult3), setSelected(0)))
+        .then((response) => {
+          if (cancelled) return;
+          setResults(response.searchResult3);
+          setSelected(0);
+        })
         .catch(() => undefined);
     }, 120);
     return () => {
@@ -54,16 +58,28 @@ export function SearchPalette({ onClose }: { onClose: () => void }) {
     };
     return [
       ...(results.artist ?? []).map((artist) => ({
-        key: `ar-${artist.id}`, kind: "artist" as const, title: artist.name, sub: `${artist.albumCount ?? 0} albums`,
-        cover: artist.coverArt, run: close(() => go(`/artist/${artist.id}`)),
+        key: `ar-${artist.id}`,
+        kind: "artist" as const,
+        title: artist.name,
+        sub: `${artist.albumCount ?? 0} albums`,
+        cover: artist.coverArt,
+        run: close(() => go(`/artist/${artist.id}`)),
       })),
       ...(results.album ?? []).map((album) => ({
-        key: `al-${album.id}`, kind: "album" as const, title: album.name, sub: `${album.artist ?? ""}${album.year ? ` · ${album.year}` : ""}`,
-        cover: album.coverArt, run: close(() => go(`/album/${album.id}`)),
+        key: `al-${album.id}`,
+        kind: "album" as const,
+        title: album.name,
+        sub: `${album.artist ?? ""}${album.year ? ` · ${album.year}` : ""}`,
+        cover: album.coverArt,
+        run: close(() => go(`/album/${album.id}`)),
       })),
       ...(results.song ?? []).map((song, index, songs) => ({
-        key: `so-${song.id}`, kind: "song" as const, title: song.title, sub: `${song.artist ?? ""} · ${song.album ?? ""}`,
-        cover: song.coverArt, run: close(() => player.play(songs, index)),
+        key: `so-${song.id}`,
+        kind: "song" as const,
+        title: song.title,
+        sub: `${song.artist ?? ""} · ${song.album ?? ""}`,
+        cover: song.coverArt,
+        run: close(() => player.play(songs, index)),
       })),
     ];
   }, [results, onClose]);

@@ -56,7 +56,14 @@ export function currentUser(): string | null {
 }
 
 function query(extra: Record<string, string | number | boolean | undefined> = {}): string {
-  const params = new URLSearchParams({ u: credentials?.user ?? "", t: credentials?.token ?? "", s: credentials?.salt ?? "", v: VERSION, c: CLIENT, f: "json" });
+  const params = new URLSearchParams({
+    u: credentials?.user ?? "",
+    t: credentials?.token ?? "",
+    s: credentials?.salt ?? "",
+    v: VERSION,
+    c: CLIENT,
+    f: "json",
+  });
   for (const [key, value] of Object.entries(extra)) if (value !== undefined) params.set(key, String(value));
   return params.toString();
 }

@@ -8,7 +8,12 @@ const CLIENT = "keep-player";
 /** Subsonic token auth: md5(password + salt). Done here so the browser never needs md5 or keeps the password. */
 function tokenFor(password: string): { token: string; salt: string } {
   const salt = randomBytes(8).toString("hex");
-  return { salt, token: createHash("md5").update(password + salt).digest("hex") };
+  return {
+    salt,
+    token: createHash("md5")
+      .update(password + salt)
+      .digest("hex"),
+  };
 }
 
 async function login(request: Request): Promise<Response> {

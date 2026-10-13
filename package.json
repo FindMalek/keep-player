@@ -3,14 +3,24 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "dev": "bun --hot src/server.ts",
     "start": "bun src/server.ts",
-    "typecheck": "tsc --noEmit"
+    "mock": "bun test/mock/server.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check .",
+    "format": "biome check --write .",
+    "test": "bun test src",
+    "e2e": "playwright test",
+    "size": "bun scripts/bundle-size.ts",
+    "check": "bun run typecheck && bun run lint && bun run test && bun run size"
   },
   "dependencies": {
     "react": "19.3.0",
     "react-dom": "19.3.0"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.5.15",
+    "@playwright/test": "1.64.0",
     "@types/bun": "1.4.2",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",

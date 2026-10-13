@@ -66,7 +66,13 @@ function FolderView({ node, path, depth }: { node: FolderNode; path: string; dep
         const href = `/playlist/${playlist.id}`;
         return (
           <li key={playlist.id}>
-            <a href={href} className="nav-item" style={{ paddingLeft: 10 + depth * 12 }} aria-current={path === href ? "page" : undefined} onClick={navigate}>
+            <a
+              href={href}
+              className="nav-item"
+              style={{ paddingLeft: 10 + depth * 12 }}
+              aria-current={path === href ? "page" : undefined}
+              onClick={navigate}
+            >
               <span className="ellipsis">{playlist.name.split(" / ").at(-1)}</span>
             </a>
           </li>

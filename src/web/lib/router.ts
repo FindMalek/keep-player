@@ -1,4 +1,4 @@
-import { useSyncExternalStore, type MouseEvent } from "react";
+import { type MouseEvent, useSyncExternalStore } from "react";
 
 const NAVIGATE = "keep:navigate";
 
