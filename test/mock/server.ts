@@ -144,10 +144,13 @@ function wav(seconds: number): Uint8Array<ArrayBuffer> {
 
 function stream(song: Song, request: Request): Response {
   const body = wav(song.duration ?? 180);
-  const range = /bytes=(\d+)-(\d*)/.exec(request.headers.get("range") ?? "");
-  if (!range) return new Response(body, { headers: { "content-type": "audio/wav", "accept-ranges": "bytes" } });
-  const start = Number(range[1]);
-  const end = range[2] ? Math.min(Number(range[2]), body.length - 1) : body.length - 1;
+  const range = /^bytes=(\d*)-(\d*)$/.exec(request.headers.get("range") ?? "");
+  if (!range || (!range[1] && !range[2])) return new Response(body, { headers: { "content-type": "audio/wav", "accept-ranges": "bytes" } });
+  // "bytes=-500" is a suffix range: the last 500 bytes.
+  const start = range[1] ? Number(range[1]) : Math.max(body.length - Number(range[2]), 0);
+  const end = range[1] && range[2] ? Math.min(Number(range[2]), body.length - 1) : body.length - 1;
+  if (start >= body.length || start > end)
+    return new Response(null, { status: 416, headers: { "content-range": `bytes */${body.length}` } });
   return new Response(body.subarray(start, end + 1), {
     status: 206,
     headers: { "content-type": "audio/wav", "accept-ranges": "bytes", "content-range": `bytes ${start}-${end}/${body.length}` },
