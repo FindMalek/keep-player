@@ -99,7 +99,11 @@ function ensureAudio(): HTMLAudioElement {
     if (!audio) return;
     set({ position: audio.currentTime });
     const song = current();
-    if (song && !scrobbled && (audio.currentTime >= SCROBBLE_AFTER_SEC || (audio.duration > 0 && audio.currentTime >= audio.duration / 2))) {
+    if (
+      song &&
+      !scrobbled &&
+      (audio.currentTime >= SCROBBLE_AFTER_SEC || (audio.duration > 0 && audio.currentTime >= audio.duration / 2))
+    ) {
       scrobbled = true;
       scrobble(song.id, true);
     }
@@ -153,9 +157,18 @@ function load(index: number, autoplay: boolean, startAt = 0): void {
 }
 
 function onEnded(): void {
-  if (state.repeat === "one") return load(state.index, true);
-  if (state.index < state.queue.length - 1) return load(state.index + 1, true);
-  if (state.repeat === "all" && state.queue.length) return load(0, true);
+  if (state.repeat === "one") {
+    load(state.index, true);
+    return;
+  }
+  if (state.index < state.queue.length - 1) {
+    load(state.index + 1, true);
+    return;
+  }
+  if (state.repeat === "all" && state.queue.length) {
+    load(0, true);
+    return;
+  }
   set({ playing: false, position: 0 });
 }
 
@@ -201,7 +214,11 @@ export const player = {
       queue = first ? [first, ...shuffled(songs.filter((_, i) => i !== start))] : shuffled(songs);
       index = 0;
     }
-    set({ queue, shuffle: options.shuffle ?? state.shuffle, context: options.album && !(options.shuffle ?? state.shuffle) ? "album" : "mixed" });
+    set({
+      queue,
+      shuffle: options.shuffle ?? state.shuffle,
+      context: options.album && !(options.shuffle ?? state.shuffle) ? "album" : "mixed",
+    });
     load(index, true);
   },
   toggle(force?: boolean): void {
@@ -209,7 +226,10 @@ export const player = {
     const element = ensureAudio();
     const shouldPlay = force ?? element.paused;
     if (shouldPlay) {
-      if (!element.src) return load(state.index, true, state.position);
+      if (!element.src) {
+        load(state.index, true, state.position);
+        return;
+      }
       ensureGraph();
       void context?.resume();
       void element.play().catch(() => set({ playing: false }));
@@ -223,7 +243,10 @@ export const player = {
   },
   /** Restart the track if more than 3 s in, otherwise go back one. */
   previous(): void {
-    if (state.position > 3 || state.index === 0) return player.seek(0);
+    if (state.position > 3 || state.index === 0) {
+      player.seek(0);
+      return;
+    }
     load(state.index - 1, true);
   },
   jumpTo(index: number): void {
@@ -252,7 +275,14 @@ export const player = {
       set({ shuffle: true, context: "mixed", queue: playingSong ? [playingSong, ...shuffled(rest)] : shuffled(rest), index: 0 });
     } else {
       const original = unshuffled ?? state.queue;
-      set({ shuffle: false, queue: original, index: Math.max(0, original.findIndex((song) => song.id === playingSong?.id)) });
+      set({
+        shuffle: false,
+        queue: original,
+        index: Math.max(
+          0,
+          original.findIndex((song) => song.id === playingSong?.id),
+        ),
+      });
       unshuffled = null;
     }
     applyVolume();
@@ -263,14 +293,20 @@ export const player = {
     persist();
   },
   playNext(songs: Song[]): void {
-    if (!current()) return player.play(songs);
+    if (!current()) {
+      player.play(songs);
+      return;
+    }
     const queue = [...state.queue];
     queue.splice(state.index + 1, 0, ...songs);
     set({ queue, context: "mixed" });
     persist();
   },
   addToQueue(songs: Song[]): void {
-    if (!current()) return player.play(songs);
+    if (!current()) {
+      player.play(songs);
+      return;
+    }
     set({ queue: [...state.queue, ...songs], context: "mixed" });
     persist();
   },

@@ -1,5 +1,5 @@
-import { AlbumGrid, Empty, PageHeader, Section, TrackList } from "../components/library";
 import { Cover } from "../components/cover";
+import { AlbumGrid, Empty, PageHeader, Section, TrackList } from "../components/library";
 import { length, plural, quality } from "../lib/format";
 import { player } from "../lib/player";
 import { navigate } from "../lib/router";
@@ -7,7 +7,15 @@ import { api } from "../lib/subsonic";
 import type { Album, Artist, ArtistInfo, Playlist, Song } from "../lib/types";
 import { useQuery } from "../lib/use-query";
 
-function Hero({ cover, kind, title, children, onPlay, onShuffle, onQueue }: {
+function Hero({
+  cover,
+  kind,
+  title,
+  children,
+  onPlay,
+  onShuffle,
+  onQueue,
+}: {
   cover?: string;
   kind: string;
   title: string;
@@ -62,7 +70,9 @@ export function AlbumPage({ id }: { id: string }) {
           {album.artist}
         </a>
         <span className="muted">
-          {[album.year, plural(songs.length, "track"), length(album.duration), first ? quality(first.suffix, first.bitRate) : ""].filter(Boolean).join(" · ")}
+          {[album.year, plural(songs.length, "track"), length(album.duration), first ? quality(first.suffix, first.bitRate) : ""]
+            .filter(Boolean)
+            .join(" · ")}
         </span>
         {(genres.length > 0 || album.recordLabels?.length) && (
           <span className="hero-tags">
@@ -80,9 +90,20 @@ export function AlbumPage({ id }: { id: string }) {
         )}
       </Hero>
       <div className="content">
-        <TrackList songs={songs} showAlbum={false} showArtist={songs.some((song) => song.artist !== album.artist)} numbered="track" asAlbum />
+        <TrackList
+          songs={songs}
+          showAlbum={false}
+          showArtist={songs.some((song) => song.artist !== album.artist)}
+          numbered="track"
+          asAlbum
+        />
         {album.musicBrainzId && (
-          <a className="muted small external" href={`https://musicbrainz.org/release/${album.musicBrainzId}`} target="_blank" rel="noreferrer">
+          <a
+            className="muted small external"
+            href={`https://musicbrainz.org/release/${album.musicBrainzId}`}
+            target="_blank"
+            rel="noreferrer"
+          >
             musicbrainz ↗
           </a>
         )}
@@ -106,7 +127,11 @@ export function ArtistPage({ id }: { id: string }) {
 
   async function everything(shuffle: boolean): Promise<void> {
     const full = await Promise.all(albums.map((album) => api<{ album: Album }>("getAlbum", { id: album.id })));
-    player.play(full.flatMap((response) => response.album.song ?? []), 0, { shuffle });
+    player.play(
+      full.flatMap((response) => response.album.song ?? []),
+      0,
+      { shuffle },
+    );
   }
 
   return (
@@ -117,7 +142,11 @@ export function ArtistPage({ id }: { id: string }) {
         title={artist.name}
         onPlay={() => void everything(false)}
         onShuffle={() => void everything(true)}
-        onQueue={() => void Promise.all(albums.map((album) => api<{ album: Album }>("getAlbum", { id: album.id }))).then((full) => player.addToQueue(full.flatMap((r) => r.album.song ?? [])))}
+        onQueue={() =>
+          void Promise.all(albums.map((album) => api<{ album: Album }>("getAlbum", { id: album.id }))).then((full) =>
+            player.addToQueue(full.flatMap((r) => r.album.song ?? [])),
+          )
+        }
       >
         <span className="muted">{plural(albums.length, "album")}</span>
         {bio && <p className="bio">{bio}</p>}
@@ -138,7 +167,9 @@ export function ArtistPage({ id }: { id: string }) {
 
 export function GenrePage({ name }: { name: string }) {
   const { data } = useQuery(`genre:${name}`, () =>
-    api<{ albumList2: { album?: Album[] } }>("getAlbumList2", { type: "byGenre", genre: name, size: 200 }).then((response) => response.albumList2.album ?? []),
+    api<{ albumList2: { album?: Album[] } }>("getAlbumList2", { type: "byGenre", genre: name, size: 200 }).then(
+      (response) => response.albumList2.album ?? [],
+    ),
   );
   return (
     <>

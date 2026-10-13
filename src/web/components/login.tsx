@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { type FormEvent, useState } from "react";
 import { login } from "../lib/subsonic";
 
 export function Login({ onDone }: { onDone: () => void }) {
@@ -35,7 +35,13 @@ export function Login({ onDone }: { onDone: () => void }) {
         </label>
         <label>
           <span>password</span>
-          <input type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} required />
+          <input
+            type="password"
+            autoComplete="current-password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            required
+          />
         </label>
         {error && <p className="level-crit small">{error}</p>}
         <button type="submit" className="button primary" disabled={busy}>

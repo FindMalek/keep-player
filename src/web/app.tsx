@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Login } from "./components/login";
-import { PlayerBar, type Panel } from "./components/player-bar";
+import { type Panel, PlayerBar } from "./components/player-bar";
 import { SearchPalette } from "./components/search-palette";
 import { LyricsPanel, QueuePanel } from "./components/side-panels";
 import { Sidebar } from "./components/sidebar";
