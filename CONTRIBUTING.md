@@ -22,6 +22,20 @@ CI runs the same steps on every PR, and `main` only takes green PRs.
 | `bun run size` | production bundle vs the gzip budget in `scripts/bundle-size.ts` |
 | `bun run check` | everything except e2e |
 
+## UI components
+
+The UI is shadcn/ui on Base UI (style `base-lyra`) plus the [audiocn](https://audiocn.dev) registry. Never hand-roll
+something the registries have:
+
+```sh
+bunx shadcn add tooltip            # shadcn component -> src/web/components/ui/
+bunx shadcn add @audiocn/waveform  # audiocn component, hooks -> src/web/hooks/, helpers -> src/web/lib/audio/
+```
+
+Those three folders are vendored: Biome skips them, and changes there should be small and on purpose (re-adding a
+component overwrites them). App code composes them in `src/web/components/`. Tailwind v4 runs through
+`bun-plugin-tailwind` (`bunfig.toml` for dev, `scripts/build.ts` for the production executable).
+
 ## Rules
 
 - One issue, one PR. Branch with `gh issue develop <n> --checkout`, PR body says `Closes #<n>`.

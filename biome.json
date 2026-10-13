@@ -6,7 +6,7 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": ["**", "!docs/**/*.png", "!bun.lock"]
+    "includes": ["**", "!docs/**/*.png", "!bun.lock", "!src/web/components/ui", "!src/web/hooks", "!src/web/lib/audio"]
   },
   "formatter": {
     "indentStyle": "space",
