@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { player } from "../lib/player";
-import { go } from "../lib/router";
-import { api } from "../lib/subsonic";
-import type { Album, Artist, Song } from "../lib/types";
+import { useEffect, useState } from "react";
+import { Command, CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { player } from "@/lib/player";
+import { go } from "@/lib/router";
+import { api } from "@/lib/subsonic";
+import type { Album, Artist, Song } from "@/lib/types";
 import { Cover } from "./cover";
 
 interface Results {
@@ -11,23 +12,22 @@ interface Results {
   song?: Song[];
 }
 
-interface Item {
-  key: string;
-  kind: "artist" | "album" | "song";
-  title: string;
-  sub: string;
-  cover?: string;
-  run: () => void;
+function Row({ cover, title, sub }: { cover?: string; title: string; sub: string }) {
+  return (
+    <>
+      <Cover id={cover} size={32} className="size-8 shrink-0" />
+      <span className="flex min-w-0 flex-col">
+        <span className="truncate text-[13px]">{title}</span>
+        <span className="truncate text-muted-foreground text-xs">{sub}</span>
+      </span>
+    </>
+  );
 }
 
-/** ⌘K: type to search the whole library; ↑↓ to move, enter to open or play, esc to close. */
-export function SearchPalette({ onClose }: { onClose: () => void }) {
+/** ⌘K: search the whole library; ↑↓ to move, enter to open or play, esc to close. Results come from the server, unfiltered here. */
+export function SearchPalette({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const [text, setText] = useState("");
   const [results, setResults] = useState<Results>({});
-  const [selected, setSelected] = useState(0);
-  const input = useRef<HTMLInputElement>(null);
-
-  useEffect(() => input.current?.focus(), []);
 
   useEffect(() => {
     const query = text.trim();
@@ -39,9 +39,7 @@ export function SearchPalette({ onClose }: { onClose: () => void }) {
     const id = setTimeout(() => {
       api<{ searchResult3: Results }>("search3", { query, artistCount: 4, albumCount: 6, songCount: 8 })
         .then((response) => {
-          if (cancelled) return;
-          setResults(response.searchResult3);
-          setSelected(0);
+          if (!cancelled) setResults(response.searchResult3);
         })
         .catch(() => undefined);
     }, 120);
@@ -51,79 +49,55 @@ export function SearchPalette({ onClose }: { onClose: () => void }) {
     };
   }, [text]);
 
-  const items = useMemo<Item[]>(() => {
-    const close = (fn: () => void) => () => {
-      fn();
-      onClose();
-    };
-    return [
-      ...(results.artist ?? []).map((artist) => ({
-        key: `ar-${artist.id}`,
-        kind: "artist" as const,
-        title: artist.name,
-        sub: `${artist.albumCount ?? 0} albums`,
-        cover: artist.coverArt,
-        run: close(() => go(`/artist/${artist.id}`)),
-      })),
-      ...(results.album ?? []).map((album) => ({
-        key: `al-${album.id}`,
-        kind: "album" as const,
-        title: album.name,
-        sub: `${album.artist ?? ""}${album.year ? ` · ${album.year}` : ""}`,
-        cover: album.coverArt,
-        run: close(() => go(`/album/${album.id}`)),
-      })),
-      ...(results.song ?? []).map((song, index, songs) => ({
-        key: `so-${song.id}`,
-        kind: "song" as const,
-        title: song.title,
-        sub: `${song.artist ?? ""} · ${song.album ?? ""}`,
-        cover: song.coverArt,
-        run: close(() => player.play(songs, index)),
-      })),
-    ];
-  }, [results, onClose]);
+  const run = (action: () => void) => () => {
+    action();
+    onOpenChange(false);
+  };
+  const songs = results.song ?? [];
 
   return (
-    <div className="palette-backdrop" onMouseDown={onClose}>
-      <div className="palette" role="dialog" aria-label="search" onMouseDown={(event) => event.stopPropagation()}>
-        <input
-          ref={input}
-          className="palette-input"
-          placeholder="search artists, albums, songs"
-          value={text}
-          onChange={(event) => setText(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Escape") onClose();
-            if (event.key === "ArrowDown") {
-              event.preventDefault();
-              setSelected((value) => Math.min(items.length - 1, value + 1));
-            }
-            if (event.key === "ArrowUp") {
-              event.preventDefault();
-              setSelected((value) => Math.max(0, value - 1));
-            }
-            if (event.key === "Enter") items[selected]?.run();
-          }}
-        />
+    <CommandDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title="search"
+      description="search artists, albums and songs"
+      className="sm:max-w-[640px]"
+    >
+      <Command shouldFilter={false}>
+        <CommandInput placeholder="search artists, albums, songs" value={text} onValueChange={setText} className="h-11 font-mono text-sm" />
         {text.trim() && (
-          <ul className="palette-results" role="listbox">
-            {items.length === 0 && <li className="palette-empty">no matches</li>}
-            {items.map((item, index) => (
-              <li key={item.key} role="option" aria-selected={index === selected}>
-                <button type="button" className="palette-item" onMouseEnter={() => setSelected(index)} onClick={item.run}>
-                  <Cover id={item.cover} size={32} />
-                  <span className="palette-text">
-                    <span className="ellipsis">{item.title}</span>
-                    <span className="ellipsis muted small">{item.sub}</span>
-                  </span>
-                  <span className="chip">{item.kind}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
+          <CommandList className="max-h-[56vh]">
+            <CommandEmpty className="font-mono text-faint">no matches</CommandEmpty>
+            {(results.artist?.length ?? 0) > 0 && (
+              <CommandGroup heading="artists">
+                {results.artist?.map((artist) => (
+                  <CommandItem key={artist.id} value={`ar-${artist.id}`} onSelect={run(() => go(`/artist/${artist.id}`))}>
+                    <Row cover={artist.coverArt} title={artist.name} sub={`${artist.albumCount ?? 0} albums`} />
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
+            {(results.album?.length ?? 0) > 0 && (
+              <CommandGroup heading="albums">
+                {results.album?.map((album) => (
+                  <CommandItem key={album.id} value={`al-${album.id}`} onSelect={run(() => go(`/album/${album.id}`))}>
+                    <Row cover={album.coverArt} title={album.name} sub={`${album.artist ?? ""}${album.year ? ` · ${album.year}` : ""}`} />
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
+            {songs.length > 0 && (
+              <CommandGroup heading="songs">
+                {songs.map((song, index) => (
+                  <CommandItem key={song.id} value={`so-${song.id}`} onSelect={run(() => player.play(songs, index))}>
+                    <Row cover={song.coverArt} title={song.title} sub={`${song.artist ?? ""} · ${song.album ?? ""}`} />
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
+          </CommandList>
         )}
-      </div>
-    </div>
+      </Command>
+    </CommandDialog>
   );
 }

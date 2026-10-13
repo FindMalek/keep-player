@@ -1,64 +1,59 @@
-import { type KeyboardEvent, type PointerEvent, useRef, useState } from "react";
-import { clock, quality } from "../lib/format";
-import { currentSong, player, usePlayer } from "../lib/player";
-import { navigate } from "../lib/router";
+import {
+  ListMusicIcon,
+  MicVocalIcon,
+  PauseIcon,
+  PlayIcon,
+  Repeat1Icon,
+  RepeatIcon,
+  ShuffleIcon,
+  SkipBackIcon,
+  SkipForwardIcon,
+  Volume2Icon,
+  VolumeXIcon,
+} from "lucide-react";
+import { type ComponentProps, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
+import { clock, quality } from "@/lib/format";
+import { currentSong, player, usePlayer } from "@/lib/player";
+import { cn } from "@/lib/utils";
 import { Cover } from "./cover";
-import { Lyrics, Next, Pause, Play, Previous, Queue, Repeat, Shuffle, Volume } from "./icons";
+import { Link } from "./link";
 
 export type Panel = "queue" | "lyrics" | null;
 
-/** A horizontal slider drawn as a flat bar; drag or click anywhere on it, arrow keys nudge it. */
-function Slider({
-  value,
-  max,
-  onChange,
-  label,
-  step,
-}: {
-  value: number;
-  max: number;
-  onChange: (value: number) => void;
-  label: string;
-  step: number;
-}) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [dragging, setDragging] = useState<number | null>(null);
-  const shown = dragging ?? value;
-
-  const valueAt = (event: PointerEvent<HTMLDivElement>): number => {
-    const rect = ref.current?.getBoundingClientRect();
-    if (!rect || !max) return 0;
-    return Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width)) * max;
-  };
-
+/** Ghost icon button; `on` adds the small square under it that marks an active mode. */
+function ToolButton({ on, className, ...props }: ComponentProps<typeof Button> & { on?: boolean }) {
   return (
-    <div
-      ref={ref}
-      className="slider"
-      role="slider"
-      tabIndex={0}
-      aria-label={label}
-      aria-valuemin={0}
-      aria-valuemax={max}
-      aria-valuenow={Math.round(shown)}
-      onPointerDown={(event) => {
-        event.currentTarget.setPointerCapture(event.pointerId);
-        setDragging(valueAt(event));
-      }}
-      onPointerMove={(event) => dragging !== null && setDragging(valueAt(event))}
-      onPointerUp={(event) => {
-        if (dragging !== null) onChange(valueAt(event));
+    <Button
+      variant="ghost"
+      size="icon"
+      className={cn(
+        "relative text-muted-foreground hover:text-foreground",
+        on && "text-foreground after:absolute after:bottom-0.5 after:left-1/2 after:size-1 after:-translate-x-1/2 after:bg-foreground",
+        className,
+      )}
+      {...props}
+    />
+  );
+}
+
+/** Seek bar that follows playback but holds the dragged value until release. */
+function Seek({ position, duration }: { position: number; duration: number }) {
+  const [dragging, setDragging] = useState<number | null>(null);
+  return (
+    <Slider
+      aria-label="seek"
+      className="w-full"
+      max={Math.max(duration, 1)}
+      step={1}
+      value={[dragging ?? position]}
+      onValueChange={(value) => setDragging(Array.isArray(value) ? (value[0] ?? 0) : value)}
+      onValueCommitted={(value) => {
+        player.seek(Array.isArray(value) ? (value[0] ?? 0) : value);
         setDragging(null);
       }}
-      onKeyDown={(event: KeyboardEvent) => {
-        if (event.key === "ArrowRight") onChange(Math.min(max, value + step));
-        if (event.key === "ArrowLeft") onChange(Math.max(0, value - step));
-      }}
-    >
-      <div className="slider-track">
-        <div className="slider-fill" style={{ width: `${max ? (shown / max) * 100 : 0}%` }} />
-      </div>
-    </div>
+    />
   );
 }
 
@@ -68,95 +63,69 @@ export function PlayerBar({ panel, onPanel }: { panel: Panel; onPanel: (panel: P
   if (!song) return null;
 
   return (
-    <footer className="player-bar">
-      <div className="now">
-        <Cover id={song.coverArt} size={42} className="now-cover" />
-        <div className="now-text">
-          <a className="now-title" href={song.albumId ? `/album/${song.albumId}` : "#"} onClick={navigate}>
-            {song.title}
-          </a>
-          <a className="now-artist muted" href={song.artistId ? `/artist/${song.artistId}` : "#"} onClick={navigate}>
-            {song.artist}
-          </a>
+    <footer className="grid h-16 shrink-0 grid-cols-[minmax(0,1fr)_minmax(320px,1.4fr)_minmax(0,1fr)] items-center gap-4 border-t bg-background px-3.5">
+      <div className="flex min-w-0 items-center gap-3">
+        <Cover id={song.coverArt} size={42} className="size-[42px] shrink-0" />
+        <div className="flex min-w-0 flex-col">
+          {song.albumId && (
+            <Link href={`/album/${song.albumId}`} className="truncate font-medium underline-offset-3 hover:underline">
+              {song.title}
+            </Link>
+          )}
+          {song.artistId && (
+            <Link href={`/artist/${song.artistId}`} className="truncate text-muted-foreground text-xs underline-offset-3 hover:underline">
+              {song.artist}
+            </Link>
+          )}
         </div>
       </div>
 
-      <div className="transport">
-        <div className="controls">
-          <button
-            type="button"
-            className={`icon-button${state.shuffle ? " on" : ""}`}
-            onClick={player.toggleShuffle}
-            aria-label="shuffle"
-            aria-pressed={state.shuffle}
-            title="shuffle (s)"
-          >
-            <Shuffle />
-          </button>
-          <button type="button" className="icon-button" onClick={player.previous} aria-label="previous" title="previous (shift ←)">
-            <Previous />
-          </button>
-          <button
-            type="button"
-            className="play-button"
-            onClick={() => player.toggle()}
-            aria-label={state.playing ? "pause" : "play"}
-            title="play / pause (space)"
-          >
-            {state.playing ? <Pause size={14} /> : <Play size={14} />}
-          </button>
-          <button type="button" className="icon-button" onClick={player.next} aria-label="next" title="next (shift →)">
-            <Next />
-          </button>
-          <button
-            type="button"
-            className={`icon-button${state.repeat !== "off" ? " on" : ""}`}
-            onClick={player.cycleRepeat}
-            aria-label={`repeat ${state.repeat}`}
-            title={`repeat: ${state.repeat} (r)`}
-          >
-            <Repeat one={state.repeat === "one"} />
-          </button>
+      <div className="flex flex-col gap-0.5">
+        <div className="flex items-center justify-center gap-2.5">
+          <ToolButton on={state.shuffle} onClick={player.toggleShuffle} aria-label="shuffle" aria-pressed={state.shuffle}>
+            <ShuffleIcon />
+          </ToolButton>
+          <ToolButton onClick={player.previous} aria-label="previous">
+            <SkipBackIcon className="fill-current" />
+          </ToolButton>
+          <Button size="icon" onClick={() => player.toggle()} aria-label={state.playing ? "pause" : "play"}>
+            {state.playing ? <PauseIcon className="fill-current" /> : <PlayIcon className="fill-current" />}
+          </Button>
+          <ToolButton onClick={player.next} aria-label="next">
+            <SkipForwardIcon className="fill-current" />
+          </ToolButton>
+          <ToolButton on={state.repeat !== "off"} onClick={player.cycleRepeat} aria-label={`repeat ${state.repeat}`}>
+            {state.repeat === "one" ? <Repeat1Icon /> : <RepeatIcon />}
+          </ToolButton>
         </div>
-        <div className="seek">
-          <span className="num muted">{clock(state.position)}</span>
-          <Slider value={state.position} max={state.duration} onChange={player.seek} label="seek" step={5} />
-          <span className="num muted">{clock(state.duration)}</span>
+        <div className="grid grid-cols-[44px_minmax(0,1fr)_44px] items-center gap-2.5 font-mono text-[11px] text-muted-foreground tabular-nums">
+          <span className="text-right">{clock(state.position)}</span>
+          <Seek position={state.position} duration={state.duration} />
+          <span>{clock(state.duration)}</span>
         </div>
       </div>
 
-      <div className="extras">
-        <span className="quality muted">{state.buffering ? "loading…" : (state.error ?? quality(song.suffix, song.bitRate))}</span>
-        <button
-          type="button"
-          className={`icon-button${panel === "lyrics" ? " on" : ""}`}
-          onClick={() => onPanel(panel === "lyrics" ? null : "lyrics")}
-          aria-label="lyrics"
-          title="lyrics (l)"
-        >
-          <Lyrics />
-        </button>
-        <button
-          type="button"
-          className={`icon-button${panel === "queue" ? " on" : ""}`}
-          onClick={() => onPanel(panel === "queue" ? null : "queue")}
-          aria-label="queue"
-          title="queue (q)"
-        >
-          <Queue />
-        </button>
-        <button
-          type="button"
-          className="icon-button"
-          onClick={player.toggleMute}
-          aria-label={state.muted ? "unmute" : "mute"}
-          title="mute (m)"
-        >
-          <Volume muted={state.muted || state.volume === 0} />
-        </button>
-        <div className="volume">
-          <Slider value={state.muted ? 0 : state.volume} max={1} onChange={player.setVolume} label="volume" step={0.05} />
-        </div>
+      <div className="flex min-w-0 items-center justify-end gap-1">
+        <span className="mr-2 truncate font-mono text-[11px] text-muted-foreground">
+          {state.buffering ? "loading…" : (state.error ?? quality(song.suffix, song.bitRate))}
+        </span>
+        <ToolButton on={panel === "lyrics"} onClick={() => onPanel(panel === "lyrics" ? null : "lyrics")} aria-label="lyrics">
+          <MicVocalIcon />
+        </ToolButton>
+        <ToolButton on={panel === "queue"} onClick={() => onPanel(panel === "queue" ? null : "queue")} aria-label="queue">
+          <ListMusicIcon />
+        </ToolButton>
+        <ToolButton onClick={player.toggleMute} aria-label={state.muted ? "unmute" : "mute"}>
+          {state.muted || state.volume === 0 ? <VolumeXIcon /> : <Volume2Icon />}
+        </ToolButton>
+        <Slider
+          aria-label="volume"
+          className="w-24"
+          max={1}
+          step={0.01}
+          value={[state.muted ? 0 : state.volume]}
+          onValueChange={(value) => player.setVolume(Array.isArray(value) ? (value[0] ?? 0) : value)}
+        />
       </div>
     </footer>
   );

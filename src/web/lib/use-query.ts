@@ -16,6 +16,8 @@ export function useQuery<T>(key: string | null, load: () => Promise<T>): Query<T
   const [loading, setLoading] = useState(false);
   const [version, setVersion] = useState(0);
 
+  // `load` is a fresh closure every render; `key` is what identifies the request. Replaced by TanStack Query in #18.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: see above
   useEffect(() => {
     if (!key) return;
     let cancelled = false;
