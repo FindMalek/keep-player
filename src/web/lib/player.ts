@@ -416,7 +416,12 @@ function queued(next: Q.Queue, where: string): void {
   if (!added.length) return;
   notify({
     message: `added ${added.length === 1 ? (added[0] as Q.Entry).song.title : `${added.length} songs`} ${where}`,
-    action: { label: "undo", onClick: () => added.forEach((entry) => player.remove(entry)) },
+    action: {
+      label: "undo",
+      onClick: () => {
+        for (const entry of added) player.remove(entry);
+      },
+    },
   });
 }
 
