@@ -326,11 +326,40 @@ function handle(endpoint: string, params: Params, request: Request): Response {
   }
 }
 
+/**
+ * A tiny LRCLIB at /lrclib: synced lyrics for songs Navidrome has none for, when their number is even (so some are
+ * found there and some aren't anywhere).
+ */
+function lrclib(url: URL): Response {
+  if (url.pathname === "/lrclib/api/get") return new Response("not found", { status: 404 });
+  if (url.pathname !== "/lrclib/api/search") return new Response("not found", { status: 404 });
+  const title = url.searchParams.get("track_name") ?? "";
+  const song = library.songs.find(
+    (candidate) => candidate.title === title && !library.lyrics.has(candidate.id) && Number(candidate.id.slice(3)) % 2 === 0,
+  );
+  if (!song) return Response.json([]);
+  const synced = Array.from({ length: 12 }, (_, i) => `[00:${String(i * 4).padStart(2, "0")}.00]${song.title} from lrclib ${i + 1}`).join(
+    "\n",
+  );
+  return Response.json([
+    {
+      id: Number(song.id.slice(3)),
+      trackName: song.title,
+      artistName: song.artist,
+      duration: song.duration,
+      instrumental: false,
+      plainLyrics: null,
+      syncedLyrics: synced,
+    },
+  ]);
+}
+
 const server = Bun.serve({
   port: PORT,
   idleTimeout: 0,
   async fetch(request) {
     const url = new URL(request.url);
+    if (url.pathname.startsWith("/lrclib/")) return lrclib(url);
     const match = /^\/rest\/(\w+?)(?:\.view)?$/.exec(url.pathname);
     if (!match?.[1]) return new Response("not found", { status: 404 });
     const params = new URLSearchParams(url.search);

@@ -1,4 +1,10 @@
-import type { Album, Artist, Playlist, Song, StructuredLyrics } from "../../src/web/lib/types";
+import type { Album, Artist, Playlist, Song } from "../../src/web/lib/types";
+
+/** Navidrome's getLyricsBySongId shape. */
+export interface StructuredLyrics {
+  synced: boolean;
+  line: { start?: number; value: string }[];
+}
 
 /** Deterministic fake library, so e2e runs and perf budgets see the same data every time. */
 export interface Library {

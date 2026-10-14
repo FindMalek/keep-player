@@ -1,6 +1,8 @@
 import { afterAll, expect, test } from "bun:test";
 import { createApi } from "./api";
 import { CoverCache } from "./covers";
+import { openLibraryDb } from "./db";
+import { LyricsService } from "./lyrics";
 import { LoginLimiter } from "./rate-limit";
 import { SessionStore } from "./sessions";
 
@@ -18,6 +20,7 @@ afterAll(() => upstream.stop());
 const sessions = new SessionStore(":memory:", "secret", 60_000);
 const api = createApi({
   upstreams: [{ id: "default", url: `http://127.0.0.1:${upstream.port}` }],
+  lyrics: new LyricsService(openLibraryDb(":memory:"), ""),
   covers: new CoverCache(`${process.env.TMPDIR ?? "/tmp"}/kp-covers-${crypto.randomUUID()}`, 1_000_000),
   sessions,
   limiter: new LoginLimiter(),

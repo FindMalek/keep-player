@@ -89,13 +89,3 @@ export interface Directory {
   parent?: string;
   child?: DirectoryChild[];
 }
-
-export interface LyricLine {
-  start?: number;
-  value: string;
-}
-
-export interface StructuredLyrics {
-  synced: boolean;
-  line: LyricLine[];
-}

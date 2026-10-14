@@ -49,6 +49,13 @@ export const config = {
   sessionIdleDays: Number(process.env.SESSION_IDLE_DAYS ?? 30),
   /** Disk space for resized covers (`$DATA_DIR/covers`), least recently used deleted first. */
   coverCacheMb: Number(process.env.COVER_CACHE_MB ?? 1024),
+  /** Where missing lyrics are looked up; empty turns LRCLIB off. */
+  lrclibUrl: (process.env.LRCLIB_URL ?? "https://lrclib.net").replace(/\/+$/, ""),
+  /** Walk the library in the background to fetch lyrics nobody opened yet ("off" to disable). */
+  lyricsBackfill: (process.env.LYRICS_BACKFILL ?? "on") !== "off",
+  /** Navidrome account for background jobs; without one, the most recently active admin's session is used. */
+  indexUser: process.env.INDEX_USER,
+  indexPassword: process.env.INDEX_PASSWORD,
   /** Behind a reverse proxy, client IPs come from X-Real-IP / X-Forwarded-For (used for login rate limits). */
   trustProxy: ["1", "true", "yes"].includes((process.env.TRUST_PROXY ?? "").toLowerCase()),
 };

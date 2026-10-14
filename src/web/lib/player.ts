@@ -4,6 +4,7 @@ import type { FrameSource } from "./audio/types";
 import { Decks } from "./decks";
 import { notify } from "./notify";
 import { pausePrecache, precache } from "./offline";
+import { queries, queryClient } from "./queries";
 import * as Q from "./queue";
 import { api, coverUrl, onAccountChange, preloadCover, scrobble, streamUrl } from "./subsonic";
 import type { Song } from "./types";
@@ -331,6 +332,8 @@ function started(song: Song | undefined): void {
   persist();
   if (song) scrobble(song.id, false);
   preloadNext();
+  // Lyrics for the next two songs, so the panel is ready when they start.
+  for (const next of Q.peekUpcoming(state.queue, 2)) void queryClient.prefetchQuery(queries.lyrics(next.id));
 }
 
 /** Load the queue's current song; plays it when `autoplay`. A song already preloaded starts instantly. */

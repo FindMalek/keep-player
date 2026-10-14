@@ -1,8 +1,9 @@
 import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
 import { infiniteQueryOptions, type Query, QueryClient, queryOptions } from "@tanstack/react-query";
 import { del, get, set } from "idb-keyval";
+import type { Lyrics } from "../../shared/lyrics";
 import { api, onAccountChange } from "./subsonic";
-import type { Album, Artist, ArtistInfo, Directory, Genre, Playlist, Song, StructuredLyrics } from "./types";
+import type { Album, Artist, ArtistInfo, Directory, Genre, Playlist, Song } from "./types";
 
 const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
@@ -163,11 +164,13 @@ export const queries = {
   lyrics: (songId: string) =>
     queryOptions({
       queryKey: ["lyrics", songId],
-      queryFn: () =>
-        api<{ lyricsList?: { structuredLyrics?: StructuredLyrics[] } }>("getLyricsBySongId", { id: songId }).then(
-          (response) => response.lyricsList?.structuredLyrics ?? [],
-        ),
-      staleTime: Number.POSITIVE_INFINITY,
+      queryFn: async (): Promise<Lyrics> => {
+        const response = await fetch(`/api/lyrics/${encodeURIComponent(songId)}`, { headers: { "x-keep-player": "1" } });
+        if (!response.ok) throw new Error(`lyrics: ${response.status}`);
+        return (await response.json()) as Lyrics;
+      },
+      // Found lyrics never change; "missing" is worth asking again in a day (LRCLIB keeps growing).
+      staleTime: (query) => (query.state.data?.status === "missing" ? 86_400_000 : Number.POSITIVE_INFINITY),
     }),
   search: (query: string) =>
     queryOptions({

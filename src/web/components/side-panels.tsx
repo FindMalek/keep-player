@@ -273,33 +273,48 @@ export function QueuePanel({ onClose }: { onClose: () => void }) {
   );
 }
 
+/** Index of the line playing at `ms` (the last one that has started), by binary search. */
+export function activeLine(lines: { start: number }[], ms: number): number {
+  let low = 0;
+  let high = lines.length - 1;
+  let found = -1;
+  while (low <= high) {
+    const middle = (low + high) >> 1;
+    if ((lines[middle]?.start ?? 0) <= ms) {
+      found = middle;
+      low = middle + 1;
+    } else high = middle - 1;
+  }
+  return found;
+}
+
 export function LyricsPanel({ onClose }: { onClose: () => void }) {
   const song = usePlayer(currentSong);
-  const { data, isPending: loading } = useQuery({ ...queries.lyrics(song?.id ?? ""), enabled: Boolean(song) });
-  const lyrics = useMemo(() => {
-    const all = data ?? [];
-    return all.find((entry) => entry.synced) ?? all[0];
-  }, [data]);
+  const { data: lyrics, isPending: loading } = useQuery({ ...queries.lyrics(song?.id ?? ""), enabled: Boolean(song) });
+  const synced = lyrics?.status === "synced" ? lyrics.lines : null;
 
   // Re-renders only when the active line changes, not every frame.
-  const active = usePosition((seconds) => (lyrics?.synced ? lyrics.line.findLastIndex((line) => (line.start ?? 0) <= seconds * 1000) : -1));
+  const active = usePosition((seconds) => (synced ? activeLine(synced, seconds * 1000) : -1));
   const activeRef = useRef<HTMLButtonElement>(null);
   // biome-ignore lint/correctness/useExhaustiveDependencies: scroll only when the active line changes
   useEffect(() => {
     activeRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
   }, [active]);
 
+  const meta = lyrics && lyrics.status !== "missing" ? `${lyrics.status}${lyrics.source === "lrclib" ? " · lrclib" : ""}` : undefined;
   return (
-    <PanelFrame title="lyrics" meta={lyrics ? (lyrics.synced ? "synced" : "plain") : undefined} onClose={onClose}>
+    <PanelFrame title="lyrics" meta={meta} onClose={onClose}>
       {!song ? (
         <EmptyState>nothing playing</EmptyState>
-      ) : loading && !lyrics ? (
+      ) : loading ? (
         <EmptyState>loading…</EmptyState>
-      ) : !lyrics?.line.length ? (
+      ) : lyrics?.status === "instrumental" ? (
+        <EmptyState>instrumental</EmptyState>
+      ) : !lyrics?.lines.length ? (
         <EmptyState>no lyrics for this track</EmptyState>
-      ) : lyrics.synced ? (
+      ) : synced ? (
         <div className="flex flex-col gap-1.5 px-2 py-3 font-medium text-[17px] leading-[1.35] tracking-tight">
-          {lyrics.line.map((line, index) => (
+          {synced.map((line, index) => (
             <button
               type="button"
               // Lines repeat (choruses), so the index is the identity.
@@ -311,17 +326,17 @@ export function LyricsPanel({ onClose }: { onClose: () => void }) {
                 index < active && "text-muted-foreground",
                 index === active && "text-foreground",
               )}
-              onClick={() => line.start !== undefined && player.seek(line.start / 1000)}
+              onClick={() => player.seek(line.start / 1000)}
             >
-              {line.value || " "}
+              {line.text || " "}
             </button>
           ))}
         </div>
       ) : (
         <div className="flex flex-col gap-1.5 px-2 py-3 font-medium text-[17px] leading-[1.35] tracking-tight">
-          {lyrics.line.map((line, index) => (
+          {lyrics.lines.map((line, index) => (
             // biome-ignore lint/suspicious/noArrayIndexKey: plain lyrics have no ids and repeat
-            <p key={index}>{line.value || " "}</p>
+            <p key={index}>{line.text || " "}</p>
           ))}
         </div>
       )}

@@ -1,8 +1,11 @@
 import { join } from "node:path";
 import { createApi } from "./server/api";
+import { LyricsBackfill, serviceAccount } from "./server/backfill";
 import { config } from "./server/config";
 import { CoverCache } from "./server/covers";
+import { openLibraryDb } from "./server/db";
 import { font } from "./server/fonts";
+import { LyricsService } from "./server/lyrics";
 import { LoginLimiter } from "./server/rate-limit";
 import { SessionStore } from "./server/sessions";
 
@@ -13,15 +16,27 @@ const idleSeconds = config.sessionIdleDays * 86_400;
 const sessions = new SessionStore(join(config.dataDir, "sessions.db"), config.sessionSecret, idleSeconds * 1000);
 setInterval(() => sessions.purgeIdle(), 3_600_000).unref();
 
+const library = openLibraryDb(join(config.dataDir, "library.db"));
+const lyrics = new LyricsService(library, config.lrclibUrl);
 const covers = new CoverCache(join(config.dataDir, "covers"), config.coverCacheMb * 1024 * 1024);
 const api = createApi({
   upstreams: config.upstreams,
   covers,
+  lyrics,
   sessions,
   limiter: new LoginLimiter(),
   idleSeconds,
   trustProxy: config.trustProxy,
 });
+
+if (config.lyricsBackfill && config.lrclibUrl)
+  for (const upstream of config.upstreams)
+    new LyricsBackfill(
+      library,
+      lyrics,
+      upstream,
+      serviceAccount(sessions, upstream, { user: config.indexUser, password: config.indexPassword }),
+    ).start();
 
 const server = Bun.serve({
   port: config.port,
@@ -37,6 +52,7 @@ const server = Bun.serve({
     "/auth/sessions/:id": { DELETE: api.revokeSession },
     "/rest/*": api.proxy,
     "/cover/:id/:size": api.cover,
+    "/api/lyrics/:songId": { GET: api.songLyrics },
     "/fonts/:name": font,
     ...webRoutes,
   },

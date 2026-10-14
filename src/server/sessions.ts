@@ -35,6 +35,9 @@ export class SessionStore {
     this.db.run(
       "create table if not exists sessions (hash text primary key, server text not null, user text not null, secret blob not null, created integer not null, seen integer not null, agent text not null default '')",
     );
+    // Added later: whether the user is a Navidrome admin (their session can run background jobs).
+    if (!this.db.query("select 1 from pragma_table_info('sessions') where name = 'admin'").get())
+      this.db.run("alter table sessions add column admin integer not null default 0");
     this.key = createHash("sha256").update(`keep-player:sessions:${secret}`).digest();
   }
 
@@ -62,7 +65,7 @@ export class SessionStore {
   }
 
   /** Returns the cookie value. */
-  create(input: { server: string; user: string; token: string; salt: string; agent: string }): string {
+  create(input: { server: string; user: string; token: string; salt: string; agent: string; admin?: boolean }): string {
     const cookie = randomBytes(32).toString("base64url");
     const time = this.now();
     this.db
@@ -76,6 +79,7 @@ export class SessionStore {
         secret: this.seal(JSON.stringify({ token: input.token, salt: input.salt })),
         time,
         agent: input.agent.slice(0, 300),
+        admin: input.admin ? 1 : 0,
       });
     return cookie;
   }
@@ -129,6 +133,17 @@ export class SessionStore {
   revoke(server: string, user: string, id: string): boolean {
     if (!/^[0-9a-f]{16}$/.test(id)) return false;
     return this.db.query("delete from sessions where server = ? and user = ? and hash like ?").run(server, user, `${id}%`).changes > 0;
+  }
+
+  /** Credentials of the most recently active admin session on `server`, for background jobs. */
+  adminCredentials(server: string): { user: string; token: string; salt: string } | null {
+    const row = this.db
+      .query<RowData, [string, number]>("select * from sessions where server = ? and admin = 1 and seen > ? order by seen desc limit 1")
+      .get(server, this.now() - this.idleMs);
+    const secret = row && this.open(row.secret);
+    if (!row || !secret) return null;
+    const { token, salt } = JSON.parse(secret) as { token: string; salt: string };
+    return { user: row.user, token, salt };
   }
 
   purgeIdle(): void {
