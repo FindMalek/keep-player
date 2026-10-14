@@ -5,7 +5,12 @@ test("your queue sits before the album, survives a reload, and saves as a playli
   const title = (await page.getByRole("heading", { level: 1 }).textContent()) ?? "";
   await page.getByRole("button", { name: "play", exact: true }).first().click();
 
-  await page.goto("/album/al-5");
+  // In-app navigation: a full reload here could race the queue's write to IndexedDB.
+  await page.evaluate(() => {
+    window.history.pushState({}, "", "/album/al-5");
+    window.dispatchEvent(new Event("keep:navigate"));
+  });
+  await expect(page.getByRole("heading", { level: 1 })).not.toHaveText(title);
   const queued = page.locator("[aria-label=tracks] tbody tr").nth(1);
   const queuedTitle = (await queued.locator("td").nth(1).locator("span").first().textContent()) ?? "";
   await queued.hover();
