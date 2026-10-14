@@ -4,6 +4,7 @@ import type { Upstream } from "./config";
 import { type CoverCache, snapCoverSize } from "./covers";
 import type { LyricsService } from "./lyrics";
 import type { LoginLimiter } from "./rate-limit";
+import type { IndexSync } from "./search-index";
 import type { SessionStore } from "./sessions";
 import { subsonic, upstreamQuery } from "./subsonic";
 
@@ -99,13 +100,15 @@ export interface ApiOptions {
   upstreams: Upstream[];
   covers: CoverCache;
   lyrics: LyricsService;
+  /** Search index sync per upstream id. */
+  indexes: Map<string, IndexSync>;
   sessions: SessionStore;
   limiter: LoginLimiter;
   idleSeconds: number;
   trustProxy: boolean;
 }
 
-export function createApi({ upstreams, covers, lyrics, sessions, limiter, idleSeconds, trustProxy }: ApiOptions) {
+export function createApi({ upstreams, covers, lyrics, indexes, sessions, limiter, idleSeconds, trustProxy }: ApiOptions) {
   const upstreamFor = (id: string) => upstreams.find((upstream) => upstream.id === id);
 
   function clientIp(request: Request, server: Server<unknown>): string {
@@ -161,7 +164,9 @@ export function createApi({ upstreams, covers, lyrics, sessions, limiter, idleSe
 
   function current(request: Request): Response {
     const session = sessions.get(cookieValue(request));
-    return session ? json({ user: session.user, server: session.server, id: session.id }) : json({ error: "signed out" }, 401);
+    return session
+      ? json({ user: session.user, server: session.server, id: session.id, admin: session.admin })
+      : json({ error: "signed out" }, 401);
   }
 
   function listSessions(request: Request): Response {
@@ -269,5 +274,18 @@ export function createApi({ upstreams, covers, lyrics, sessions, limiter, idleSe
     return json({ ok: true });
   }
 
-  return { login, logout, current, listSessions, revokeSession, proxy, cover, songLyrics, lyricsOffset };
+  /** `/api/index`: the search index's counts and last sync (GET), or a rebuild now (POST). Admins only. */
+  async function searchIndex(request: Request): Promise<Response> {
+    if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
+    const session = sessions.get(cookieValue(request));
+    if (!session) return json({ error: "signed out" }, 401);
+    if (!session.admin) return json({ error: "admins only" }, 403);
+    const index = indexes.get(session.server);
+    if (!index) return json({ error: "no index for this server" }, 404);
+    // Runs in the background; the client polls the status while `building`.
+    if (request.method === "POST") void index.rebuild().catch(() => undefined);
+    return json(index.status());
+  }
+
+  return { login, logout, current, listSessions, revokeSession, proxy, cover, songLyrics, lyricsOffset, searchIndex };
 }

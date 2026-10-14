@@ -38,6 +38,7 @@ import { Link } from "./link";
 
 // Rarely opened; keeps the dialog code out of the first load.
 const StorageDialog = lazy(() => import("./storage-dialog").then((module) => ({ default: module.StorageDialog })));
+const IndexDialog = lazy(() => import("./index-dialog").then((module) => ({ default: module.IndexDialog })));
 const SessionsDialog = lazy(() => import("./sessions-dialog").then((module) => ({ default: module.SessionsDialog })));
 
 const LIBRARY = [
@@ -131,6 +132,7 @@ function UserButton({ user, onClick }: { user: string; onClick: () => void }) {
 export function AppSidebar({ path, onSearch, onShortcuts }: { path: string; onSearch: () => void; onShortcuts: () => void }) {
   const user = useUser() ?? "";
   const [sessionsOpen, setSessionsOpen] = useState(false);
+  const [indexOpen, setIndexOpen] = useState(false);
   const [menuWanted, setMenuWanted] = useState(false);
   const [storageOpen, setStorageOpen] = useState(false);
   const { data } = useQuery(queries.playlists());
@@ -201,6 +203,7 @@ export function AppSidebar({ path, onSearch, onShortcuts }: { path: string; onSe
                 <UserMenu
                   defaultOpen={menuWanted}
                   onSessions={() => setSessionsOpen(true)}
+                  onIndex={() => setIndexOpen(true)}
                   onStorage={() => setStorageOpen(true)}
                   onShortcuts={onShortcuts}
                 />
@@ -208,6 +211,11 @@ export function AppSidebar({ path, onSearch, onShortcuts }: { path: string; onSe
               {storageOpen && (
                 <Suspense>
                   <StorageDialog open={storageOpen} onOpenChange={setStorageOpen} />
+                </Suspense>
+              )}
+              {indexOpen && (
+                <Suspense>
+                  <IndexDialog open={indexOpen} onOpenChange={setIndexOpen} />
                 </Suspense>
               )}
               {sessionsOpen && (

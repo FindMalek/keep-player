@@ -4,6 +4,7 @@ import { CoverCache } from "./covers";
 import { openLibraryDb } from "./db";
 import { LyricsService } from "./lyrics";
 import { LoginLimiter } from "./rate-limit";
+import { IndexSync } from "./search-index";
 import { SessionStore } from "./sessions";
 
 // A stand-in Navidrome that records what the proxy sent it.
@@ -18,8 +19,10 @@ const upstream = Bun.serve({
 afterAll(() => upstream.stop());
 
 const sessions = new SessionStore(":memory:", "secret", 60_000);
+const navidrome = { id: "default", url: `http://127.0.0.1:${upstream.port}` };
 const api = createApi({
-  upstreams: [{ id: "default", url: `http://127.0.0.1:${upstream.port}` }],
+  upstreams: [navidrome],
+  indexes: new Map([["default", new IndexSync(openLibraryDb(":memory:"), navidrome, () => null)]]),
   lyrics: new LyricsService(openLibraryDb(":memory:"), ""),
   covers: new CoverCache(`${process.env.TMPDIR ?? "/tmp"}/kp-covers-${crypto.randomUUID()}`, 1_000_000),
   sessions,
@@ -50,4 +53,12 @@ test("the proxy refuses unlisted endpoints, missing sessions and non-media calls
   expect((await api.proxy(new Request("http://app/rest/getAlbum?id=1", { headers: { "x-keep-player": "1" } }))).status).toBe(401);
   expect((await api.proxy(request("/rest/star?id=1"))).status).toBe(403);
   expect((await api.proxy(request("/rest/stream?id=1"))).status).toBe(200);
+});
+
+test("only admins see or rebuild the search index", async () => {
+  const csrf = { "x-keep-player": "1" };
+  expect((await api.searchIndex(request("/api/index", csrf))).status).toBe(403);
+  const admin = sessions.create({ server: "default", user: "boss", token: "t", salt: "s", agent: "", admin: true });
+  const response = await api.searchIndex(new Request("http://app/api/index", { headers: { cookie: `kp_session=${admin}`, ...csrf } }));
+  expect(await response.json()).toMatchObject({ songs: 0, lastSync: null, building: false });
 });

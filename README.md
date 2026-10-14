@@ -41,7 +41,15 @@ A small Bun server serves the app and forwards `/rest/*` to Navidrome on your in
 - **same origin**, so there's no CORS and Web Audio can apply ReplayGain to the stream;
 - `Range` headers pass through, so seeking in a FLAC is instant;
 - login happens server-side: the server turns your password into a Subsonic token (`md5(password + salt)`),
-  checks it against Navidrome and hands the browser only `{user, token, salt}`. The password is never stored.
+  checks it against Navidrome and keeps it encrypted in `$DATA_DIR/sessions.db`. The browser only gets an
+  httpOnly session cookie. The password is never stored;
+- search runs on the server's own index (`$DATA_DIR/library.db`, SQLite FTS5), which adds typo tolerance
+  ("radiohed"), missing spaces ("okcomputer") and accent folding ("beyonce") to what Navidrome's search does.
+
+The index covers the whole library, so it is built as one account: `INDEX_USER` / `INDEX_PASSWORD` if set,
+otherwise the Navidrome admin who signed in most recently. It syncs after every Navidrome scan and once a day.
+Results are always cut down to the music folders the person searching may see, so a shared server doesn't leak
+one library into another. Admins see the index under their user menu → library index, with a "rebuild now" button.
 
 Built for the desktop web. On a phone, use a native Subsonic app.
 

@@ -1,4 +1,14 @@
-import { HardDriveDownloadIcon, KeyboardIcon, LogOutIcon, MonitorIcon, MonitorSmartphoneIcon, MoonIcon, SunIcon } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import {
+  DatabaseIcon,
+  HardDriveDownloadIcon,
+  KeyboardIcon,
+  LogOutIcon,
+  MonitorIcon,
+  MonitorSmartphoneIcon,
+  MoonIcon,
+  SunIcon,
+} from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,6 +22,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { SidebarMenuButton } from "@/components/ui/sidebar";
+import { queries } from "@/lib/queries";
 import { logout, useUser } from "@/lib/subsonic";
 import { setTheme, type Theme, useTheme } from "@/lib/theme";
 
@@ -28,14 +39,17 @@ export function UserMenu({
   onSessions,
   onStorage,
   onShortcuts,
+  onIndex,
 }: {
   defaultOpen: boolean;
+  onIndex: () => void;
   onSessions: () => void;
   onStorage: () => void;
   onShortcuts: () => void;
 }) {
   const theme = useTheme();
   const user = useUser() ?? "";
+  const admin = useQuery(queries.session()).data?.admin;
   return (
     <DropdownMenu defaultOpen={defaultOpen}>
       <DropdownMenuTrigger render={<SidebarMenuButton size="sm" className="font-mono" tooltip={user} />}>
@@ -66,6 +80,12 @@ export function UserMenu({
           <HardDriveDownloadIcon />
           offline storage
         </DropdownMenuItem>
+        {admin && (
+          <DropdownMenuItem onClick={onIndex}>
+            <DatabaseIcon />
+            library index
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem onClick={onSessions}>
           <MonitorSmartphoneIcon />
           sessions
