@@ -27,6 +27,14 @@ test("synced lyrics follow the song, a click seeks, and ] nudges the timing for 
   await page.addInitScript(fakeMediaClock);
   // so-2 is album al-0's third track and has synced lyrics in Navidrome (a line every 5 s).
   await signedIn.goto("/album/al-0");
+  // The nudge is saved on the server, so a retry would start from the last run's.
+  await page.evaluate(() =>
+    fetch("/api/lyrics/so-2/offset", {
+      method: "PUT",
+      headers: { "x-keep-player": "1", "content-type": "application/json" },
+      body: JSON.stringify({ offset: 0 }),
+    }),
+  );
   await page.getByRole("button", { name: "play", exact: true }).first().click();
   await page.keyboard.press("n");
   await page.keyboard.press("n");

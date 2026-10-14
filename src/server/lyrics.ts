@@ -2,6 +2,7 @@ import type { Database } from "bun:sqlite";
 import { type Lyrics, MISSING } from "../shared/lyrics";
 import type { Upstream } from "./config";
 import { parseLrc, parsePlain } from "./lrc";
+import { createLyricsSearchTables, indexLyrics, unindexLyrics } from "./lyrics-search";
 import { type Credentials, subsonic } from "./subsonic";
 
 const DAY = 86_400_000;
@@ -126,7 +127,9 @@ export class LyricsService {
     private readonly db: Database,
     private readonly lrclibUrl: string,
     private readonly now: () => number = Date.now,
-  ) {}
+  ) {
+    createLyricsSearchTables(db);
+  }
 
   /** Song ids are only unique per server, so the cache key carries the upstream. */
   cached(upstreamId: string, songId: string): (Lyrics & { fetched: number }) | null {
@@ -139,9 +142,18 @@ export class LyricsService {
   }
 
   private store(upstreamId: string, songId: string, lyrics: Lyrics, lrclibId: number | null): void {
-    this.db
-      .query("insert or replace into lyrics (song_id, status, source, lrclib_id, body, fetched) values (?, ?, ?, ?, ?, ?)")
-      .run(`${upstreamId}:${songId}`, lyrics.status, lyrics.source, lrclibId, JSON.stringify(lyrics), this.now());
+    const key = `${upstreamId}:${songId}`;
+    const rowid = this.db.query<{ rowid: number }, [string]>("select rowid from lyrics where song_id = ?");
+    this.db.transaction(() => {
+      // A replace gives the row a new rowid, so the search row goes with the old one.
+      const old = rowid.get(key);
+      if (old) unindexLyrics(this.db, old.rowid);
+      this.db
+        .query("insert or replace into lyrics (song_id, status, source, lrclib_id, body, fetched) values (?, ?, ?, ?, ?, ?)")
+        .run(key, lyrics.status, lyrics.source, lrclibId, JSON.stringify(lyrics), this.now());
+      const row = rowid.get(key);
+      if (row) indexLyrics(this.db, row.rowid, lyrics);
+    })();
   }
 
   /** Cached, or resolved now (Navidrome → LRCLIB exact → LRCLIB search) and cached, hits and misses alike. */

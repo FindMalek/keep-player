@@ -23,6 +23,7 @@ const navidrome = { id: "default", url: `http://127.0.0.1:${upstream.port}` };
 const api = createApi({
   upstreams: [navidrome],
   indexes: new Map([["default", new IndexSync(openLibraryDb(":memory:"), navidrome, () => null)]]),
+  library: openLibraryDb(":memory:"),
   lyrics: new LyricsService(openLibraryDb(":memory:"), ""),
   covers: new CoverCache(`${process.env.TMPDIR ?? "/tmp"}/kp-covers-${crypto.randomUUID()}`, 1_000_000),
   sessions,

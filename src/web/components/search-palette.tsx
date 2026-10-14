@@ -15,6 +15,7 @@ import { queries } from "@/lib/queries";
 import { go } from "@/lib/router";
 import { bindingsOf, useShortcutList } from "@/lib/shortcuts";
 import type { Album, Artist, Song } from "@/lib/types";
+import type { LyricsHit } from "../../shared/search";
 import { Cover } from "./cover";
 import { KeyCombo } from "./key-combo";
 
@@ -22,6 +23,36 @@ interface Results {
   artist?: Artist[];
   album?: Album[];
   song?: Song[];
+}
+
+/** The matched line with its matching words emphasized, between faint context lines. */
+function LyricsSnippet({ hit }: { hit: LyricsHit }) {
+  const parts: { text: string; match: boolean }[] = [];
+  let at = 0;
+  for (const [from, to] of hit.highlights) {
+    if (from > at) parts.push({ text: hit.text.slice(at, from), match: false });
+    parts.push({ text: hit.text.slice(from, to), match: true });
+    at = to;
+  }
+  parts.push({ text: hit.text.slice(at), match: false });
+  return (
+    <span className="flex min-w-0 flex-col text-xs leading-snug">
+      {hit.before && <span className="truncate text-faint">{hit.before}</span>}
+      <span className="truncate text-muted-foreground">
+        {parts.map((part, index) =>
+          part.match ? (
+            // biome-ignore lint/suspicious/noArrayIndexKey: parts of one fixed string
+            <mark key={index} className="bg-transparent font-medium text-foreground">
+              {part.text}
+            </mark>
+          ) : (
+            part.text
+          ),
+        )}
+      </span>
+      {hit.after && <span className="truncate text-faint">{hit.after}</span>}
+    </span>
+  );
 }
 
 function Row({ cover, title, sub }: { cover?: string; title: string; sub: string }) {
@@ -45,8 +76,17 @@ export function SearchPalette({ open, onOpenChange }: { open: boolean; onOpenCha
     const id = setTimeout(() => setQuery(text.trim()), 120);
     return () => clearTimeout(id);
   }, [text]);
-  const { data } = useQuery({ ...queries.search(query), enabled: query.length > 0, placeholderData: (previous) => previous });
-  const results: Results = query ? (data ?? {}) : {};
+  // "lyrics: words" searches lyrics only.
+  const lyricsOnly = /^lyrics:/i.test(query);
+  const words = lyricsOnly ? query.slice(7).trim() : query;
+  const { data } = useQuery({
+    ...queries.search(words),
+    enabled: words.length > 0 && !lyricsOnly,
+    placeholderData: (previous) => previous,
+  });
+  const results: Results = words && !lyricsOnly ? (data ?? {}) : {};
+  const lyrics = useQuery({ ...queries.lyricsSearch(words), enabled: words.length >= 3, placeholderData: (previous) => previous }).data;
+  const lyricHits = words.length >= 3 ? (lyrics?.hits ?? []) : [];
 
   const run = (action: () => void) => () => {
     action();
@@ -68,11 +108,16 @@ export function SearchPalette({ open, onOpenChange }: { open: boolean; onOpenCha
       open={open}
       onOpenChange={onOpenChange}
       title="search"
-      description="search artists, albums and songs"
+      description="search artists, albums, songs and lyrics"
       className="sm:max-w-[640px]"
     >
       <Command shouldFilter={false}>
-        <CommandInput placeholder="search artists, albums, songs" value={text} onValueChange={setText} className="h-11 font-mono text-sm" />
+        <CommandInput
+          placeholder="search artists, albums, songs, lyrics"
+          value={text}
+          onValueChange={setText}
+          className="h-11 font-mono text-sm"
+        />
         <CommandList className="max-h-[56vh]">
           {needle && <CommandEmpty className="font-mono text-faint">no matches</CommandEmpty>}
           {actions.length > 0 && (
@@ -129,9 +174,42 @@ export function SearchPalette({ open, onOpenChange }: { open: boolean; onOpenCha
                   ))}
                 </CommandGroup>
               )}
+              {lyricHits.length > 0 && (
+                <CommandGroup heading="lyrics">
+                  {lyricHits.map((hit) => {
+                    const song = hit.song as unknown as Song;
+                    return (
+                      <CommandItem
+                        key={song.id}
+                        value={`ly-${song.id}`}
+                        onSelect={run(() =>
+                          player.play([song], 0, {
+                            source: { kind: "search", name: `“${words}”` },
+                            startAt: hit.start === null ? 0 : hit.start / 1000,
+                          }),
+                        )}
+                      >
+                        <Cover id={song.coverArt} size={32} className="size-8 shrink-0 self-start" />
+                        <span className="flex min-w-0 flex-col gap-0.5">
+                          <span className="truncate text-[13px]">
+                            {song.title}
+                            <span className="text-muted-foreground"> · {song.artist}</span>
+                          </span>
+                          <LyricsSnippet hit={hit} />
+                        </span>
+                      </CommandItem>
+                    );
+                  })}
+                </CommandGroup>
+              )}
             </>
           )}
         </CommandList>
+        {needle && lyrics && lyrics.checked < lyrics.total && (
+          <p className="border-t px-3 py-1.5 font-mono text-[11px] text-faint">
+            lyrics checked for {lyrics.checked.toLocaleString()} / {lyrics.total.toLocaleString()} songs so far
+          </p>
+        )}
       </Command>
     </CommandDialog>
   );
