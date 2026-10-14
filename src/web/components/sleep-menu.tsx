@@ -44,7 +44,7 @@ export function SleepMenu() {
 
   return (
     <DropdownMenu>
-      <Hint label={describe(sleep, now)} keys={sleep ? undefined : ["⇧", "s"]}>
+      <Hint label={describe(sleep, now)} shortcut={sleep ? undefined : "stop-after"}>
         <DropdownMenuTrigger render={<ToolButton on={sleep !== null} aria-label="sleep timer" />}>
           <MoonIcon />
         </DropdownMenuTrigger>

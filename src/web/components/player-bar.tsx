@@ -119,27 +119,27 @@ export function PlayerBar({ panel, onPanel }: { panel: Panel; onPanel: (panel: P
 
         <div className="flex flex-col gap-0.5">
           <AudioPlayerControls className="justify-center gap-2.5">
-            <Hint label="shuffle" keys={["s"]}>
+            <Hint label="shuffle" shortcut="shuffle">
               <ToolButton on={shuffle} onClick={player.toggleShuffle} aria-label="shuffle" aria-pressed={shuffle}>
                 <ShuffleIcon />
               </ToolButton>
             </Hint>
-            <Hint label="previous" keys={["⇧", "←"]}>
+            <Hint label="previous" shortcut="previous">
               <AudioPlayerPrevious className={ICON_BUTTON} aria-label="previous">
                 <SkipBackIcon className="fill-current" />
               </AudioPlayerPrevious>
             </Hint>
-            <Hint label={controller.playing ? "pause" : "play"} keys={["space"]}>
+            <Hint label={controller.playing ? "pause" : "play"} shortcut="play-pause">
               <AudioPlayerPlay className="size-8 rounded-none" aria-label={controller.playing ? "pause" : "play"}>
                 {({ playing }) => (playing ? <PauseIcon className="fill-current" /> : <PlayIcon className="fill-current" />)}
               </AudioPlayerPlay>
             </Hint>
-            <Hint label="next" keys={["⇧", "→"]}>
+            <Hint label="next" shortcut="next">
               <AudioPlayerNext className={ICON_BUTTON} aria-label="next">
                 <SkipForwardIcon className="fill-current" />
               </AudioPlayerNext>
             </Hint>
-            <Hint label={`repeat: ${repeat}`} keys={["r"]}>
+            <Hint label={`repeat: ${repeat}`} shortcut="repeat">
               <ToolButton on={repeat !== "off"} onClick={player.cycleRepeat} aria-label={`repeat ${repeat}`}>
                 {repeat === "one" ? <Repeat1Icon /> : <RepeatIcon />}
               </ToolButton>
@@ -168,12 +168,12 @@ export function PlayerBar({ panel, onPanel }: { panel: Panel; onPanel: (panel: P
               {buffering ? "loading…" : quality(song.suffix, song.bitRate)}
             </span>
           )}
-          <Hint label="lyrics" keys={["l"]}>
+          <Hint label="lyrics" shortcut="lyrics">
             <ToolButton on={panel === "lyrics"} onClick={() => onPanel(panel === "lyrics" ? null : "lyrics")} aria-label="lyrics">
               <MicVocalIcon />
             </ToolButton>
           </Hint>
-          <Hint label="queue" keys={["q"]}>
+          <Hint label="queue" shortcut="queue">
             <ToolButton on={panel === "queue"} onClick={() => onPanel(panel === "queue" ? null : "queue")} aria-label="queue">
               <ListMusicIcon />
             </ToolButton>
@@ -187,7 +187,7 @@ export function PlayerBar({ panel, onPanel }: { panel: Panel; onPanel: (panel: P
             </Suspense>
           )}
           <AudioPlayerVolume className="w-32">
-            <Hint label="mute" keys={["m"]}>
+            <Hint label="mute" shortcut="mute">
               <VolumeControlMute className="size-8">
                 {controller.muted || controller.volume === 0 ? (
                   <VolumeXIcon />
