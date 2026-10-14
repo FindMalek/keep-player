@@ -151,7 +151,8 @@ export class Decks {
   load(songId: string, url: string, factor: number, startAt: number, autoplay: boolean): void {
     clearTimeout(this.timer);
     this.armed = null;
-    if (this.idle.songId === songId && this.idle.element.src) {
+    // A preload that failed (silently: the idle deck doesn't report) is loaded afresh rather than handed the error.
+    if (this.idle.songId === songId && this.idle.element.src && !this.idle.element.error) {
       this.playing.element.pause();
       this.active = 1 - this.active;
     } else {
@@ -200,7 +201,16 @@ export class Decks {
     const deck = this.playing;
     deck.element.src = url;
     deck.element.addEventListener("loadedmetadata", () => (deck.element.currentTime = startAt), { once: true });
-    void this.play().catch(() => this.events.error());
+    void this.play().catch((error) => this.rejected(error));
+  }
+
+  /**
+   * A refused play(). Interrupted by a newer load or a pause (AbortError) or blocked by autoplay rules
+   * (NotAllowedError): nothing is broken. Only a real media error on the playing deck is reported.
+   */
+  private rejected(error: unknown): void {
+    if (error instanceof DOMException && error.name !== "NotSupportedError") return;
+    if (this.playing.element.error) this.events.error();
   }
 
   /** Why the playing deck failed, if it did. */
@@ -286,7 +296,7 @@ export class Decks {
     to.element.currentTime = 0;
     this.armed = null;
     this.active = 1 - this.active;
-    void to.element.play().catch(() => this.events.error());
+    void to.element.play().catch((error) => this.rejected(error));
     // Let the last few milliseconds of the old song play out under the ramp, then park it.
     const tail = (LEAD_SECONDS + RAMP_SECONDS) * 1000 + 50;
     this.tailUntil = performance.now() + tail;

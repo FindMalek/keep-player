@@ -210,18 +210,38 @@ const decks = new Decks({
     if (state.queue.repeat !== "one") setQueue(Q.next(state.queue));
     started(current());
   },
-  error: () => {
-    const code = decks.errorCode;
-    // Network trouble is worth retrying; a file the browser can't decode or the server can't find is not.
-    if (code === MediaError.MEDIA_ERR_NETWORK) {
-      recover();
-      return;
-    }
-    const reason =
-      code === MediaError.MEDIA_ERR_DECODE ? "the file can't be decoded" : "the file is missing or in a format this browser can't play";
-    skipBroken(reason);
-  },
+  error: () => void onMediaError(),
 });
+
+/**
+ * Network trouble is worth retrying; a file the browser can't decode or the server doesn't have is not. Chrome reports
+ * a request that failed before any audio arrived (timeout, dropped connection, 502) as "source not supported", the
+ * same as a real format problem, so for that code ask the server before giving up on the song.
+ */
+async function onMediaError(): Promise<void> {
+  const song = current();
+  const code = decks.errorCode;
+  if (!song || code === null) return;
+  if (code === MediaError.MEDIA_ERR_DECODE) return skipBroken("the file can't be decoded");
+  if (code === MediaError.MEDIA_ERR_NETWORK) return recover();
+  const verdict = await probe(streamUrl(song.id));
+  if (song !== current()) return;
+  if (verdict === "missing") skipBroken("the server doesn't have the file");
+  // Reachable and serving it: one more try in case it was a blip, then it really is the format.
+  else if (verdict === "network" || stalls === 0) recover();
+  else skipBroken("it's in a format this browser can't play");
+}
+
+/** What the server says about a song's stream, from its first two bytes. */
+async function probe(url: string): Promise<"ok" | "missing" | "network"> {
+  const response = await fetch(url, { headers: { range: "bytes=0-1" }, cache: "no-store", signal: AbortSignal.timeout(10_000) }).catch(
+    () => null,
+  );
+  if (!response) return "network";
+  void response.body?.cancel();
+  if (response.status === 404 || response.status === 410) return "missing";
+  return response.ok ? "ok" : "network";
+}
 
 /*
  * Resilience. A stall (buffering for 4 s) or a network error reloads the song at the same position, waiting 1, 2, 4,
