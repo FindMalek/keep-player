@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Empty, EmptyDescription } from "@/components/ui/empty";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { clock } from "@/lib/format";
-import { currentSong, player, usePlayer } from "@/lib/player";
+import { currentSong, player, type QueueSource, usePlayer } from "@/lib/player";
 import { api } from "@/lib/subsonic";
 import type { Album, Song } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -63,7 +63,11 @@ export function EmptyState({ children }: { children: ReactNode }) {
 
 export async function playAlbum(id: string, shuffle = false): Promise<void> {
   const { album } = await api<{ album: Album }>("getAlbum", { id });
-  player.play(album.song ?? [], 0, { album: true, shuffle });
+  player.play(album.song ?? [], shuffle ? -1 : 0, {
+    album: true,
+    shuffle,
+    source: { kind: "album", name: album.name, href: `/album/${album.id}` },
+  });
 }
 
 const AlbumCard = memo(function AlbumCard({ album }: { album: Album }) {
@@ -215,11 +219,12 @@ export function TrackList({
   showArtist = true,
   numbered = "index",
   asAlbum = false,
+  source,
   onNearEnd,
-}: TrackListProps & { onNearEnd?: () => void }) {
+}: TrackListProps & { onNearEnd?: () => void; source?: QueueSource }) {
   const playingId = usePlayer((state) => currentSong(state)?.id);
   const playing = usePlayer((state) => state.playing);
-  const onPlay = useCallback((index: number) => player.play(songs, index, { album: asAlbum }), [songs, asAlbum]);
+  const onPlay = useCallback((index: number) => player.play(songs, index, { album: asAlbum, source }), [songs, asAlbum, source]);
   const items = useMemo<TrackItem[]>(() => {
     const multiDisc = asAlbum && new Set(songs.map((song) => song.discNumber ?? 1)).size > 1;
     let lastDisc: number | undefined;

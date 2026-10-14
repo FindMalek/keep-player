@@ -1,0 +1,117 @@
+import { describe, expect, test } from "bun:test";
+import {
+  addToQueue,
+  balancedShuffle,
+  clearContext,
+  clearUpNext,
+  contextUpcoming,
+  EMPTY_QUEUE,
+  jumpTo,
+  next,
+  peekNext,
+  playContext,
+  playNext,
+  previous,
+  type Queue,
+  remove,
+  setShuffle,
+} from "./queue";
+import type { Song } from "./types";
+
+const song = (id: string, artist = "a"): Song => ({ id, title: id, artist, artistId: artist });
+const album = ["1", "2", "3", "4"].map((id) => song(id));
+const ids = (queue: Queue) => queue.current?.song.id;
+// Deterministic "random" so shuffle tests are repeatable.
+const seeded =
+  (seed = 1) =>
+  () => {
+    seed = (seed * 16807) % 2147483647;
+    return seed / 2147483647;
+  };
+
+describe("queue", () => {
+  test("plays a context in order from the start song, then ends", () => {
+    let queue = playContext(EMPTY_QUEUE, album, 1);
+    expect(ids(queue)).toBe("2");
+    queue = next(next(queue));
+    expect(ids(queue)).toBe("4");
+    queue = next(queue);
+    expect(queue.current).toBeNull();
+    expect(queue.history.map((entry) => entry.song.id)).toEqual(["2", "3", "4"]);
+  });
+
+  test("your queue plays before the context and survives starting a new context", () => {
+    let queue = playContext(EMPTY_QUEUE, album, 0);
+    queue = addToQueue(queue, [song("q1")]);
+    queue = playNext(queue, [song("q0")]);
+    expect(peekNext(queue)?.id).toBe("q0");
+    queue = next(queue);
+    expect(ids(queue)).toBe("q0");
+    queue = playContext(queue, [song("x"), song("y")], 0);
+    expect(queue.upNext.map((entry) => entry.song.id)).toEqual(["q1"]);
+    expect(ids(next(queue))).toBe("q1");
+    expect(ids(next(next(queue)))).toBe("y");
+  });
+
+  test("previous returns a queued song to the front of your queue and restores the context cursor", () => {
+    let queue = addToQueue(playContext(EMPTY_QUEUE, album, 0), [song("q")]);
+    queue = next(queue);
+    expect(ids(queue)).toBe("q");
+    queue = previous(queue);
+    expect(ids(queue)).toBe("1");
+    expect(queue.upNext.map((entry) => entry.song.id)).toEqual(["q"]);
+    expect(ids(next(next(queue)))).toBe("2");
+  });
+
+  test("repeat all wraps around, and peekNext agrees with next", () => {
+    let queue: Queue = { ...playContext(EMPTY_QUEUE, album, 3), repeat: "all" };
+    expect(peekNext(queue)?.id).toBe("1");
+    queue = next(queue);
+    expect(ids(queue)).toBe("1");
+  });
+
+  test("shuffle on reorders only what's left; off continues in natural order after the last context song", () => {
+    let queue = playContext(EMPTY_QUEUE, album, 1);
+    queue = setShuffle(queue, true, seeded());
+    expect(queue.context.order.slice(0, 2)).toEqual([0, 1]);
+    expect([...queue.context.order].sort()).toEqual([0, 1, 2, 3]);
+    queue = setShuffle(queue, false);
+    expect(contextUpcoming(queue).map((entry) => entry.song.id)).toEqual(["3", "4"]);
+  });
+
+  test("shuffled play starts with the chosen song and plays every song once", () => {
+    let queue = playContext(EMPTY_QUEUE, album, 2, { shuffle: true }, seeded(7));
+    expect(ids(queue)).toBe("3");
+    const played = [ids(queue)];
+    for (let i = 0; i < 3; i += 1) {
+      queue = next(queue);
+      played.push(ids(queue));
+    }
+    expect([...played].sort()).toEqual(["1", "2", "3", "4"]);
+  });
+
+  test("balanced shuffle never puts the same artist back to back when it can be avoided", () => {
+    const songs = [...["a", "a", "a", "b", "b", "b", "c", "c", "c"].map((artist, i) => song(`${artist}${i}`, artist))];
+    for (let seed = 1; seed < 30; seed += 1) {
+      const order = balancedShuffle(
+        songs,
+        songs.map((_, index) => index),
+        seeded(seed),
+      );
+      const artists = order.map((index) => songs[index]?.artist);
+      expect(artists.some((artist, i) => i > 0 && artist === artists[i - 1])).toBe(false);
+    }
+  });
+
+  test("jump, remove and clear act on the right part of the queue", () => {
+    let queue = addToQueue(playContext(EMPTY_QUEUE, album, 0), [song("q1"), song("q2")]);
+    queue = remove(queue, queue.upNext[0] as never);
+    expect(queue.upNext.map((entry) => entry.song.id)).toEqual(["q2"]);
+    const third = contextUpcoming(queue).find((entry) => entry.song.id === "3");
+    queue = jumpTo(queue, third as never);
+    expect(ids(queue)).toBe("3");
+    expect(queue.upNext.map((entry) => entry.song.id)).toEqual(["q2"]);
+    expect(contextUpcoming(clearContext(queue))).toEqual([]);
+    expect(clearUpNext(queue).upNext).toEqual([]);
+  });
+});

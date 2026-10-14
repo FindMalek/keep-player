@@ -195,6 +195,8 @@ export function ArtistsPage() {
   );
 }
 
+const SONGS_SOURCE = { kind: "songs", name: "songs", href: "/songs" };
+
 export function SongsPage() {
   const { items: songs, loadMore } = useAllPages(useInfiniteQuery(queries.songPages()));
   const totals = useQuery(queries.totals());
@@ -205,14 +207,18 @@ export function SongsPage() {
         <Button
           variant="outline"
           // The whole library, not just the loaded pages: the server picks 500 at random.
-          onClick={() => void queryClient.fetchQuery(queries.randomSongs(500)).then((random) => player.play(random, 0, { shuffle: false }))}
+          onClick={() =>
+            void queryClient
+              .fetchQuery(queries.randomSongs(500))
+              .then((random) => player.play(random, 0, { shuffle: false, source: { kind: "songs", name: "all songs", href: "/songs" } }))
+          }
           disabled={!songs.length}
         >
           shuffle all
         </Button>
       </PageHeader>
       <Content>
-        <TrackList songs={songs} onNearEnd={loadMore} />
+        <TrackList songs={songs} onNearEnd={loadMore} source={SONGS_SOURCE} />
       </Content>
     </>
   );

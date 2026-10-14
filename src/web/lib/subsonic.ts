@@ -123,14 +123,20 @@ export async function logout(): Promise<void> {
   window.location.assign("/");
 }
 
-function query(params: Record<string, string | number | boolean | undefined>): string {
+type Params = Record<string, string | number | boolean | undefined | (string | number)[]>;
+
+/** Arrays become repeated keys (`songId=1&songId=2`), as Subsonic expects. */
+function query(params: Params): string {
   const search = new URLSearchParams({ f: "json" });
-  for (const [key, value] of Object.entries(params)) if (value !== undefined) search.set(key, String(value));
+  for (const [key, value] of Object.entries(params)) {
+    if (Array.isArray(value)) for (const item of value) search.append(key, String(item));
+    else if (value !== undefined) search.set(key, String(value));
+  }
   return search.toString();
 }
 
 /** One Subsonic call through the server's session proxy; throws ApiError, and signs out when the session is gone. */
-export async function api<T>(endpoint: string, params: Record<string, string | number | boolean | undefined> = {}): Promise<T> {
+export async function api<T>(endpoint: string, params: Params = {}): Promise<T> {
   const response = await fetch(`/rest/${endpoint}?${query(params)}`, { headers: HEADERS });
   if (response.status === 401) {
     setUser(null);

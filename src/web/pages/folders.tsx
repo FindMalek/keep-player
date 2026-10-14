@@ -66,7 +66,15 @@ export function FoldersPage({ id }: { id: string | null }) {
       </PageHeader>
       <Content>
         {folders.length > 0 && <FolderList folders={folders} />}
-        {songs.length > 0 && <TrackList songs={songs} showAlbum={false} numbered="track" asAlbum />}
+        {songs.length > 0 && (
+          <TrackList
+            songs={songs}
+            showAlbum={false}
+            numbered="track"
+            asAlbum
+            source={dir ? { kind: "folder", name: dir.name, href: `/folders/${dir.id}` } : undefined}
+          />
+        )}
         {dir && folders.length === 0 && songs.length === 0 && <EmptyState>empty folder</EmptyState>}
       </Content>
     </>

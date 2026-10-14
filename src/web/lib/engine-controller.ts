@@ -15,7 +15,7 @@ export function useEngineController(): AudioPlayerController {
   const duration = usePlayer((state) => state.duration);
   const volume = usePlayer((state) => state.volume);
   const muted = usePlayer((state) => state.muted);
-  const loop = usePlayer((state) => state.repeat === "one");
+  const loop = usePlayer((state) => state.queue.repeat === "one");
 
   return useMemo(() => {
     const status: AudioPlayerStatus = !hasSong ? "idle" : failed ? "error" : buffering ? "loading" : playing ? "playing" : "paused";

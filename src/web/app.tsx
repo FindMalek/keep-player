@@ -71,7 +71,7 @@ export function App() {
   const [searchLoaded, setSearchLoaded] = useState(false);
   if (searching && !searchLoaded) setSearchLoaded(true);
   const path = usePath();
-  const hasTrack = usePlayer((state) => state.index >= 0 && state.queue.length > 0);
+  const hasTrack = usePlayer((state) => state.queue.current !== null);
   const nowPlaying = usePlayer(currentSong);
   const playing = usePlayer((state) => state.playing);
   const showPanel = panel !== null && hasTrack;
