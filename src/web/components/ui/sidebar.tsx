@@ -18,11 +18,8 @@ import {
   SheetTitle,
 } from "@/components/lazy-sheet"
 import { Skeleton } from "@/components/ui/skeleton"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
+import type { TooltipContent } from "@/components/ui/tooltip"
+import { loadTooltips, tooltipClosed, useOpenDelay, useTooltips } from "@/lib/tooltips"
 import { PanelLeftIcon } from "lucide-react"
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
@@ -512,15 +509,21 @@ function SidebarMenuButton({
     tooltip?: string | React.ComponentProps<typeof TooltipContent>
   } & VariantProps<typeof sidebarMenuButtonVariants>) {
   const { isMobile, state } = useSidebar()
+  // Local edit: tooltips load lazily (lib/tooltips); until then the button is plain and a hover loads them.
+  const loadedTooltips = useTooltips()
+  const delay = useOpenDelay()
+  // Tooltips only show while collapsed, so only then does the button become a tooltip trigger (no remount otherwise).
+  const tooltips = tooltip && state === "collapsed" && !isMobile ? loadedTooltips : null
   const comp = useRender({
     defaultTagName: "button",
     props: mergeProps<"button">(
       {
         className: cn(sidebarMenuButtonVariants({ variant, size }), className),
+        onPointerEnter: tooltip && state === "collapsed" && !tooltips ? loadTooltips : undefined,
       },
       props
     ),
-    render: !tooltip ? render : <TooltipTrigger render={render} />,
+    render: !tooltip || !tooltips ? render : <tooltips.TooltipTrigger delay={delay} render={render} />,
     state: {
       slot: "sidebar-menu-button",
       sidebar: "menu-button",
@@ -529,9 +532,10 @@ function SidebarMenuButton({
     },
   })
 
-  if (!tooltip) {
+  if (!tooltip || !tooltips) {
     return comp
   }
+  const { Tooltip, TooltipContent } = tooltips
 
   if (typeof tooltip === "string") {
     tooltip = {
@@ -540,7 +544,7 @@ function SidebarMenuButton({
   }
 
   return (
-    <Tooltip>
+    <Tooltip onOpenChange={(open) => !open && tooltipClosed()}>
       {comp}
       <TooltipContent
         side="right"

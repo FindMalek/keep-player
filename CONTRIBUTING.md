@@ -37,7 +37,8 @@ component overwrites them). Current local edits, to redo after re-adding: `slide
 `sidebar.tsx` imports its mobile sheet from `components/lazy-sheet.tsx` (keeps a dialog out of the first screen);
 `command.tsx` keeps the dialog's screen-reader title inside `DialogContent` (outside, it sits outside every landmark);
 `audio-player.tsx` always takes our engine as `player` (its internal `<audio>` fallback and `useAudioPlayer` are dropped,
-which keeps that hook off the first screen). App code composes them in `src/web/components/`. Icons are `lucide-react` (the shadcn default). Tailwind v4 runs through
+which keeps that hook off the first screen); `sidebar.tsx` gets its tooltip components from `lib/tooltips.ts` (loaded
+after the first screen) and only wraps buttons in a tooltip trigger while collapsed. App code composes them in `src/web/components/`. Icons are `lucide-react` (the shadcn default). Tailwind v4 runs through
 `bun-plugin-tailwind` (`bunfig.toml` for dev, `scripts/build.ts` for the production executable).
 
 ## Rules
