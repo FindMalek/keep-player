@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { clock } from "@/lib/format";
+import { closeListFilter, songMatches, useListFilter } from "@/lib/list-filter";
 import { focusWhenRendered, type ListCommand, useListNav } from "@/lib/list-nav";
 import { currentSong, type Entry, player, usePlayer } from "@/lib/player";
 import { queries, queryClient } from "@/lib/queries";
@@ -14,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { Cover } from "./cover";
 import { Hint } from "./hint";
 import { EmptyState } from "./library";
+import { ListFilterBar } from "./list-filter-bar";
 import { LyricsView } from "./lyrics-view";
 
 function PanelFrame({
@@ -166,7 +168,14 @@ function SaveQueue() {
 
 export function QueuePanel({ onClose }: { onClose: () => void }) {
   const queue = usePlayer((state) => state.queue);
-  const items = useMemo(() => queueItems(queue), [queue]);
+  const filter = useListFilter("queue");
+  useEffect(() => () => closeListFilter("queue"), []);
+  const items = useMemo(() => {
+    const all = queueItems(queue);
+    if (!filter) return all;
+    // Headers stay so you still see which part of the queue a match is in.
+    return all.filter((item) => item.kind !== "entry" || songMatches(item.entry.song, filter));
+  }, [queue, filter]);
   const upcoming = queue.upNext.length + Math.max(0, queue.context.order.length - queue.context.cursor - 1);
   const currentIndex = items.findIndex((item) => item.kind === "entry" && item.state === "current");
   const listRef = useRef<HTMLOListElement>(null);
@@ -236,39 +245,49 @@ export function QueuePanel({ onClose }: { onClose: () => void }) {
   return (
     <PanelFrame title="queue" meta={`${upcoming} up next`} onClose={onClose} actions={queue.current && <SaveQueue />}>
       {/* A list, not a listbox: rows hold their own buttons (jump, remove), which options can't contain. */}
-      <ol ref={listRef} aria-label="queue" className="relative" style={{ height: virtualizer.getTotalSize() }} {...listNav}>
-        {virtualizer.getVirtualItems().map((virtual) => {
-          const item = items[virtual.index];
-          if (!item) return null;
-          return (
-            <li
-              key={item.kind === "entry" ? item.entry.uid : `h-${item.label}`}
-              aria-current={item.kind === "entry" && item.state === "current" ? "true" : undefined}
-              data-queue-index={item.kind === "entry" ? virtual.index : undefined}
-              className="absolute inset-x-0"
-              style={{ transform: `translateY(${virtual.start - margin}px)` }}
-            >
-              {item.kind === "header" ? (
-                <div className="flex h-9 items-end justify-between px-1.5 pb-1.5">
-                  <h3 className="truncate font-mono text-[10.5px] text-faint">{item.label}</h3>
-                  {item.action && (
-                    <Button
-                      variant="link"
-                      size="xs"
-                      className="h-auto p-0 font-mono text-[10.5px] text-muted-foreground"
-                      onClick={item.action.run}
-                    >
-                      {item.action.label}
-                    </Button>
-                  )}
-                </div>
-              ) : (
-                <QueueRow entry={item.entry} state={item.state} />
-              )}
-            </li>
-          );
-        })}
-      </ol>
+      <div data-filter-scope="queue">
+        {filter !== null && (
+          <ListFilterBar
+            scope="queue"
+            query={filter}
+            shown={items.filter((item) => item.kind === "entry").length}
+            total={queueItems(queue).filter((item) => item.kind === "entry").length}
+          />
+        )}
+        <ol ref={listRef} aria-label="queue" className="relative" style={{ height: virtualizer.getTotalSize() }} {...listNav}>
+          {virtualizer.getVirtualItems().map((virtual) => {
+            const item = items[virtual.index];
+            if (!item) return null;
+            return (
+              <li
+                key={item.kind === "entry" ? item.entry.uid : `h-${item.label}`}
+                aria-current={item.kind === "entry" && item.state === "current" ? "true" : undefined}
+                data-queue-index={item.kind === "entry" ? virtual.index : undefined}
+                className="absolute inset-x-0"
+                style={{ transform: `translateY(${virtual.start - margin}px)` }}
+              >
+                {item.kind === "header" ? (
+                  <div className="flex h-9 items-end justify-between px-1.5 pb-1.5">
+                    <h3 className="truncate font-mono text-[10.5px] text-faint">{item.label}</h3>
+                    {item.action && (
+                      <Button
+                        variant="link"
+                        size="xs"
+                        className="h-auto p-0 font-mono text-[10.5px] text-muted-foreground"
+                        onClick={item.action.run}
+                      >
+                        {item.action.label}
+                      </Button>
+                    )}
+                  </div>
+                ) : (
+                  <QueueRow entry={item.entry} state={item.state} />
+                )}
+              </li>
+            );
+          })}
+        </ol>
+      </div>
     </PanelFrame>
   );
 }

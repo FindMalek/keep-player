@@ -65,6 +65,7 @@ const server = Bun.serve({
     "/api/lyrics/:songId": { GET: api.songLyrics },
     "/api/lyrics/:songId/offset": { GET: api.lyricsOffset, PUT: api.lyricsOffset },
     "/api/index": { GET: api.searchIndex, POST: api.searchIndex },
+    "/api/search": { GET: api.searchLibrary },
     "/api/search/lyrics": { GET: api.searchLyrics },
     "/fonts/:name": font,
     ...webRoutes,

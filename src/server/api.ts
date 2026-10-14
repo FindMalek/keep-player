@@ -7,6 +7,7 @@ import { type CoverCache, snapCoverSize } from "./covers";
 import type { LyricsService } from "./lyrics";
 import { lyricsCoverage, queryLyrics } from "./lyrics-search";
 import type { LoginLimiter } from "./rate-limit";
+import { search } from "./search";
 import type { IndexSync } from "./search-index";
 import type { Session, SessionStore } from "./sessions";
 import { subsonic, upstreamQuery } from "./subsonic";
@@ -130,6 +131,18 @@ export function createApi({ upstreams, covers, lyrics, indexes, library, session
     return folders;
   }
 
+  // Each session's liked ids (songs, albums, artists) for search; dropped whenever it stars or unstars something.
+  const likesCache = new Map<string, { liked: Set<string>; at: number }>();
+  async function likesFor(session: Session, upstream: Upstream): Promise<Set<string>> {
+    const cached = likesCache.get(session.id);
+    if (cached && Date.now() - cached.at < FOLDERS_TTL_MS) return cached.liked;
+    const result = await subsonic<{ starred2: Record<string, { id: string }[] | undefined> }>(upstream, session, "getStarred2");
+    if (!result) return new Set();
+    const liked = new Set(Object.values(result.starred2).flatMap((items) => (items ?? []).map((item) => item.id)));
+    likesCache.set(session.id, { liked, at: Date.now() });
+    return liked;
+  }
+
   function clientIp(request: Request, server: Server<unknown>): string {
     if (trustProxy) {
       const forwarded = request.headers.get("x-real-ip") ?? request.headers.get("x-forwarded-for")?.split(",")[0];
@@ -233,6 +246,7 @@ export function createApi({ upstreams, covers, lyrics, indexes, library, session
     out.set("vary", "cookie");
     // Time to Navidrome's first byte, visible in the browser's network panel.
     out.set("server-timing", `upstream;dur=${(performance.now() - started).toFixed(1)}`);
+    if (endpoint === "star" || endpoint === "unstar") likesCache.delete(session.id);
     return new Response(response.body, { status: response.status, headers: out });
   }
 
@@ -319,5 +333,32 @@ export function createApi({ upstreams, covers, lyrics, indexes, library, session
     return json(body, 200, { "cache-control": "private, no-cache" });
   }
 
-  return { login, logout, current, listSessions, revokeSession, proxy, cover, songLyrics, lyricsOffset, searchIndex, searchLyrics };
+  /** `/api/search?q=`: ranked songs, albums and artists with operators, limited to what this user may see. */
+  async function searchLibrary(request: Request): Promise<Response> {
+    if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
+    const session = sessions.get(cookieValue(request));
+    if (!session) return json({ error: "signed out" }, 401);
+    const upstream = upstreamFor(session.server);
+    if (!upstream) return json({ error: "server removed from config" }, 401);
+    const params = new URL(request.url).searchParams;
+    const query = (params.get("q") ?? "").slice(0, 200);
+    const limit = Math.min(50, Math.max(1, Number(params.get("limit")) || 8));
+    const [folders, liked] = await Promise.all([foldersFor(session, upstream), likesFor(session, upstream)]);
+    return json(search(library, upstream.id, query, { folders, liked }, limit), 200, { "cache-control": "private, no-cache" });
+  }
+
+  return {
+    login,
+    logout,
+    current,
+    listSessions,
+    revokeSession,
+    proxy,
+    cover,
+    songLyrics,
+    lyricsOffset,
+    searchIndex,
+    searchLyrics,
+    searchLibrary,
+  };
 }
