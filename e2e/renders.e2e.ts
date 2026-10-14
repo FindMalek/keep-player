@@ -52,7 +52,7 @@ test("track rows don't re-render while a song plays", async ({ page, signedIn })
     .getByRole("button", { name: /^play / })
     .first()
     .click({ force: true });
-  const elapsed = page.getByRole("contentinfo").locator("span.text-right");
+  const elapsed = page.locator("[data-slot=audio-player-time][data-type=current]");
   await expect(elapsed).toHaveText("0:01", { timeout: 10_000 });
   await page.evaluate(() => {
     (window as unknown as { __rowRenders: number }).__rowRenders = 0;

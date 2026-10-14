@@ -1,4 +1,5 @@
 import { useRef, useSyncExternalStore } from "react";
+import type { FrameSource } from "./audio/types";
 import { coverUrl, scrobble, streamUrl } from "./subsonic";
 import type { Song } from "./types";
 
@@ -14,6 +15,8 @@ export interface PlayerState {
   muted: boolean;
   shuffle: boolean;
   repeat: Repeat;
+  /** Audio output device id; null is the system default. */
+  outputDevice: string | null;
   /** "album" when the queue is one album in order, so ReplayGain uses album gain. */
   context: "album" | "mixed";
   error: string | null;
@@ -32,6 +35,7 @@ let state: PlayerState = {
   muted: false,
   shuffle: false,
   repeat: "off",
+  outputDevice: null,
   context: "mixed",
   error: null,
 };
@@ -82,8 +86,11 @@ let persistQueued = false;
 function writeSnapshot(): void {
   persistQueued = false;
   try {
-    const { queue, index, volume, muted, shuffle, repeat, context: ctx } = state;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ queue, index, position, volume, muted, shuffle, repeat, context: ctx }));
+    const { queue, index, volume, muted, shuffle, repeat, outputDevice, context: ctx } = state;
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ queue, index, position, volume, muted, shuffle, repeat, outputDevice, context: ctx }),
+    );
   } catch {
     // Storage full or blocked: resuming after reload is a convenience only.
   }
@@ -166,6 +173,7 @@ function ensureAudio(): HTMLAudioElement {
   audio.addEventListener("canplay", () => set({ buffering: false }));
   audio.addEventListener("ended", onEnded);
   audio.addEventListener("error", () => set({ playing: false, buffering: false, error: "couldn't play this track" }));
+  applyOutputDevice();
   return audio;
 }
 
@@ -177,10 +185,18 @@ function ensureGraph(): void {
     const source = context.createMediaElementSource(audio);
     gain = context.createGain();
     source.connect(gain).connect(context.destination);
+    applyOutputDevice();
   } catch {
     context = null;
     gain = null;
   }
+}
+
+/** Audio goes through Web Audio once the graph exists, so the device is set on the context, not the element. */
+function applyOutputDevice(): void {
+  const id = state.outputDevice ?? "";
+  const target = (context ?? audio) as { setSinkId?: (id: string) => Promise<void> } | null;
+  void target?.setSinkId?.(id).catch(() => set({ outputDevice: null }));
 }
 
 function load(index: number, autoplay: boolean, startAt = 0): void {
@@ -255,6 +271,22 @@ export const player = {
   /** Current state for event handlers, which should read rather than subscribe. */
   getState: (): PlayerState => state,
   getPosition: (): number => position,
+  /** End of the buffered range around the playhead, in seconds. */
+  getBuffered(): number {
+    if (!audio) return 0;
+    for (let i = 0; i < audio.buffered.length; i += 1)
+      if (audio.buffered.start(i) <= audio.currentTime + 0.5) {
+        const end = audio.buffered.end(i);
+        if (end >= audio.currentTime) return end;
+      }
+    return 0;
+  },
+  element: (): HTMLAudioElement | null => audio,
+  setOutputDevice(id: string | null): void {
+    set({ outputDevice: id });
+    applyOutputDevice();
+    persist();
+  },
   /** Replace the queue and start playing at `start`. */
   play(songs: Song[], start = 0, options: { shuffle?: boolean; album?: boolean } = {}): void {
     if (!songs.length) return;
@@ -341,6 +373,10 @@ export const player = {
     applyVolume();
     persist();
   },
+  setRepeat(repeat: Repeat): void {
+    set({ repeat });
+    persist();
+  },
   cycleRepeat(): void {
     set({ repeat: state.repeat === "off" ? "all" : state.repeat === "all" ? "one" : "off" });
     persist();
@@ -410,6 +446,15 @@ function useSelected<S, T>(
     return value;
   });
 }
+
+/** Position as a frame source for audiocn's timeline components, which subscribe without re-rendering their parents. */
+export const positionFrames: FrameSource<number> = {
+  subscribe(listener) {
+    const forward = () => listener(position);
+    positionListeners.add(forward);
+    return () => positionListeners.delete(forward);
+  },
+};
 
 /** Subscribe to one slice of the player, e.g. `usePlayer((s) => s.playing)`. */
 export function usePlayer<T>(selector: (state: PlayerState) => T, isEqual: (a: T, b: T) => boolean = Object.is): T {
