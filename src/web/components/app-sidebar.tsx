@@ -17,6 +17,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuRadioGroup,
@@ -129,15 +130,17 @@ function UserMenu() {
         <span>{user}</span>
       </DropdownMenuTrigger>
       <DropdownMenuContent side="top" align="start" className="min-w-44">
-        <DropdownMenuLabel className={LABEL}>theme</DropdownMenuLabel>
-        <DropdownMenuRadioGroup value={theme} onValueChange={(value) => setTheme(value as Theme)}>
-          {THEMES.map(([value, Icon]) => (
-            <DropdownMenuRadioItem key={value} value={value}>
-              <Icon />
-              {value}
-            </DropdownMenuRadioItem>
-          ))}
-        </DropdownMenuRadioGroup>
+        <DropdownMenuGroup>
+          <DropdownMenuLabel className={LABEL}>theme</DropdownMenuLabel>
+          <DropdownMenuRadioGroup value={theme} onValueChange={(value) => setTheme(value as Theme)}>
+            {THEMES.map(([value, Icon]) => (
+              <DropdownMenuRadioItem key={value} value={value}>
+                <Icon />
+                {value}
+              </DropdownMenuRadioItem>
+            ))}
+          </DropdownMenuRadioGroup>
+        </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={logout}>
           <LogOutIcon />
