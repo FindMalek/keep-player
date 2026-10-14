@@ -100,7 +100,7 @@ function NowPlaying({ song }: { song: Song }) {
               </Link>
             }
           >
-            <ArtistCard id={song.artistId} name={song.artist ?? ""}>
+            <ArtistCard id={song.artistId} name={song.artist}>
               <Link href={`/artist/${song.artistId}`} className="truncate text-muted-foreground text-xs underline-offset-3 hover:underline">
                 {song.artist}
               </Link>

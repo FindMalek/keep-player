@@ -229,7 +229,7 @@ const TrackRow = memo(function TrackRow({
         <div className="flex min-w-0 flex-col">
           <Truncated text={song.title} className={cn(status && "font-medium")} />
           {showArtist && song.artistId && (
-            <ArtistCard id={song.artistId} name={song.artist ?? ""}>
+            <ArtistCard id={song.artistId} name={song.artist}>
               <Link href={`/artist/${song.artistId}`} className={cn(SUBLINK, "text-xs")}>
                 {song.artist}
               </Link>

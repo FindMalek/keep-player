@@ -11,10 +11,9 @@ import { Cover } from "./cover";
 function ArtistPreview({ id, name }: { id: string; name: string }) {
   const info = useQuery(queries.artistInfo(id));
   const top = useQuery(queries.topSongs(name));
-  const bio = info.data?.biography
-    ?.replace(/<a [^>]*>.*?<\/a>\.?/g, "")
-    .replace(/<[^>]+>/g, "")
-    .trim();
+  // Last.fm bios are HTML with entities and a "read more" link: drop the link, keep the decoded text.
+  const html = info.data?.biography?.replace(/<a [^>]*>.*?<\/a>\.?/g, "");
+  const bio = html ? new DOMParser().parseFromString(html, "text/html").body.textContent?.trim() : undefined;
   const first = top.data?.[0];
   return (
     <div className="flex flex-col gap-2">
@@ -37,7 +36,9 @@ function ArtistPreview({ id, name }: { id: string; name: string }) {
 }
 
 /** An artist link with a hover card: a few lines of bio and their top track, one click to play it. */
-export function ArtistCard({ id, name, children }: { id: string; name: string; children: ReactElement }) {
+export function ArtistCard({ id, name, children }: { id: string; name?: string; children: ReactElement }) {
+  // No name, nothing to look up: just the link.
+  if (!name) return children;
   return (
     <HoverCard>
       <HoverCardTrigger delay={500} render={children} />

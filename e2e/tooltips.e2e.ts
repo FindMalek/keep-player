@@ -3,7 +3,7 @@ import { expect, test, trackTitles } from "./fixtures";
 test("icon buttons explain themselves with their shortcut and state", async ({ page, signedIn }) => {
   await signedIn.goto("/album/al-3");
   const titles = await trackTitles(page);
-  const row = page.getByRole("row", { name: new RegExp(titles[1] as string) }).first();
+  const row = page.getByRole("row", { name: titles[1] as string }).first();
   await row.hover();
   await row.getByRole("button", { name: `play ${titles[1]} next`, exact: true }).hover();
   await expect(page.locator("[data-slot=tooltip-content]").filter({ hasText: "play next" })).toContainText("⇧");

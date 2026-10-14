@@ -99,7 +99,7 @@ export function AlbumPage({ id }: { id: string }) {
         like={{ kind: "album", id: album.id }}
       >
         {album.artistId && (
-          <ArtistCard id={album.artistId} name={album.artist ?? ""}>
+          <ArtistCard id={album.artistId} name={album.artist}>
             <Link href={`/artist/${album.artistId}`} className="self-start font-medium underline-offset-3 hover:underline">
               {album.artist}
             </Link>
