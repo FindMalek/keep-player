@@ -7,6 +7,7 @@ import { PageSlot, usePageHost } from "@/components/page-host";
 import { type Panel, PlayerBar } from "@/components/player-bar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { loadLikes, toggleLiked } from "@/lib/likes";
 import { openListFilter } from "@/lib/list-filter";
 import { runListCommand } from "@/lib/list-nav";
 import { notify } from "@/lib/notify";
@@ -25,6 +26,7 @@ import {
   GenrePage,
   GenresPage,
   HomePage,
+  LikedPage,
   PlaylistPage,
   preloadAllRoutes,
   SearchPage,
@@ -60,6 +62,8 @@ function Page({ path }: { path: string }) {
       return <SongsPage />;
     case "genres":
       return <GenresPage />;
+    case "liked":
+      return <LikedPage />;
     case "genre":
       return param ? <GenrePage key={param} name={param} /> : null;
     case "folders":
@@ -104,8 +108,16 @@ export function App() {
       openCheatSheet: () => setCheatSheet(true),
       toggleFullScreen: () => setFullScreen((value) => !value),
       findInList: openListFilter,
+      likeCurrent: () => {
+        const song = currentSong(player.getState());
+        if (song) void toggleLiked("song", song.id, song.title);
+      },
     }),
   );
+
+  useEffect(() => {
+    if (user) void loadLikes();
+  }, [user]);
 
   useEffect(() => {
     if (!user) return;

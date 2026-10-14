@@ -2,18 +2,19 @@ import { useQuery } from "@tanstack/react-query";
 import { RefreshCwIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { queries, queryClient } from "@/lib/queries";
+import { apiQueries } from "@/lib/api-queries";
+import { queryClient } from "@/lib/queries";
 import { EmptyState } from "./library";
 
 const count = (value: number) => value.toLocaleString();
 
 /** Admins: what the search index holds, when it last synced with Navidrome, and a way to rebuild it now. */
 export function IndexDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
-  const { data, isError } = useQuery({ ...queries.searchIndex(), enabled: open });
+  const { data, isError } = useQuery({ ...apiQueries.searchIndex(), enabled: open });
 
   async function rebuild(): Promise<void> {
     const response = await fetch("/api/index", { method: "POST", headers: { "x-keep-player": "1" } }).catch(() => null);
-    if (response?.ok) queryClient.setQueryData(queries.searchIndex().queryKey, await response.json());
+    if (response?.ok) queryClient.setQueryData(apiQueries.searchIndex().queryKey, await response.json());
   }
 
   return (

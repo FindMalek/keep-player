@@ -2,6 +2,7 @@ import { useRef } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { currentSong, usePlayer } from "@/lib/player";
 import { Cover } from "./cover";
+import { LikeButton } from "./like-button";
 import { LyricsView } from "./lyrics-view";
 
 /** ⇧F: the cover large and the lyrics big, for across the room. Esc closes. */
@@ -24,6 +25,7 @@ export function NowPlayingFull({ open, onOpenChange }: { open: boolean; onOpenCh
                   {song.title}
                 </DialogTitle>
                 <DialogDescription className="truncate text-lg">{[song.artist, song.album].filter(Boolean).join(" · ")}</DialogDescription>
+                <LikeButton kind="song" id={song.id} label={song.title} className="-ml-1.5 mt-2" />
               </div>
             </div>
             <div className="min-h-0 overflow-y-auto">

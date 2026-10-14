@@ -1,14 +1,18 @@
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { type ReactNode, useCallback, useMemo, useRef, useState } from "react";
+import { HeartIcon, PlayIcon, ShuffleIcon } from "lucide-react";
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AlbumGrid, AlbumGridSkeleton, Content, EmptyState, PageHeader, Section, TrackList } from "@/components/library";
 import { Link } from "@/components/link";
+import { ListFilterBar } from "@/components/list-filter-bar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Toggle } from "@/components/ui/toggle";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { plural } from "@/lib/format";
+import { closeListFilter, songMatches, useListFilter } from "@/lib/list-filter";
 import { player } from "@/lib/player";
 import { queries, queryClient } from "@/lib/queries";
-import type { Album, Artist } from "@/lib/types";
+import type { Album, Artist, Song } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useColumns, usePageVirtualizer } from "@/lib/virtual";
 
@@ -91,7 +95,10 @@ function useAllPages<T>(query: {
 
 export function AlbumsPage() {
   const [sort, setSort] = useState<Sort>("newest");
-  const { items: albums, loadMore } = useAllPages(useInfiniteQuery(queries.albumPages(sort)));
+  const [likedOnly, setLikedOnly] = useState(false);
+  const { items: all, loadMore } = useAllPages(useInfiniteQuery(queries.albumPages(sort)));
+  const starred = useQuery({ ...queries.starred(), enabled: likedOnly });
+  const albums = likedOnly ? (starred.data?.album ?? []) : all;
   const totals = useQuery(queries.totals());
 
   return (
@@ -113,11 +120,23 @@ export function AlbumsPage() {
             </ToggleGroupItem>
           ))}
         </ToggleGroup>
+        <LikedToggle pressed={likedOnly} onPressedChange={setLikedOnly} />
       </PageHeader>
       <Content>
-        <AlbumGrid albums={albums} onNearEnd={loadMore} priority={16} />
+        {likedOnly && starred.data && !albums.length && <EmptyState>no liked albums yet: the heart on an album page adds one</EmptyState>}
+        <AlbumGrid albums={albums} onNearEnd={likedOnly ? undefined : loadMore} priority={16} />
       </Content>
     </>
+  );
+}
+
+/** "Only what I liked" on the albums and artists pages. */
+function LikedToggle({ pressed, onPressedChange }: { pressed: boolean; onPressedChange: (pressed: boolean) => void }) {
+  return (
+    <Toggle variant="outline" size="sm" pressed={pressed} onPressedChange={onPressedChange} className="font-mono font-normal">
+      <HeartIcon className={cn(pressed && "fill-current")} />
+      liked
+    </Toggle>
   );
 }
 
@@ -127,7 +146,15 @@ const ARTIST_GAP = 24;
 
 export function ArtistsPage() {
   const { data } = useQuery(queries.artists());
-  const groups = data ?? [];
+  const [likedOnly, setLikedOnly] = useState(false);
+  const starred = useQuery({ ...queries.starred(), enabled: likedOnly });
+  const groups = useMemo(() => {
+    if (!likedOnly) return data ?? [];
+    const ids = new Set((starred.data?.artist ?? []).map((artist) => artist.id));
+    return (data ?? [])
+      .map((group) => ({ ...group, artist: group.artist.filter((artist) => ids.has(artist.id)) }))
+      .filter((group) => group.artist.length);
+  }, [data, likedOnly, starred.data]);
   const total = groups.reduce((sum, group) => sum + group.artist.length, 0);
   const listRef = useRef<HTMLDivElement>(null);
   const { width } = useColumns(listRef, ARTIST_MIN, ARTIST_GAP);
@@ -153,6 +180,7 @@ export function ArtistsPage() {
   return (
     <>
       <PageHeader title="artists" meta={data ? plural(total, "artist") : undefined}>
+        <LikedToggle pressed={likedOnly} onPressedChange={setLikedOnly} />
         <nav aria-label="jump to letter" className="flex flex-wrap justify-end">
           {groups.map((group) => (
             <Button
@@ -255,6 +283,98 @@ export function GenresPage() {
             </li>
           ))}
         </ul>
+      </Content>
+    </>
+  );
+}
+
+const LIKED_SORTS = [
+  ["added", "recently liked"],
+  ["title", "title"],
+  ["artist", "artist"],
+  ["album", "album"],
+  ["plays", "most played"],
+] as const;
+type LikedSort = (typeof LIKED_SORTS)[number][0];
+const LIKED_SOURCE = { kind: "liked", name: "liked songs", href: "/liked" };
+
+function sortLiked(songs: Song[], sort: LikedSort): Song[] {
+  const text = (value?: string) => value ?? "";
+  const sorted = [...songs];
+  if (sort === "added") sorted.sort((a, b) => text(b.starred).localeCompare(text(a.starred)));
+  else if (sort === "plays") sorted.sort((a, b) => (b.playCount ?? 0) - (a.playCount ?? 0));
+  else sorted.sort((a, b) => text(a[sort]).localeCompare(text(b[sort]), undefined, { sensitivity: "base" }));
+  return sorted;
+}
+
+/** Liked Songs (`g l`): your stars from every client, sortable, filterable with ⌘F, optionally grouped by artist. */
+export function LikedPage() {
+  const { data } = useQuery(queries.starred());
+  const [sort, setSort] = useState<LikedSort>("added");
+  const [grouped, setGrouped] = useState(false);
+  const songs = useMemo(() => sortLiked(data?.song ?? [], grouped ? "artist" : sort), [data, sort, grouped]);
+  const filter = useListFilter("page");
+  useEffect(() => () => closeListFilter("page"), []);
+  const shown = useMemo(() => (filter ? songs.filter((song) => songMatches(song, filter)) : songs), [songs, filter]);
+  const groups = useMemo(() => {
+    const byArtist = new Map<string, Song[]>();
+    for (const song of shown)
+      byArtist.set(song.artist ?? "unknown artist", [...(byArtist.get(song.artist ?? "unknown artist") ?? []), song]);
+    return [...byArtist];
+  }, [shown]);
+
+  return (
+    <>
+      <PageHeader title="liked songs" meta={data ? plural(data.song.length, "song") : undefined}>
+        <Button size="sm" disabled={!songs.length} onClick={() => player.play(songs, 0, { source: LIKED_SOURCE })}>
+          <PlayIcon /> play
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={!songs.length}
+          onClick={() => player.play(songs, -1, { shuffle: true, source: LIKED_SOURCE })}
+        >
+          <ShuffleIcon /> shuffle
+        </Button>
+        <ToggleGroup
+          variant="outline"
+          size="sm"
+          aria-label="sort"
+          value={[sort]}
+          disabled={grouped}
+          onValueChange={(value: string[]) => {
+            const next = value[0] as LikedSort | undefined;
+            if (next) setSort(next);
+          }}
+        >
+          {LIKED_SORTS.map(([value, label]) => (
+            <ToggleGroupItem key={value} value={value} className="font-mono font-normal">
+              {label}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
+        <Toggle variant="outline" size="sm" pressed={grouped} onPressedChange={setGrouped} className="font-mono font-normal">
+          group by artist
+        </Toggle>
+      </PageHeader>
+      <Content>
+        <div data-filter-scope="page">
+          {filter !== null && <ListFilterBar scope="page" query={filter} shown={shown.length} total={songs.length} />}
+          {data && !songs.length ? (
+            <EmptyState>no liked songs yet: the heart on any song (or F while it plays) adds it here and in Arpeggi</EmptyState>
+          ) : filter && !shown.length ? (
+            <EmptyState>nothing here matches “{filter}”</EmptyState>
+          ) : grouped ? (
+            groups.map(([artist, items]) => (
+              <Section key={artist} title={artist}>
+                <TrackList songs={items} showArtist={false} source={LIKED_SOURCE} />
+              </Section>
+            ))
+          ) : (
+            <TrackList songs={shown} source={LIKED_SOURCE} />
+          )}
+        </div>
       </Content>
     </>
   );

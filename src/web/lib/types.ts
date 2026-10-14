@@ -22,6 +22,7 @@ export interface Song {
   suffix?: string;
   size?: number;
   starred?: string;
+  userRating?: number;
   playCount?: number;
   replayGain?: ReplayGain;
 }
@@ -51,6 +52,7 @@ export interface Artist {
   albumCount?: number;
   coverArt?: string;
   artistImageUrl?: string;
+  starred?: string;
   album?: Album[];
 }
 

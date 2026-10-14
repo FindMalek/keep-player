@@ -17,6 +17,7 @@ const SECTIONS: Record<string, keyof typeof chunks> = {
   artists: "browse",
   songs: "browse",
   genres: "browse",
+  liked: "browse",
   album: "detail",
   artist: "detail",
   genre: "detail",
@@ -43,6 +44,7 @@ export const HomePage = lazy(() => chunks.browse().then((module) => ({ default: 
 export const AlbumsPage = lazy(() => chunks.browse().then((module) => ({ default: module.AlbumsPage })));
 export const ArtistsPage = lazy(() => chunks.browse().then((module) => ({ default: module.ArtistsPage })));
 export const SongsPage = lazy(() => chunks.browse().then((module) => ({ default: module.SongsPage })));
+export const LikedPage = lazy(() => chunks.browse().then((module) => ({ default: module.LikedPage })));
 export const GenresPage = lazy(() => chunks.browse().then((module) => ({ default: module.GenresPage })));
 export const AlbumPage = lazy(() => chunks.detail().then((module) => ({ default: module.AlbumPage })));
 export const ArtistPage = lazy(() => chunks.detail().then((module) => ({ default: module.ArtistPage })));

@@ -4,11 +4,13 @@ import { Fragment, type ReactNode } from "react";
 import { Cover } from "@/components/cover";
 import { KeepOffline } from "@/components/keep-offline";
 import { AlbumGrid, Content, EmptyState, PageHeader, Section, TrackList } from "@/components/library";
+import { LikeButton } from "@/components/like-button";
 import { Link } from "@/components/link";
 import { Badge } from "@/components/ui/badge";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { length, plural, quality } from "@/lib/format";
+import type { LikeKind } from "@/lib/likes";
 import { player } from "@/lib/player";
 import { queries, queryClient } from "@/lib/queries";
 import type { Song } from "@/lib/types";
@@ -22,6 +24,7 @@ function Hero({
   onShuffle,
   onQueue,
   extra,
+  like,
 }: {
   cover?: string;
   kind: ReactNode;
@@ -32,6 +35,8 @@ function Hero({
   onQueue: () => void;
   /** More actions after "add to queue" (keep offline). */
   extra?: ReactNode;
+  /** A heart for albums and artists. */
+  like?: { kind: LikeKind; id: string };
 }) {
   return (
     <header className="flex items-end gap-5 border-b px-5 pt-[18px] pb-4">
@@ -49,6 +54,7 @@ function Hero({
             add to queue
           </Button>
           {extra}
+          {like && <LikeButton kind={like.kind} id={like.id} label={title} className="size-8" />}
         </div>
       </div>
     </header>
@@ -89,6 +95,7 @@ export function AlbumPage({ id }: { id: string }) {
         onShuffle={() => player.play(songs, -1, { shuffle: true, source })}
         onQueue={() => player.addToQueue(songs)}
         extra={<KeepOffline group={`album:${album.id}`} songs={songs} />}
+        like={{ kind: "album", id: album.id }}
       >
         {album.artistId && (
           <Link href={`/artist/${album.artistId}`} className="font-medium underline-offset-3 hover:underline">
@@ -172,6 +179,7 @@ export function ArtistPage({ id }: { id: string }) {
         onPlay={() => void everything().then((songs) => player.play(songs, 0, { shuffle: false, source }))}
         onShuffle={() => void everything().then((songs) => player.play(songs, -1, { shuffle: true, source }))}
         onQueue={() => void everything().then(player.addToQueue)}
+        like={{ kind: "artist", id: artist.id }}
       >
         <span className="text-muted-foreground">{plural(albums.length, "album")}</span>
         {bio && <Bio>{bio}</Bio>}

@@ -36,6 +36,7 @@ import type { Song } from "@/lib/types";
 import { CAN_PICK_OUTPUT } from "@/lib/use-output-devices";
 import { Cover } from "./cover";
 import { Hint } from "./hint";
+import { LikeButton } from "./like-button";
 import { Link } from "./link";
 import { OfflineMark } from "./offline-mark";
 import { ToolButton } from "./tool-button";
@@ -90,6 +91,9 @@ function NowPlaying({ song }: { song: Song }) {
           </Link>
         )}
       </div>
+      <Hint label="like" shortcut="like">
+        <LikeButton kind="song" id={song.id} label={song.title} className="shrink-0" />
+      </Hint>
     </div>
   );
 }

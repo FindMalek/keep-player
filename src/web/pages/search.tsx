@@ -7,7 +7,7 @@ import { Link } from "@/components/link";
 import { LyricsSnippet } from "@/components/lyrics-snippet";
 import { Button } from "@/components/ui/button";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
-import { queries } from "@/lib/queries";
+import { apiQueries } from "@/lib/api-queries";
 import { useSearchParam } from "@/lib/router";
 import { openResult, playLyricsHit, playResult, rememberSearch, resultSubtitle, resultTitle } from "@/lib/search-actions";
 import type { Album, Artist, Song } from "@/lib/types";
@@ -34,12 +34,12 @@ export function SearchPage() {
   const parsed = parseQuery(query);
 
   const { data, isPending } = useQuery({
-    ...queries.search(query, LIMIT),
+    ...apiQueries.search(query, LIMIT),
     enabled: query.length > 0 && !parsed.lyricsOnly,
     placeholderData: (previous) => previous,
   });
   const lyricsWanted = parsed.text.length >= 3 && (parsed.lyricsOnly || !parsed.chips.length);
-  const lyrics = useQuery({ ...queries.lyricsSearch(parsed.text), enabled: lyricsWanted }).data;
+  const lyrics = useQuery({ ...apiQueries.lyricsSearch(parsed.text), enabled: lyricsWanted }).data;
   const top = query && !parsed.lyricsOnly ? data?.top : null;
   const songs = (query && !parsed.lyricsOnly ? (data?.songs ?? []) : []) as unknown as Song[];
   const albums = (query && !parsed.lyricsOnly ? (data?.albums ?? []) : []) as unknown as Album[];

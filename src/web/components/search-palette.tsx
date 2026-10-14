@@ -13,6 +13,7 @@ import {
   CommandList,
   CommandShortcut,
 } from "@/components/ui/command";
+import { apiQueries } from "@/lib/api-queries";
 import { player, usePlayer } from "@/lib/player";
 import { queries } from "@/lib/queries";
 import { go } from "@/lib/router";
@@ -64,14 +65,14 @@ export function SearchPalette({ open, onOpenChange }: { open: boolean; onOpenCha
   const active = useMemo(() => parseQuery(query), [query]);
 
   const { data } = useQuery({
-    ...queries.search(query),
+    ...apiQueries.search(query),
     enabled: query.length > 0 && !active.lyricsOnly,
     placeholderData: (previous) => previous,
   });
   const results = query && !active.lyricsOnly ? data : undefined;
   const lyricsWords = active.text;
   const lyricsWanted = lyricsWords.length >= 3 && (active.lyricsOnly || !active.chips.length);
-  const lyrics = useQuery({ ...queries.lyricsSearch(lyricsWords), enabled: lyricsWanted, placeholderData: (previous) => previous }).data;
+  const lyrics = useQuery({ ...apiQueries.lyricsSearch(lyricsWords), enabled: lyricsWanted, placeholderData: (previous) => previous }).data;
   const lyricHits = lyricsWanted ? (lyrics?.hits ?? []) : [];
   const playlistsData = useQuery({ ...queries.playlists(), enabled: open }).data;
   const playlists = useMemo(() => {

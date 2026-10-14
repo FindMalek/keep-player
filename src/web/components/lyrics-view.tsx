@@ -4,6 +4,7 @@ import { memo, useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { apiQueries } from "@/lib/api-queries";
 import { clock } from "@/lib/format";
 import { notify } from "@/lib/notify";
 import { player, usePosition } from "@/lib/player";
@@ -129,9 +130,9 @@ function LoadingLines() {
 export function LyricsView({ song, size }: { song: Song; size: Size }) {
   const { data: lyrics, isPending } = useQuery(queries.lyrics(song.id));
   const synced = lyrics?.status === "synced" ? lyrics.lines : null;
-  const offset = useQuery(queries.lyricsOffset(song.id)).data ?? 0;
+  const offset = useQuery(apiQueries.lyricsOffset(song.id)).data ?? 0;
   const setOffset = (update: (current: number) => number) =>
-    queryClient.setQueryData(queries.lyricsOffset(song.id).queryKey, (current) => update(current ?? 0));
+    queryClient.setQueryData(apiQueries.lyricsOffset(song.id).queryKey, (current) => update(current ?? 0));
 
   const [showTranslation, setShowTranslation] = useState(() => {
     try {
