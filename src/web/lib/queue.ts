@@ -156,6 +156,19 @@ export function peekNext(queue: Queue): Song | null {
   return null;
 }
 
+/** The next `count` songs in play order (your queue, then the context, wrapping on repeat all). For the precache. */
+export function peekUpcoming(queue: Queue, count: number): Song[] {
+  const songs = queue.upNext.slice(0, count).map((entry) => entry.song);
+  const { order, cursor } = queue.context;
+  for (let step = 1; songs.length < count && step <= order.length; step += 1) {
+    const at = cursor + step;
+    if (at >= order.length && queue.repeat !== "all") break;
+    const song = queue.context.songs[order[at % order.length] as number];
+    if (song) songs.push(song);
+  }
+  return songs;
+}
+
 /** Advance: your queue first, then the context; wraps (reshuffled) with repeat all. Null `current` means the end. */
 export function next(queue: Queue, random: Random = Math.random): Queue {
   const history = pushHistory(queue.history, queue.current);

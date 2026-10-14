@@ -42,7 +42,8 @@ the user menu (sessions). Rotating `SESSION_SECRET` signs everyone out.
 - The production server also sends the CSP as a header, with `frame-ancestors 'none'` and `X-Frame-Options: DENY`
   (no clickjacking), plus `Permissions-Policy`.
 - `Referrer-Policy: no-referrer` and `X-Content-Type-Options: nosniff` on the page and every API response.
-- Logging out deletes the server session, the cookie and the saved queue.
+- Logging out (or signing in as someone else) deletes the server session, the cookie, the saved queue, the cached
+  library data (IndexedDB) and the offline audio and covers (service worker caches).
 
 ## Threat model
 

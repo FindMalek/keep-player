@@ -37,6 +37,7 @@ import { BrandMark } from "./brand";
 import { Link } from "./link";
 
 // Rarely opened; keeps the dialog code out of the first load.
+const StorageDialog = lazy(() => import("./storage-dialog").then((module) => ({ default: module.StorageDialog })));
 const SessionsDialog = lazy(() => import("./sessions-dialog").then((module) => ({ default: module.SessionsDialog })));
 
 const LIBRARY = [
@@ -129,6 +130,7 @@ export function AppSidebar({ path, onSearch }: { path: string; onSearch: () => v
   const user = useUser() ?? "";
   const [sessionsOpen, setSessionsOpen] = useState(false);
   const [menuWanted, setMenuWanted] = useState(false);
+  const [storageOpen, setStorageOpen] = useState(false);
   const { data } = useQuery(queries.playlists());
   const playlists = [...(data ?? [])].sort((a, b) => a.name.localeCompare(b.name));
 
@@ -192,8 +194,13 @@ export function AppSidebar({ path, onSearch }: { path: string; onSearch: () => v
         <SidebarMenu>
           <SidebarMenuItem>
             <Suspense fallback={<UserButton user={user} onClick={() => setMenuWanted(true)} />}>
-              <UserMenu defaultOpen={menuWanted} onSessions={() => setSessionsOpen(true)} />
+              <UserMenu defaultOpen={menuWanted} onSessions={() => setSessionsOpen(true)} onStorage={() => setStorageOpen(true)} />
             </Suspense>
+            {storageOpen && (
+              <Suspense>
+                <StorageDialog open={storageOpen} onOpenChange={setStorageOpen} />
+              </Suspense>
+            )}
             {sessionsOpen && (
               <Suspense>
                 <SessionsDialog open={sessionsOpen} onOpenChange={setSessionsOpen} />

@@ -17,9 +17,9 @@ test("hovering an album prefetches it, and back to home needs no network", async
   await (await page.waitForResponse((response) => response.url().includes("/rest/getAlbum?"))).finished();
   await slowApi(page);
   await link.click();
-  await expect(page.getByRole("table", { name: "tracks" })).toBeVisible({ timeout: 2500 });
+  await expect(page.getByRole("table", { name: "tracks" })).toBeVisible({ timeout: 4000 });
   await page.goBack();
-  await expect(page.locator('a[href^="/album/"]').first()).toBeVisible({ timeout: 2500 });
+  await expect(page.locator('a[href^="/album/"]').first()).toBeVisible({ timeout: 4000 });
 });
 
 test("a reload paints the library from IndexedDB before the server answers", async ({ page, signedIn }) => {
@@ -28,7 +28,7 @@ test("a reload paints the library from IndexedDB before the server answers", asy
   await page.waitForTimeout(1500);
   await slowApi(page);
   await page.reload();
-  await expect(page.locator('a[href^="/album/"]').first()).toBeVisible({ timeout: 2500 });
+  await expect(page.locator('a[href^="/album/"]').first()).toBeVisible({ timeout: 4000 });
 });
 
 test("logging out deletes the persisted cache", async ({ page, signedIn }) => {

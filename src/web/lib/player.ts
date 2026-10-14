@@ -3,6 +3,7 @@ import { useRef, useSyncExternalStore } from "react";
 import type { FrameSource } from "./audio/types";
 import { Decks } from "./decks";
 import { notify } from "./notify";
+import { pausePrecache, precache } from "./offline";
 import * as Q from "./queue";
 import { api, coverUrl, onAccountChange, preloadCover, scrobble, streamUrl } from "./subsonic";
 import type { Song } from "./types";
@@ -159,6 +160,8 @@ const currentFactor = () => replayGainFactor(current(), state.queue.context.albu
 const decks = new Decks({
   playing: () => {
     set({ playing: true, buffering: false, error: null });
+    // `waiting` paused the downloads; playing resumes them even when no `canplay` comes in between.
+    pausePrecache(false);
     stalls = 0;
     clearTimeout(stallTimer);
     startTicker();
@@ -172,10 +175,12 @@ const decks = new Decks({
   },
   waiting: () => {
     set({ buffering: true });
+    pausePrecache(true);
     watchStall();
   },
   canPlay: () => {
     set({ buffering: false });
+    pausePrecache(false);
     clearTimeout(stallTimer);
     preloadNext();
   },
@@ -303,9 +308,13 @@ function stopsAfterThis(): boolean {
   return false;
 }
 
-/** Keep the idle deck holding whatever plays next; called whenever the queue changes. */
+/** How many upcoming songs the service worker downloads ahead. */
+const PRECACHE_AHEAD = 3;
+
+/** Keep the idle deck holding whatever plays next, and the next few downloading; called whenever the queue changes. */
 function preloadNext(): void {
   if (!current()) return;
+  precache(Q.peekUpcoming(state.queue, PRECACHE_AHEAD).map((song) => song.id));
   const next = upcoming();
   decks.preload(next?.song.id ?? null, next ? streamUrl(next.song.id) : null, next?.factor ?? 1);
   // The player bar shows the next cover within minutes; have it cached by then.

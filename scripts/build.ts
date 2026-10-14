@@ -29,6 +29,23 @@ const web = await Bun.build({
 });
 if (!web.success) fail(web.logs);
 
+// The service worker, with the shell (index + hashed files + the two preloaded fonts) it should keep for offline.
+const shell = [
+  "/",
+  ...web.outputs.map((output) => `/${relative(OUT, output.path)}`).filter((url) => /\.(js|css)$/.test(url)),
+  "/fonts/ibm-plex-sans-latin.woff2",
+  "/fonts/jetbrains-mono-latin.woff2",
+];
+const worker = await Bun.build({
+  entrypoints: ["src/web/sw.ts"],
+  outdir: OUT,
+  naming: "sw.js",
+  minify: true,
+  target: "browser",
+  define: { __SHELL__: JSON.stringify(shell), __VERSION__: JSON.stringify(Bun.hash(shell.join()).toString(36)) },
+});
+if (!worker.success) fail(worker.logs);
+
 const TYPES: Record<string, string> = {
   js: "text/javascript; charset=utf-8",
   css: "text/css; charset=utf-8",
@@ -36,7 +53,7 @@ const TYPES: Record<string, string> = {
 };
 const entries: string[] = [];
 const imports: string[] = [];
-for (const [index, output] of web.outputs.entries()) {
+for (const [index, output] of [...web.outputs, ...worker.outputs].entries()) {
   const extension = output.path.split(".").pop() ?? "";
   if (!TYPES[extension]) continue;
   const bytes = new Uint8Array(await output.arrayBuffer());
