@@ -1,5 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { AlbumGrid, Content, EmptyState, PageHeader, Section, TrackList } from "@/components/library";
 import { Link } from "@/components/link";
 import { Badge } from "@/components/ui/badge";
@@ -7,15 +7,10 @@ import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { plural } from "@/lib/format";
 import { player } from "@/lib/player";
-import { queries } from "@/lib/queries";
-
-function LoadMore({ onClick }: { onClick: () => void }) {
-  return (
-    <Button variant="outline" className="mx-auto mt-4 flex" onClick={onClick}>
-      load more
-    </Button>
-  );
-}
+import { queries, queryClient } from "@/lib/queries";
+import type { Artist } from "@/lib/types";
+import { cn } from "@/lib/utils";
+import { useColumns, usePageVirtualizer } from "@/lib/virtual";
 
 export function HomePage() {
   const newest = useQuery(queries.albumList("newest", 12));
@@ -37,17 +32,18 @@ export function HomePage() {
             <AlbumGrid albums={newest.data ?? []} />
           </Section>
           {(recent.data?.length ?? 0) > 0 && (
-            <Section title="recently played">
+            <Section title="recently played" deferred>
               <AlbumGrid albums={recent.data ?? []} />
             </Section>
           )}
           {(frequent.data?.length ?? 0) > 0 && (
-            <Section title="most played">
+            <Section title="most played" deferred>
               <AlbumGrid albums={frequent.data ?? []} />
             </Section>
           )}
           <Section
             title="rediscover"
+            deferred
             action={
               <Button variant="link" size="xs" className="h-auto p-0 font-mono text-muted-foreground" onClick={() => void random.refetch()}>
                 shuffle
@@ -69,20 +65,30 @@ const SORTS = [
   ["frequent", "most played"],
 ] as const;
 type Sort = (typeof SORTS)[number][0];
-const PAGE = 60;
+
+/** Pages of an infinite list as one array, plus a callback that loads the next page once (no duplicate requests). */
+function useAllPages<T>(query: {
+  data?: { pages: T[][] };
+  hasNextPage: boolean;
+  isFetchingNextPage: boolean;
+  fetchNextPage: () => Promise<unknown>;
+}) {
+  const items = useMemo(() => query.data?.pages.flat() ?? [], [query.data]);
+  const { hasNextPage, isFetchingNextPage, fetchNextPage } = query;
+  const loadMore = useCallback(() => {
+    if (hasNextPage && !isFetchingNextPage) void fetchNextPage();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+  return { items, loadMore };
+}
 
 export function AlbumsPage() {
   const [sort, setSort] = useState<Sort>("newest");
-  const [pages, setPages] = useState(1);
-  // Keep the list on screen while the next page loads, but not across a sort change.
-  const { data } = useQuery({
-    ...queries.albumList(sort, PAGE * pages),
-    placeholderData: (previous, previousQuery) => (previousQuery?.queryKey[1] === sort ? previous : undefined),
-  });
+  const { items: albums, loadMore } = useAllPages(useInfiniteQuery(queries.albumPages(sort)));
+  const totals = useQuery(queries.totals());
 
   return (
     <>
-      <PageHeader title="albums" meta={data ? plural(data.length, "album") : undefined}>
+      <PageHeader title="albums" meta={totals.data ? plural(totals.data.albums, "album") : undefined}>
         <ToggleGroup
           variant="outline"
           size="sm"
@@ -90,9 +96,7 @@ export function AlbumsPage() {
           value={[sort]}
           onValueChange={(value: string[]) => {
             const next = value[0] as Sort | undefined;
-            if (!next) return;
-            setSort(next);
-            setPages(1);
+            if (next) setSort(next);
           }}
         >
           {SORTS.map(([value, label]) => (
@@ -103,62 +107,112 @@ export function AlbumsPage() {
         </ToggleGroup>
       </PageHeader>
       <Content>
-        <AlbumGrid albums={data ?? []} />
-        {data?.length === PAGE * pages && <LoadMore onClick={() => setPages(pages + 1)} />}
+        <AlbumGrid albums={albums} onNearEnd={loadMore} />
       </Content>
     </>
   );
 }
+
+const LETTER_COLUMN = 48;
+const ARTIST_MIN = 220;
+const ARTIST_GAP = 24;
 
 export function ArtistsPage() {
   const { data } = useQuery(queries.artists());
-  const index = data ?? [];
-  const total = index.reduce((sum, group) => sum + group.artist.length, 0);
+  const groups = data ?? [];
+  const total = groups.reduce((sum, group) => sum + group.artist.length, 0);
+  const listRef = useRef<HTMLDivElement>(null);
+  const { width } = useColumns(listRef, ARTIST_MIN, ARTIST_GAP);
+  const columns = Math.max(1, Math.floor((width - LETTER_COLUMN + ARTIST_GAP) / (ARTIST_MIN + ARTIST_GAP)));
+  // One virtual row per line of artists; the first line of each letter carries the letter.
+  const { rows, letterRow } = useMemo(() => {
+    const rows: { letter: string; artists: Artist[]; last: boolean }[] = [];
+    const letterRow = new Map<string, number>();
+    for (const group of groups) {
+      letterRow.set(group.name, rows.length);
+      for (let start = 0; start < group.artist.length; start += columns)
+        rows.push({
+          letter: start === 0 ? group.name : "",
+          artists: group.artist.slice(start, start + columns),
+          last: start + columns >= group.artist.length,
+        });
+    }
+    return { rows, letterRow };
+  }, [groups, columns]);
+  const virtualizer = usePageVirtualizer(listRef, { count: rows.length, estimateSize: (index) => (rows[index]?.last ? 44 : 28) });
+  const margin = virtualizer.options.scrollMargin;
 
   return (
     <>
-      <PageHeader title="artists" meta={data ? plural(total, "artist") : undefined} />
+      <PageHeader title="artists" meta={data ? plural(total, "artist") : undefined}>
+        <nav aria-label="jump to letter" className="flex flex-wrap justify-end">
+          {groups.map((group) => (
+            <Button
+              key={group.name}
+              variant="ghost"
+              size="xs"
+              className="w-5 px-0 font-mono text-muted-foreground"
+              onClick={() => virtualizer.scrollToIndex(letterRow.get(group.name) ?? 0, { align: "start" })}
+            >
+              {group.name}
+            </Button>
+          ))}
+        </nav>
+      </PageHeader>
       <Content>
-        {index.length === 0 && data && <EmptyState>no artists</EmptyState>}
-        {index.map((group) => (
-          <section key={group.name} className="grid grid-cols-[48px_minmax(0,1fr)] border-muted border-b py-2">
-            <h2 className="font-mono text-[15px] text-faint">{group.name}</h2>
-            <ul className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-x-6 gap-y-0.5">
-              {group.artist.map((artist) => (
-                <li key={artist.id}>
-                  <Link href={`/artist/${artist.id}`} className="flex h-[26px] items-center justify-between gap-3 px-1.5 hover:bg-card">
-                    <span className="truncate">{artist.name}</span>
-                    <span className="shrink-0 font-mono text-muted-foreground text-xs tabular-nums">
-                      {plural(artist.albumCount ?? 0, "album")}
-                    </span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </section>
-        ))}
+        {groups.length === 0 && data && <EmptyState>no artists</EmptyState>}
+        <div ref={listRef} className="relative" style={{ height: virtualizer.getTotalSize() }}>
+          {virtualizer.getVirtualItems().map((item) => {
+            const row = rows[item.index];
+            if (!row) return null;
+            return (
+              <div
+                key={item.key}
+                ref={virtualizer.measureElement}
+                data-index={item.index}
+                className={cn("absolute inset-x-0 grid grid-cols-[48px_minmax(0,1fr)]", row.last && "border-muted border-b pb-2")}
+                style={{ transform: `translateY(${item.start - margin}px)`, paddingTop: row.letter ? 8 : 0 }}
+              >
+                <h2 className="font-mono text-[15px] text-faint">{row.letter}</h2>
+                <ul className="grid gap-x-6" style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
+                  {row.artists.map((artist) => (
+                    <li key={artist.id}>
+                      <Link href={`/artist/${artist.id}`} className="flex h-[26px] items-center justify-between gap-3 px-1.5 hover:bg-card">
+                        <span className="truncate">{artist.name}</span>
+                        <span className="shrink-0 font-mono text-muted-foreground text-xs tabular-nums">
+                          {plural(artist.albumCount ?? 0, "album")}
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            );
+          })}
+        </div>
       </Content>
     </>
   );
 }
 
-const SONG_PAGE = 200;
-
 export function SongsPage() {
-  const [pages, setPages] = useState(1);
-  const { data } = useQuery({ ...queries.songs(SONG_PAGE * pages), placeholderData: (previous) => previous });
-  const songs = data ?? [];
+  const { items: songs, loadMore } = useAllPages(useInfiniteQuery(queries.songPages()));
+  const totals = useQuery(queries.totals());
 
   return (
     <>
-      <PageHeader title="songs" meta={data ? plural(songs.length, "song") : undefined}>
-        <Button variant="outline" onClick={() => player.play(songs, 0, { shuffle: true })} disabled={!songs.length}>
+      <PageHeader title="songs" meta={totals.data ? plural(totals.data.songs, "song") : undefined}>
+        <Button
+          variant="outline"
+          // The whole library, not just the loaded pages: the server picks 500 at random.
+          onClick={() => void queryClient.fetchQuery(queries.randomSongs(500)).then((random) => player.play(random, 0, { shuffle: false }))}
+          disabled={!songs.length}
+        >
           shuffle all
         </Button>
       </PageHeader>
       <Content>
-        <TrackList songs={songs} />
-        {songs.length === SONG_PAGE * pages && <LoadMore onClick={() => setPages(pages + 1)} />}
+        <TrackList songs={songs} onNearEnd={loadMore} />
       </Content>
     </>
   );

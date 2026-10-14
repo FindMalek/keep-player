@@ -1,5 +1,5 @@
 import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
-import { type Query, QueryClient, queryOptions } from "@tanstack/react-query";
+import { infiniteQueryOptions, type Query, QueryClient, queryOptions } from "@tanstack/react-query";
 import { del, get, set } from "idb-keyval";
 import { api, onAccountChange } from "./subsonic";
 import type { Album, Artist, ArtistInfo, Directory, Genre, Playlist, Song, StructuredLyrics } from "./types";
@@ -30,6 +30,9 @@ export const persister = createAsyncStoragePersister({
 /** Search results change with every keystroke; not worth keeping across reloads. */
 export const shouldPersist = (query: Query) => query.state.status === "success" && query.queryKey[0] !== "search";
 
+/** Long lists load this many items at a time, the next page fetched when the reader is 80% down. */
+export const PAGE_SIZE = 200;
+
 export interface IndexEntry {
   name: string;
   artist: { id: string; name: string }[];
@@ -49,6 +52,51 @@ export const queries = {
         ),
       // A random pick should stay put until asked to reshuffle.
       staleTime: type === "random" ? Number.POSITIVE_INFINITY : 5 * MINUTE,
+    }),
+  albumPages: (type: string) =>
+    infiniteQueryOptions({
+      queryKey: ["albumPages", type],
+      queryFn: ({ pageParam }) =>
+        api<{ albumList2: { album?: Album[] } }>("getAlbumList2", { type, size: PAGE_SIZE, offset: pageParam }).then(
+          (response) => response.albumList2.album ?? [],
+        ),
+      initialPageParam: 0,
+      getNextPageParam: (last, _pages, offset) => (last.length === PAGE_SIZE ? offset + PAGE_SIZE : undefined),
+    }),
+  songPages: () =>
+    infiniteQueryOptions({
+      queryKey: ["songPages"],
+      queryFn: ({ pageParam }) =>
+        api<{ searchResult3: { song?: Song[] } }>("search3", {
+          query: "",
+          songCount: PAGE_SIZE,
+          songOffset: pageParam,
+          artistCount: 0,
+          albumCount: 0,
+        }).then((response) => response.searchResult3.song ?? []),
+      initialPageParam: 0,
+      getNextPageParam: (last, _pages, offset) => (last.length === PAGE_SIZE ? offset + PAGE_SIZE : undefined),
+    }),
+  /** Library size, for headers before the lists finish loading. Albums are summed from the (cached) artist index. */
+  totals: () =>
+    queryOptions({
+      queryKey: ["totals"],
+      queryFn: async () => {
+        const [scan, index] = await Promise.all([
+          api<{ scanStatus: { count?: number } }>("getScanStatus"),
+          queryClient.fetchQuery(queries.artists()),
+        ]);
+        const albums = index.flatMap((group) => group.artist).reduce((sum, artist) => sum + (artist.albumCount ?? 0), 0);
+        return { songs: scan.scanStatus.count ?? 0, albums };
+      },
+      staleTime: 30 * MINUTE,
+    }),
+  randomSongs: (size: number) =>
+    queryOptions({
+      queryKey: ["randomSongs", size],
+      queryFn: () =>
+        api<{ randomSongs: { song?: Song[] } }>("getRandomSongs", { size }).then((response) => response.randomSongs.song ?? []),
+      staleTime: 0,
     }),
   album: (id: string) =>
     queryOptions({
@@ -81,14 +129,6 @@ export const queries = {
       queryFn: () =>
         api<{ artists: { index?: { name: string; artist: Artist[] }[] } }>("getArtists").then((response) => response.artists.index ?? []),
       staleTime: HOUR,
-    }),
-  songs: (count: number) =>
-    queryOptions({
-      queryKey: ["songs", count],
-      queryFn: () =>
-        api<{ searchResult3: { song?: Song[] } }>("search3", { query: "", songCount: count, artistCount: 0, albumCount: 0 }).then(
-          (response) => response.searchResult3.song ?? [],
-        ),
     }),
   genres: () =>
     queryOptions({
