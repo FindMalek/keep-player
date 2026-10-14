@@ -1,18 +1,32 @@
 import { type CSSProperties, lazy, Suspense, useEffect, useState } from "react";
-import { useDefaultLayout } from "react-resizable-panels";
+import { createPortal } from "react-dom";
 import { AppSidebar } from "@/components/app-sidebar";
-import { Login } from "@/components/login";
+import { PageSlot, usePageHost } from "@/components/page-host";
 import { type Panel, PlayerBar } from "@/components/player-bar";
-import { LyricsPanel, QueuePanel } from "@/components/side-panels";
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { currentSong, player, usePlayer } from "@/lib/player";
 import { usePath } from "@/lib/router";
-import { useUser } from "@/lib/subsonic";
-import { AlbumsPage, ArtistsPage, GenresPage, HomePage, SongsPage } from "@/pages/browse";
-import { AlbumPage, ArtistPage, GenrePage, PlaylistPage } from "@/pages/detail";
-import { FoldersPage } from "@/pages/folders";
+import { useCheckingSession, useUser } from "@/lib/subsonic";
+import {
+  AlbumPage,
+  AlbumsPage,
+  ArtistPage,
+  ArtistsPage,
+  FoldersPage,
+  GenrePage,
+  GenresPage,
+  HomePage,
+  PlaylistPage,
+  preloadAllRoutes,
+  SongsPage,
+} from "@/routes";
+
+// Signed-out visitors and the side panels are rare enough to load on demand.
+const Login = lazy(() => import("@/components/login").then((module) => ({ default: module.Login })));
+const SplitView = lazy(() => import("@/components/split-view").then((module) => ({ default: module.SplitView })));
+const QueuePanel = lazy(() => import("@/components/side-panels").then((module) => ({ default: module.QueuePanel })));
+const LyricsPanel = lazy(() => import("@/components/side-panels").then((module) => ({ default: module.LyricsPanel })));
 
 // Only loaded on the first ⌘K (cmdk + dialog stay out of the first paint), then kept mounted.
 const SearchPalette = lazy(() => import("@/components/search-palette").then((module) => ({ default: module.SearchPalette })));
@@ -50,6 +64,7 @@ function isTyping(target: EventTarget | null): boolean {
 
 export function App() {
   const user = useUser();
+  const checkingSession = useCheckingSession();
   const [panel, setPanel] = useState<Panel>(null);
   const [searching, setSearching] = useState(false);
   const [searchLoaded, setSearchLoaded] = useState(false);
@@ -59,7 +74,7 @@ export function App() {
   const nowPlaying = usePlayer(currentSong);
   const playing = usePlayer((state) => state.playing);
   const showPanel = panel !== null && hasTrack;
-  const layout = useDefaultLayout({ id: "keep-player:layout", panelIds: showPanel ? ["page", "side"] : ["page"], storage: localStorage });
+  const host = usePageHost();
 
   useEffect(() => {
     function onKey(event: KeyboardEvent): void {
@@ -91,10 +106,25 @@ export function App() {
   }, []);
 
   useEffect(() => {
+    if (user)
+      preloadAllRoutes([
+        () => import("@/components/split-view"),
+        () => import("@/components/side-panels"),
+        () => import("@/components/user-menu"),
+      ]);
+  }, [user]);
+
+  useEffect(() => {
     document.title = nowPlaying && playing ? `${nowPlaying.title} · ${nowPlaying.artist ?? ""}` : "keep music";
   }, [nowPlaying, playing]);
 
-  if (!user) return <Login />;
+  if (checkingSession) return null;
+  if (!user)
+    return (
+      <Suspense>
+        <Login />
+      </Suspense>
+    );
 
   return (
     <TooltipProvider delay={400}>
@@ -102,25 +132,30 @@ export function App() {
         <SidebarProvider className="min-h-0 flex-1" style={{ "--sidebar-width": "200px" } as CSSProperties}>
           <AppSidebar path={path} onSearch={() => setSearching(true)} />
           <SidebarInset className="min-h-0 min-w-0">
-            <ResizablePanelGroup orientation="horizontal" defaultLayout={layout.defaultLayout} onLayoutChanged={layout.onLayoutChanged}>
-              <ResizablePanel id="page" minSize="40%">
-                <div data-page-scroll className="h-full overflow-y-auto overscroll-contain">
-                  <Page path={path} />
-                </div>
-              </ResizablePanel>
-              {showPanel && (
-                <>
-                  <ResizableHandle />
-                  <ResizablePanel id="side" defaultSize={320} minSize={260} maxSize={560}>
-                    {panel === "queue" ? <QueuePanel onClose={() => setPanel(null)} /> : <LyricsPanel onClose={() => setPanel(null)} />}
-                  </ResizablePanel>
-                </>
-              )}
-            </ResizablePanelGroup>
+            {showPanel ? (
+              <Suspense fallback={<PageSlot host={host} />}>
+                <SplitView
+                  host={host}
+                  side={
+                    <Suspense>
+                      {panel === "queue" ? <QueuePanel onClose={() => setPanel(null)} /> : <LyricsPanel onClose={() => setPanel(null)} />}
+                    </Suspense>
+                  }
+                />
+              </Suspense>
+            ) : (
+              <PageSlot host={host} />
+            )}
           </SidebarInset>
         </SidebarProvider>
         <PlayerBar panel={panel} onPanel={setPanel} />
       </div>
+      {createPortal(
+        <Suspense>
+          <Page path={path} />
+        </Suspense>,
+        host,
+      )}
       {(searching || searchLoaded) && (
         <Suspense>
           <SearchPalette open={searching} onOpenChange={setSearching} />

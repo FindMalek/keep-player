@@ -28,7 +28,18 @@ function readUser(): string | null {
 }
 
 let user = readUser();
+/** No username remembered (new device, cleared storage): the cookie may still hold a session, so ask once. */
+let checking = user === null;
 const listeners = new Set<() => void>();
+
+if (checking)
+  void fetch("/auth/session")
+    .then((response) => (response.ok ? (response.json() as Promise<{ user?: string }>) : null))
+    .catch(() => null)
+    .then((session) => {
+      checking = false;
+      setUser(session?.user ?? null);
+    });
 
 function setUser(next: string | null): void {
   user = next;
@@ -41,15 +52,19 @@ function setUser(next: string | null): void {
   for (const listener of listeners) listener();
 }
 
+function subscribe(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
 /** The signed-in username, or null; re-renders when the session ends (logout, expiry, revoked elsewhere). */
 export function useUser(): string | null {
-  return useSyncExternalStore(
-    (listener) => {
-      listeners.add(listener);
-      return () => listeners.delete(listener);
-    },
-    () => user,
-  );
+  return useSyncExternalStore(subscribe, () => user);
+}
+
+/** True while the first session check runs, so the app can wait instead of flashing the login form. */
+export function useCheckingSession(): boolean {
+  return useSyncExternalStore(subscribe, () => checking);
 }
 
 export async function login(name: string, password: string): Promise<void> {

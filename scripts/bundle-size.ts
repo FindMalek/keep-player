@@ -5,8 +5,8 @@ import tailwind from "bun-plugin-tailwind";
  * Fails when the JS and CSS the first screen needs grow past the budget (gzipped KB). Lazy chunks (⌘K, later pages)
  * are reported but not budgeted. Tighten as the app gets faster, never loosen without saying why in the PR.
  */
-// js is 210 only until #20 (route splitting) lands; that issue's target is 150 KB js / 30 KB css.
-const BUDGET_KB = { js: 210, css: 40 };
+// React DOM alone is ~62 KB; the rest is Base UI (sidebar tooltips need floating-ui on the first screen) and the app.
+const BUDGET_KB = { js: 160, css: 30 };
 
 const result = await Bun.build({
   entrypoints: ["src/web/index.html"],

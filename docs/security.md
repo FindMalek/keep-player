@@ -39,7 +39,9 @@ the user menu (sessions). Rotating `SESSION_SECRET` signs everyone out.
 - Content Security Policy in `index.html`: `default-src 'self'`. Scripts only from this origin plus one inline boot
   script, allowed by its SHA-256 (`bun scripts/csp.ts` prints it; a unit test fails if it drifts). Styles allow inline
   because components position popovers with `style` attributes.
-- `Referrer-Policy: no-referrer` on the page and every API response, `X-Content-Type-Options: nosniff` on API responses.
+- The production server also sends the CSP as a header, with `frame-ancestors 'none'` and `X-Frame-Options: DENY`
+  (no clickjacking), plus `Permissions-Policy`.
+- `Referrer-Policy: no-referrer` and `X-Content-Type-Options: nosniff` on the page and every API response.
 - Logging out deletes the server session, the cookie and the saved queue.
 
 ## Threat model
@@ -52,10 +54,10 @@ the user menu (sessions). Rotating `SESSION_SECRET` signs everyone out.
 | CSRF from another site | `SameSite=Lax` cookie + required custom header on every state-changing call |
 | password guessing | per-IP and per-user exponential backoff |
 | using the server to reach other hosts | upstream fixed by config, endpoint allowlist |
+| clickjacking | `frame-ancestors 'none'` + `X-Frame-Options: DENY` |
 | a session on a lost device | idle expiry, revoke from the sessions list, or rotate `SESSION_SECRET` |
 
-Not covered yet: `frame-ancestors` (clickjacking) needs a response header on the page, which comes with the static
-asset server in #20. Navidrome itself still accepts the Subsonic token for as long as the password is unchanged; change
+Navidrome itself still accepts the Subsonic token for as long as the password is unchanged; change
 your Navidrome password to invalidate every token at once.
 
 Found something? Open a private security advisory on GitHub rather than an issue.

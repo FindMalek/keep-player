@@ -189,6 +189,7 @@ export function createApi({ upstreams, sessions, limiter, idleSeconds, trustProx
       const value = request.headers.get(name);
       if (value) headers.set(name, value);
     }
+    const started = performance.now();
     const response = await fetch(`${upstream.url}/rest/${endpoint}?${query}`, { headers, redirect: "manual" }).catch(() => null);
     if (!response) return json({ error: "server unreachable" }, 502);
     const out = new Headers(SECURITY_HEADERS);
@@ -198,6 +199,8 @@ export function createApi({ upstreams, sessions, limiter, idleSeconds, trustProx
     }
     // Responses depend on the session cookie, so shared caches must keep them per user.
     out.set("vary", "cookie");
+    // Time to Navidrome's first byte, visible in the browser's network panel.
+    out.set("server-timing", `upstream;dur=${(performance.now() - started).toFixed(1)}`);
     return new Response(response.body, { status: response.status, headers: out });
   }
 
