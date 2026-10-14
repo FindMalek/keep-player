@@ -1,19 +1,39 @@
 import { StarIcon } from "lucide-react";
-import { useState } from "react";
+import { useSyncExternalStore } from "react";
 import { notify } from "@/lib/notify";
 import { api } from "@/lib/subsonic";
 import { cn } from "@/lib/utils";
 
+/*
+ * Ratings you set this session win over what cached song objects say (their userRating is from before), so a rating
+ * never looks undone when you come back to a list.
+ */
+const rated = new Map<string, number>();
+const listeners = new Set<() => void>();
+function setRated(id: string, rating: number): void {
+  rated.set(id, rating);
+  for (const listener of listeners) listener();
+}
+function useRated(id: string, fallback: number): number {
+  return useSyncExternalStore(
+    (listener) => {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+    () => rated.get(id) ?? fallback,
+  );
+}
+
 /** 1–5 stars via setRating; clicking the current rating clears it. */
 export function Rating({ id, value, label }: { id: string; value?: number; label: string }) {
-  const [rating, setRating] = useState(value ?? 0);
+  const rating = useRated(id, value ?? 0);
   async function rate(next: number): Promise<void> {
     const previous = rating;
-    setRating(next);
+    setRated(id, next);
     try {
       await api("setRating", { id, rating: next });
     } catch {
-      setRating(previous);
+      setRated(id, previous);
       notify({ kind: "error", message: `couldn't rate ${label}` });
     }
   }

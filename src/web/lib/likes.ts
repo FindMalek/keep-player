@@ -25,11 +25,16 @@ function subscribe(listener: () => void): () => void {
 const pending = new Map<string, boolean>();
 let lastLoad = 0;
 const REFRESH_MS = 10_000;
+/** Bumped by every click: a refresh that started before one is out of date and is dropped. */
+let generation = 0;
+/** Bumped on sign-out or a new account: requests from before must not touch the new account's hearts. */
+let account = 0;
 
 export async function loadLikes(): Promise<void> {
   lastLoad = Date.now();
+  const started = { generation, account };
   const starred = await queryClient.fetchQuery({ ...queries.starred(), staleTime: 0 }).catch(() => null);
-  if (!starred) return;
+  if (!starred || started.generation !== generation || started.account !== account) return;
   const next = new Set([...starred.song, ...starred.album, ...starred.artist].map((item) => item.id));
   for (const [id, value] of pending) value ? next.add(id) : next.delete(id);
   liked = next;
@@ -42,6 +47,8 @@ if (typeof window !== "undefined")
     if (Date.now() - lastLoad > REFRESH_MS) void loadLikes();
   });
 onAccountChange(() => {
+  account += 1;
+  pending.clear();
   liked = new Set();
   emit();
 });
@@ -65,9 +72,12 @@ export async function setLiked(kind: LikeKind, id: string, value: boolean, label
     emit();
   };
   apply(value);
+  generation += 1;
   pending.set(id, value);
+  const mine = account;
   try {
     await api(value ? "star" : "unstar", { [PARAM[kind]]: id });
+    if (mine !== account) return;
     void queryClient.invalidateQueries({ queryKey: queries.starred().queryKey });
     if (!value)
       notify({
@@ -75,10 +85,11 @@ export async function setLiked(kind: LikeKind, id: string, value: boolean, label
         action: { label: "undo", onClick: () => void setLiked(kind, id, true, label) },
       });
   } catch {
+    if (mine !== account) return;
     apply(!value);
     notify({ kind: "error", message: `couldn't ${value ? "like" : "unlike"} ${label}` });
   } finally {
-    pending.delete(id);
+    if (mine === account) pending.delete(id);
   }
 }
 
