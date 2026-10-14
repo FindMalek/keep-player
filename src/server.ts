@@ -1,62 +1,33 @@
-import { createHash, randomBytes } from "node:crypto";
-import { font } from "./fonts";
+import { join } from "node:path";
+import { createApi } from "./server/api";
+import { config } from "./server/config";
+import { font } from "./server/fonts";
+import { LoginLimiter } from "./server/rate-limit";
+import { SessionStore } from "./server/sessions";
 import index from "./web/index.html";
 
-const PORT = Number(process.env.PORT ?? 8080);
-const NAVIDROME = process.env.NAVIDROME_URL ?? "http://navidrome:4533";
-const CLIENT = "keep-player";
+const idleSeconds = config.sessionIdleDays * 86_400;
+const sessions = new SessionStore(join(config.dataDir, "sessions.db"), config.sessionSecret, idleSeconds * 1000);
+setInterval(() => sessions.purgeIdle(), 3_600_000).unref();
 
-/** Subsonic token auth: md5(password + salt). Done here so the browser never needs md5 or keeps the password. */
-function tokenFor(password: string): { token: string; salt: string } {
-  const salt = randomBytes(8).toString("hex");
-  return {
-    salt,
-    token: createHash("md5")
-      .update(password + salt)
-      .digest("hex"),
-  };
-}
-
-async function login(request: Request): Promise<Response> {
-  const body = (await request.json().catch(() => null)) as { user?: unknown; password?: unknown } | null;
-  if (typeof body?.user !== "string" || typeof body.password !== "string") return new Response("bad request", { status: 400 });
-  const { token, salt } = tokenFor(body.password);
-  const query = new URLSearchParams({ u: body.user, t: token, s: salt, v: "1.16.1", c: CLIENT, f: "json" });
-  const ping = await fetch(`${NAVIDROME}/rest/ping?${query}`, { signal: AbortSignal.timeout(8000) }).catch(() => null);
-  const result = ping?.ok ? ((await ping.json()) as { "subsonic-response"?: { status?: string } })["subsonic-response"] : null;
-  if (result?.status !== "ok") return new Response("wrong username or password", { status: 401 });
-  return Response.json({ user: body.user, token, salt });
-}
-
-/** Pass Subsonic calls straight through, keeping Range headers so audio can seek. */
-async function proxy(request: Request): Promise<Response> {
-  const url = new URL(request.url);
-  const headers = new Headers();
-  for (const name of ["range", "if-none-match", "if-modified-since"]) {
-    const value = request.headers.get(name);
-    if (value) headers.set(name, value);
-  }
-  const upstream = await fetch(`${NAVIDROME}${url.pathname}${url.search}`, { method: request.method, headers, redirect: "manual" });
-  const out = new Headers();
-  for (const name of ["content-type", "content-length", "content-range", "accept-ranges", "etag", "last-modified", "cache-control"]) {
-    const value = upstream.headers.get(name);
-    if (value) out.set(name, value);
-  }
-  return new Response(upstream.body, { status: upstream.status, headers: out });
-}
+const api = createApi({ upstreams: config.upstreams, sessions, limiter: new LoginLimiter(), idleSeconds, trustProxy: config.trustProxy });
 
 const server = Bun.serve({
-  port: PORT,
+  port: config.port,
   development: process.env.NODE_ENV !== "production",
   // Long streams must not be cut by the idle timeout.
   idleTimeout: 0,
   routes: {
     "/healthz": () => new Response("ok"),
-    "/auth/login": { POST: login },
-    "/rest/*": proxy,
+    "/auth/login": { POST: (request, srv) => api.login(request, srv) },
+    "/auth/logout": { POST: api.logout },
+    "/auth/session": { GET: api.current },
+    "/auth/sessions": { GET: api.listSessions },
+    "/auth/sessions/:id": { DELETE: api.revokeSession },
+    "/rest/*": api.proxy,
     "/fonts/:name": font,
     "/*": index,
   },
 });
 
-console.log(`keep-player on :${server.port}`);
+console.log(`keep-player on :${server.port} → ${config.upstreams.map((upstream) => `${upstream.id} ${upstream.url}`).join(", ")}`);

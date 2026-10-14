@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { login } from "@/lib/subsonic";
 import { BrandMark } from "./brand";
 
-export function Login({ onDone }: { onDone: () => void }) {
+export function Login() {
   const [user, setUser] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -18,7 +18,6 @@ export function Login({ onDone }: { onDone: () => void }) {
     setError(null);
     try {
       await login(user.trim(), password);
-      onDone();
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "login failed");
     } finally {

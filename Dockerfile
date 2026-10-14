@@ -6,10 +6,12 @@ COPY . .
 RUN bun scripts/build.ts
 
 FROM alpine:3.22
-RUN apk add --no-cache libstdc++ libgcc && adduser -D -H app
+RUN apk add --no-cache libstdc++ libgcc && adduser -D -H app && mkdir /data && chown app /data
 COPY --from=build /app/dist/keep-player /usr/local/bin/keep-player
 USER app
-ENV NODE_ENV=production PORT=8080
+ENV NODE_ENV=production PORT=8080 DATA_DIR=/data
+# Sessions (SQLite) and the generated session secret.
+VOLUME /data
 EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=3s CMD wget -qO- http://127.0.0.1:8080/healthz || exit 1
 CMD ["keep-player"]

@@ -6,6 +6,7 @@ import {
   ListMusicIcon,
   LogOutIcon,
   MonitorIcon,
+  MonitorSmartphoneIcon,
   MoonIcon,
   MusicIcon,
   SearchIcon,
@@ -13,6 +14,7 @@ import {
   TagIcon,
   UsersIcon,
 } from "lucide-react";
+import { lazy, Suspense, useState } from "react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   DropdownMenu,
@@ -40,12 +42,15 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
-import { api, currentUser, logout } from "@/lib/subsonic";
+import { api, logout, useUser } from "@/lib/subsonic";
 import { setTheme, type Theme, useTheme } from "@/lib/theme";
 import type { Playlist } from "@/lib/types";
 import { useQuery } from "@/lib/use-query";
 import { BrandMark } from "./brand";
 import { Link } from "./link";
+
+// Rarely opened; keeps the dialog code out of the first load.
+const SessionsDialog = lazy(() => import("./sessions-dialog").then((module) => ({ default: module.SessionsDialog })));
 
 const LIBRARY = [
   ["/", "home", HouseIcon],
@@ -118,9 +123,9 @@ function SubTree({ node, path }: { node: FolderNode; path: string }) {
   );
 }
 
-function UserMenu() {
+function UserMenu({ onSessions }: { onSessions: () => void }) {
   const theme = useTheme();
-  const user = currentUser() ?? "";
+  const user = useUser() ?? "";
   return (
     <DropdownMenu>
       <DropdownMenuTrigger render={<SidebarMenuButton size="sm" className="font-mono" tooltip={user} />}>
@@ -142,7 +147,11 @@ function UserMenu() {
           </DropdownMenuRadioGroup>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={logout}>
+        <DropdownMenuItem onClick={onSessions}>
+          <MonitorSmartphoneIcon />
+          sessions
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => void logout()}>
           <LogOutIcon />
           log out
         </DropdownMenuItem>
@@ -152,6 +161,7 @@ function UserMenu() {
 }
 
 export function AppSidebar({ path, onSearch }: { path: string; onSearch: () => void }) {
+  const [sessionsOpen, setSessionsOpen] = useState(false);
   const { data } = useQuery("playlists", () => api<{ playlists: { playlist?: Playlist[] } }>("getPlaylists"));
   const playlists = (data?.playlists.playlist ?? []).sort((a, b) => a.name.localeCompare(b.name));
 
@@ -214,7 +224,12 @@ export function AppSidebar({ path, onSearch }: { path: string; onSearch: () => v
       <SidebarFooter className="border-t">
         <SidebarMenu>
           <SidebarMenuItem>
-            <UserMenu />
+            <UserMenu onSessions={() => setSessionsOpen(true)} />
+            {sessionsOpen && (
+              <Suspense>
+                <SessionsDialog open={sessionsOpen} onOpenChange={setSessionsOpen} />
+              </Suspense>
+            )}
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
