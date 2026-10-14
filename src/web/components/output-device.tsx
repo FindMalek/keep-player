@@ -20,7 +20,7 @@ export function OutputDevice() {
       permission={permission}
       onRequestPermission={requestPermission}
     >
-      <Hint label="output device">
+      <Hint label={`output device: ${devices.find((device) => device.id === (outputDevice ?? ""))?.label ?? "system default"}`}>
         <AudioDeviceSelectTrigger
           size="sm"
           className="w-auto gap-1 border-0 bg-transparent px-1.5 text-muted-foreground shadow-none hover:text-foreground dark:bg-transparent"

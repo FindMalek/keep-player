@@ -131,6 +131,8 @@ export function App() {
         () => import("@/components/split-view"),
         () => import("@/components/side-panels"),
         () => import("@/components/user-menu"),
+        () => import("@/components/now-playing-details"),
+        () => import("@/components/artist-card"),
       ]);
   }, [user]);
 

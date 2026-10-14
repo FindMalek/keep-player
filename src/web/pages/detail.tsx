@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { ExternalLinkIcon } from "lucide-react";
 import { Fragment, type ReactNode } from "react";
+import { ArtistCard } from "@/components/artist-card";
 import { Cover } from "@/components/cover";
 import { KeepOffline } from "@/components/keep-offline";
 import { AlbumGrid, Content, EmptyState, PageHeader, Section, TrackList } from "@/components/library";
@@ -98,9 +99,11 @@ export function AlbumPage({ id }: { id: string }) {
         like={{ kind: "album", id: album.id }}
       >
         {album.artistId && (
-          <Link href={`/artist/${album.artistId}`} className="font-medium underline-offset-3 hover:underline">
-            {album.artist}
-          </Link>
+          <ArtistCard id={album.artistId} name={album.artist}>
+            <Link href={`/artist/${album.artistId}`} className="self-start font-medium underline-offset-3 hover:underline">
+              {album.artist}
+            </Link>
+          </ArtistCard>
         )}
         <span className="text-muted-foreground">
           {[album.year, plural(songs.length, "track"), length(album.duration), first ? quality(first.suffix, first.bitRate) : ""]

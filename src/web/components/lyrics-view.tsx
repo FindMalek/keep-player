@@ -92,23 +92,27 @@ const Line = memo(function Line({
       </button>
       {line.text && (
         <span className="mt-1 flex shrink-0 gap-0.5 opacity-0 focus-within:opacity-100 group-hover/line:opacity-100">
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            aria-label="copy this line"
-            onClick={() => void navigator.clipboard.writeText(quote).then(() => notify({ message: "line copied" }))}
-          >
-            <CopyIcon />
-          </Button>
-          {"share" in navigator && (
+          <Hint label="copy this line">
             <Button
               variant="ghost"
               size="icon-xs"
-              aria-label="share this line"
-              onClick={() => void navigator.share({ text: quote }).catch(() => undefined)}
+              aria-label="copy this line"
+              onClick={() => void navigator.clipboard.writeText(quote).then(() => notify({ message: "line copied" }))}
             >
-              <Share2Icon />
+              <CopyIcon />
             </Button>
+          </Hint>
+          {"share" in navigator && (
+            <Hint label="share this line">
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                aria-label="share this line"
+                onClick={() => void navigator.share({ text: quote }).catch(() => undefined)}
+              >
+                <Share2Icon />
+              </Button>
+            </Hint>
           )}
         </span>
       )}
