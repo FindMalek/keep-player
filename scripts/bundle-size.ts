@@ -8,7 +8,8 @@ import tailwind from "bun-plugin-tailwind";
 // React DOM alone is ~62 KB, TanStack Query + its IndexedDB persistence ~13 KB (#18), the playback engine (queue model,
 // two-deck gapless, resilience) a few more; the rest is Base UI (sidebar tooltips need floating-ui on the first screen)
 // and the app. Lighthouse ≥ 95 (e2e/lighthouse.e2e.ts) is the real gate.
-const BUDGET_KB = { js: 175, css: 30 };
+// Tooltips (Base UI + floating-ui, ~28 KB) load after the first screen since #99, hence 175 → 155.
+const BUDGET_KB = { js: 155, css: 30 };
 
 const result = await Bun.build({
   entrypoints: ["src/web/index.html"],

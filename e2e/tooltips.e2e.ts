@@ -33,3 +33,13 @@ test("hovering the playing cover shows the album, file and gain; an artist link 
   await artist.hover();
   await expect(page.locator("[data-slot=hover-card-content]")).toContainText(name);
 });
+
+test("tooltips load after the first screen without stealing focus from the control you're on", async ({ page, signedIn }) => {
+  await signedIn.goto("/album/al-3");
+  await page.getByRole("button", { name: "play", exact: true }).first().click();
+  const shuffle = page.getByRole("contentinfo").getByRole("button", { name: "shuffle" });
+  await shuffle.focus();
+  // The tooltip code arrives (on idle or because of this focus) and swaps the plain wrapper for a trigger.
+  await expect(page.locator("[data-slot=tooltip-trigger]").first()).toBeAttached();
+  await expect(shuffle).toBeFocused();
+});

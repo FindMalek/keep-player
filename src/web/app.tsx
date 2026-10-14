@@ -7,7 +7,6 @@ import { ChordHint } from "@/components/chord-hint";
 import { PageSlot, usePageHost } from "@/components/page-host";
 import { type Panel, PlayerBar } from "@/components/player-bar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-import { TooltipProvider } from "@/components/ui/tooltip";
 import { loadLikes, toggleLiked } from "@/lib/likes";
 import { openListFilter } from "@/lib/list-filter";
 import { runListCommand } from "@/lib/list-nav";
@@ -20,6 +19,7 @@ import { useSetting } from "@/lib/settings";
 import { installShortcuts, useShortcuts } from "@/lib/shortcuts";
 import { useCheckingSession, useUser } from "@/lib/subsonic";
 import { welcomeTip } from "@/lib/tips";
+import { loadTooltips } from "@/lib/tooltips";
 import {
   AlbumPage,
   AlbumsPage,
@@ -164,6 +164,8 @@ export function App() {
         () => import("@/components/now-playing-details"),
         () => import("@/components/artist-card"),
       ]);
+    // Tooltips too (lib/tooltips): off the first screen, ready long before most people hover.
+    if (user) requestIdleCallback?.(loadTooltips, { timeout: 4000 });
   }, [user]);
 
   useEffect(() => {
@@ -179,7 +181,7 @@ export function App() {
     );
 
   return (
-    <TooltipProvider delay={400}>
+    <>
       <TopProgress />
       <div className="flex h-svh flex-col" style={{ "--bar-height": hasTrack ? "4rem" : "0px" } as CSSProperties}>
         {/* First tab stop: straight to the page, past the sidebar. */}
@@ -237,6 +239,6 @@ export function App() {
           <SearchPalette open={searching} onOpenChange={setSearching} />
         </Suspense>
       )}
-    </TooltipProvider>
+    </>
   );
 }
