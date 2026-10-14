@@ -9,8 +9,6 @@ import type { LyricsHit } from "../shared/search";
  * index's own vocabulary instead of a trigram index, which would be several times the size of the lyrics.
  */
 
-const VOCAB_TTL_MS = 60_000;
-
 export function createLyricsSearchTables(db: Database): void {
   db.run(`create virtual table if not exists lyrics_fts using fts5(text, tokenize = "unicode61 remove_diacritics 2")`);
   db.run("create virtual table if not exists lyrics_vocab using fts5vocab(lyrics_fts, 'row')");
@@ -23,41 +21,54 @@ export function createLyricsSearchTables(db: Database): void {
   })();
 }
 
+/** Each database's distinct lyric words, read once and then grown by `indexLyrics` (removed words linger, harmlessly). */
+const vocabularies = new WeakMap<Database, Set<string>>();
+
 /** (Re)index one cached lyrics row; nothing for misses and instrumentals. */
 export function indexLyrics(db: Database, rowid: number, lyrics: Lyrics): void {
   db.query("delete from lyrics_fts where rowid = ?").run(rowid);
   const text = lyrics.lines.map((line) => normalize(line.text)).join(" ");
-  if (text.trim()) db.query("insert into lyrics_fts (rowid, text) values (?, ?)").run(rowid, text);
+  if (!text.trim()) return;
+  db.query("insert into lyrics_fts (rowid, text) values (?, ?)").run(rowid, text);
+  // Keep a loaded vocabulary current, so new lyrics can be found by a misspelling right away.
+  const vocab = vocabularies.get(db);
+  if (vocab) for (const word of text.split(" ")) if (word) vocab.add(word);
 }
 
 export function unindexLyrics(db: Database, rowid: number): void {
   db.query("delete from lyrics_fts where rowid = ?").run(rowid);
 }
 
-const vocabularies = new WeakMap<Database, { at: number; terms: string[] }>();
-
 /** Close spellings of `term` that the lyrics actually contain ("dreamin" → "dreaming", "lonley" → "lonely"). */
-function corrections(db: Database, term: string, now: number): string[] {
+function corrections(db: Database, term: string): string[] {
   if (term.length < 3) return [];
   let vocab = vocabularies.get(db);
-  if (!vocab || now - vocab.at > VOCAB_TTL_MS) {
-    vocab = {
-      at: now,
-      terms: db
+  if (!vocab) {
+    vocab = new Set(
+      db
         .query<{ term: string }, []>("select term from lyrics_vocab")
         .all()
         .map((row) => row.term),
-    };
+    );
     vocabularies.set(db, vocab);
   }
   // One slip in a short word, two in a longer one: beyond that a "correction" is just another word.
   const max = term.length <= 5 ? 1 : 2;
-  return vocab.terms
+  return [...vocab]
     .map((candidate) => ({ candidate, distance: editDistance(term, candidate, max) }))
     .filter(({ distance }) => distance <= max)
     .sort((a, b) => a.distance - b.distance)
     .slice(0, 6)
     .map(({ candidate }) => candidate);
+}
+
+/** How far a line is from the typed words: each word's edits to its nearest match on the line, at most 3. */
+function distanceTo(line: string, terms: string[]): number {
+  const words = normalize(line).split(" ");
+  return terms.reduce(
+    (total, term) => total + Math.min(3, ...words.map((word) => (word.startsWith(term) ? 0 : editDistance(term, word, 2)))),
+    0,
+  );
 }
 
 const quote = (term: string) => `"${term.replace(/"/g, "")}"`;
@@ -101,14 +112,7 @@ function bestLine(lines: string[], terms: string[]): number {
  * Songs whose lyrics match, best first: the exact phrase, then the words close together, then all the words
  * anywhere, then with misspellings corrected. Each hit carries the matching line with one line of context.
  */
-export function queryLyrics(
-  db: Database,
-  server: string,
-  text: string,
-  limit: number,
-  folders: string[] | null,
-  now: number = Date.now(),
-): LyricsHit[] {
+export function queryLyrics(db: Database, server: string, text: string, limit: number, folders: string[] | null): LyricsHit[] {
   const terms = normalize(text).split(" ").filter(Boolean);
   if (!terms.length) return [];
   const last = terms.length - 1;
@@ -116,7 +120,7 @@ export function queryLyrics(
   // Corrections scan the whole vocabulary, so only when the exact words didn't find enough.
   const fixed = () =>
     terms
-      .map((term) => `(${[term, ...corrections(db, term, now).filter((candidate) => candidate !== term)].map(quote).join(" OR ")})`)
+      .map((term) => `(${[term, ...corrections(db, term).filter((candidate) => candidate !== term)].map(quote).join(" OR ")})`)
       .join(" AND ");
   const tiers = [
     () => `"${terms.join(" ")}"*`,
@@ -139,6 +143,7 @@ export function queryLyrics(
          where lyrics_fts match ? and l.song_id like ? order by f.rank limit 100`,
       )
       .all(match, `${server}:%`);
+    const found: (LyricsHit & { id: string; cost: number })[] = [];
     for (const row of rows) {
       const id = row.key.slice(server.length + 1);
       const indexed = song.get(server, id);
@@ -147,7 +152,9 @@ export function queryLyrics(
       const lines = lyrics.lines.map((line) => line.text);
       const wanted = [...new Set(match.match(/"[^"]+"/g)?.flatMap((phrase) => phrase.slice(1, -1).split(" ")) ?? terms)];
       const index = bestLine(lines, wanted);
-      hits.set(id, {
+      found.push({
+        id,
+        cost: distanceTo(lines[index] ?? "", terms),
         song: JSON.parse(indexed.data),
         line: index,
         start: lyrics.status === "synced" ? (lyrics.lines[index]?.start ?? 0) : null,
@@ -156,7 +163,11 @@ export function queryLyrics(
         after: lines[index + 1] ?? "",
         highlights: highlights(lines[index] ?? "", wanted),
       });
+    }
+    // Closest to what was typed first (one swapped letter beats a different word), then bm25.
+    for (const { id, cost: _cost, ...hit } of found.sort((a, b) => a.cost - b.cost)) {
       if (hits.size >= limit) break;
+      hits.set(id, hit);
     }
   }
   return [...hits.values()];

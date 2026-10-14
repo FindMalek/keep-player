@@ -17,6 +17,13 @@ const lyrics: Record<string, { synced: boolean; line: { start?: number; value: s
   },
   s2: { synced: false, line: [{ value: "Paper boats on a river" }, { value: "Sailing where the willows grow" }] },
   s3: { synced: true, line: [{ start: 0, value: "Secret lonely town" }] },
+  // A short song bm25 prefers, one word off from the line s6 really has.
+  s7: { synced: false, line: [{ value: "Quicksilver mornings" }] },
+  s5: { synced: false, line: [{ value: "Glass garden cinder harbor" }] },
+  s6: {
+    synced: false,
+    line: [{ value: "Lanterns over the water" }, { value: "Glass garden cinder harper" }, { value: "Morning comes too slow" }],
+  },
 };
 const server = Bun.serve({
   port: 0,
@@ -40,6 +47,8 @@ async function library() {
     ["s2", "1"],
     ["s3", "2"],
     ["s4", "1"],
+    ["s5", "1"],
+    ["s6", "1"],
   ] as const) {
     db.query(
       "insert into idx_items (server, kind, id, folder, name, norm, data, generation) values ('default', 'song', ?, ?, ?, ?, ?, 1)",
@@ -70,5 +79,20 @@ test("forgives misspellings, ranks phrases first and keeps other folders out", a
   expect(queryLyrics(db, "default", "lonley twon", 10, ["1"]).map((hit) => hit.song.id)).toEqual(["s1"]);
   expect(queryLyrics(db, "default", "lonely town", 10, null).map((hit) => hit.song.id)).toEqual(["s3", "s1"]);
   expect(queryLyrics(db, "default", "secret", 10, ["1"])).toEqual([]);
-  expect(lyricsCoverage(db, "default")).toEqual({ checked: 3, total: 4 });
+  expect(queryLyrics(db, "default", "galss garden cinder harper", 10, ["1"]).map((hit) => hit.song.id)).toEqual(["s6", "s5"]);
+  expect(lyricsCoverage(db, "default")).toEqual({ checked: 5, total: 6 });
+});
+
+test("lyrics cached after a search can be found by a misspelling straight away", async () => {
+  const db = await library();
+  expect(queryLyrics(db, "default", "quicksilvr", 10, null)).toEqual([]);
+  db.query(
+    "insert into idx_items (server, kind, id, folder, name, norm, data, generation) values ('default', 'song', 's7', '1', 's7', 's7', ?, 1)",
+  ).run(JSON.stringify({ id: "s7", title: "s7" }));
+  await new LyricsService(db, "").get(
+    { id: "default", url: `http://127.0.0.1:${server.port}` },
+    { user: "u", token: "t", salt: "s" },
+    "s7",
+  );
+  expect(queryLyrics(db, "default", "quicksilvr", 10, null).map((hit) => hit.song.id)).toEqual(["s7"]);
 });
