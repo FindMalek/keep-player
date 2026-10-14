@@ -418,9 +418,35 @@ function queued(next: Q.Queue, where: string): void {
     message: `added ${added.length === 1 ? (added[0] as Q.Entry).song.title : `${added.length} songs`} ${where}`,
     action: {
       label: "undo",
-      onClick: () => {
-        for (const entry of added) player.remove(entry);
-      },
+      onClick: () => edit(added.reduce((queue, entry) => Q.remove(queue, entry), state.queue)),
+    },
+  });
+}
+
+/**
+ * Apply a queue edit that took songs out, with an undo: the queue as it was if the same song is still playing,
+ * otherwise the removed songs back at the end of your queue.
+ */
+function removed(next: Q.Queue, message: string): void {
+  const before = state.queue;
+  const upcoming = (queue: Q.Queue) => [...queue.upNext, ...Q.contextUpcoming(queue)];
+  const left = new Set(upcoming(next).map((entry) => entry.uid));
+  const gone = upcoming(before).filter((entry) => !left.has(entry.uid));
+  edit(next);
+  if (!gone.length) return;
+  notify({
+    message,
+    action: {
+      label: "undo",
+      onClick: () =>
+        edit(
+          state.queue.current?.uid === before.current?.uid
+            ? before
+            : Q.addToQueue(
+                state.queue,
+                gone.map((entry) => entry.song),
+              ),
+        ),
     },
   });
 }
@@ -591,13 +617,14 @@ export const player = {
     edit(Q.move(state.queue, entry, delta));
   },
   remove(entry: Q.Entry): void {
-    edit(Q.remove(state.queue, entry));
+    removed(Q.remove(state.queue, entry), `removed ${entry.song.title} from the queue`);
   },
   clearUpNext(): void {
-    edit(Q.clearUpNext(state.queue));
+    removed(Q.clearUpNext(state.queue), "cleared your queue");
   },
   clearContext(): void {
-    edit(Q.clearContext(state.queue));
+    const source = state.queue.context.source?.name;
+    removed(Q.clearContext(state.queue), source ? `cleared what was next from ${source}` : "cleared what was next");
   },
   /** Saves what's playing and everything still to come as a new playlist. */
   async saveAsPlaylist(name: string): Promise<void> {
