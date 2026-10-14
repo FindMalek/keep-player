@@ -22,6 +22,7 @@ const SHORTCUTS = appShortcuts({
   findInList: () => true,
   likeCurrent: noop,
   openMiniPlayer: noop,
+  newPlaylist: noop,
 });
 
 /** "shift+arrowright" → "Shift+ArrowRight", "mod+k" → "ControlOrMeta+k", chords → one press per step. */
@@ -217,6 +218,11 @@ const CHECKS: Record<string, Check> = {
     ).toHaveCount(0);
     await filter.press("Escape");
     await expect(filter).toHaveCount(0);
+  },
+  "new-playlist": async (page, press) => {
+    await press();
+    await expect(page.getByRole("dialog", { name: "new playlist" })).toBeVisible();
+    await page.keyboard.press("Escape");
   },
   "cheat-sheet": async (page, press) => {
     await press();

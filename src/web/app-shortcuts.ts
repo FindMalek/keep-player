@@ -20,6 +20,7 @@ export interface AppActions {
   findInList: () => boolean;
   likeCurrent: () => void;
   openMiniPlayer: () => void;
+  newPlaylist: () => void;
 }
 
 /** The default map. Everything it calls is passed in, so a unit test can check it for conflicts without a browser. */
@@ -70,6 +71,8 @@ export function appShortcuts(actions: AppActions): Shortcut[] {
       event.code === "Slash" ? actions.openSearch() : actions.toggleSearch(),
     ),
     global("find-in-list", ["mod+f"], "filter this list", "lists", () => actions.findInList()),
+    // ⌘N is the browser's new window: pages never receive it.
+    global("new-playlist", ["shift+n"], "new playlist", "navigation", () => actions.newPlaylist()),
     global("cheat-sheet", ["?"], "keyboard shortcuts", "navigation", () => actions.openCheatSheet()),
     global("go-home", ["g h"], "go to home", "navigation", () => go("/")),
     global("go-albums", ["g a"], "go to albums", "navigation", () => go("/albums")),

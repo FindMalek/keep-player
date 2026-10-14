@@ -18,7 +18,8 @@ let ready: Promise<Sonner> | null = null;
 function ThemedToaster({ Toaster }: { Toaster: typeof import("@/components/ui/sonner").Toaster }) {
   const theme = useTheme();
   const resolved = theme === "system" ? (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light") : theme;
-  return <Toaster theme={resolved} position="bottom-center" offset={80} />;
+  // Above the player bar and the selection bar that floats over it, so a toast never covers its buttons.
+  return <Toaster theme={resolved} position="bottom-center" offset={128} />;
 }
 
 /** Toasts load on first use (sonner stays out of the first screen) in their own small React root. */
