@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from "react";
+import { useRef, useSyncExternalStore } from "react";
 import { coverUrl, scrobble, streamUrl } from "./subsonic";
 import type { Song } from "./types";
 
@@ -9,7 +9,6 @@ export interface PlayerState {
   index: number;
   playing: boolean;
   buffering: boolean;
-  position: number;
   duration: number;
   volume: number;
   muted: boolean;
@@ -28,7 +27,6 @@ let state: PlayerState = {
   index: -1,
   playing: false,
   buffering: false,
-  position: 0,
   duration: 0,
   volume: 0.8,
   muted: false,
@@ -51,19 +49,64 @@ function set(patch: Partial<PlayerState>): void {
   for (const listener of listeners) listener();
 }
 
-function persist(): void {
+/*
+ * Playback position lives outside the main state: it changes every frame, and only the seek bar, the time readout
+ * and the lyrics care. Everything else subscribes to `state` and never re-renders while a song plays.
+ */
+let position = 0;
+const positionListeners = new Set<() => void>();
+let frame = 0;
+
+function setPosition(seconds: number): void {
+  if (seconds === position) return;
+  position = seconds;
+  for (const listener of positionListeners) listener();
+}
+
+/** Follow the audio clock every frame while visible; hidden tabs fall back to `timeupdate` (about 4/s, throttled). */
+function tick(): void {
+  frame = 0;
+  if (!audio || audio.paused || document.hidden) return;
+  setPosition(audio.currentTime);
+  frame = requestAnimationFrame(tick);
+}
+
+function startTicker(): void {
+  if (!frame) frame = requestAnimationFrame(tick);
+}
+
+document.addEventListener("visibilitychange", () => !document.hidden && startTicker());
+
+let persistQueued = false;
+
+function writeSnapshot(): void {
+  persistQueued = false;
   try {
-    const { queue, index, position, volume, muted, shuffle, repeat, context: ctx } = state;
+    const { queue, index, volume, muted, shuffle, repeat, context: ctx } = state;
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ queue, index, position, volume, muted, shuffle, repeat, context: ctx }));
   } catch {
     // Storage full or blocked: resuming after reload is a convenience only.
   }
 }
 
+/** The snapshot holds the whole queue, so write it once when the browser is idle, not on every change. */
+function persist(): void {
+  if (persistQueued) return;
+  persistQueued = true;
+  if ("requestIdleCallback" in window) requestIdleCallback(writeSnapshot, { timeout: 2000 });
+  else setTimeout(writeSnapshot, 500);
+}
+
+window.addEventListener("pagehide", writeSnapshot);
+
 function restore(): void {
   try {
-    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "null") as Partial<PlayerState> | null;
-    if (saved?.queue?.length) state = { ...state, ...saved, playing: false, buffering: false };
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "null") as (Partial<PlayerState> & { position?: number }) | null;
+    if (saved?.queue?.length) {
+      const { position: savedPosition = 0, ...rest } = saved;
+      state = { ...state, ...rest, playing: false, buffering: false };
+      position = savedPosition;
+    }
   } catch {
     // Ignore a corrupt or missing snapshot.
   }
@@ -97,7 +140,7 @@ function ensureAudio(): HTMLAudioElement {
   audio.preload = "auto";
   audio.addEventListener("timeupdate", () => {
     if (!audio) return;
-    set({ position: audio.currentTime });
+    if (document.hidden) setPosition(audio.currentTime);
     const song = current();
     if (
       song &&
@@ -109,8 +152,13 @@ function ensureAudio(): HTMLAudioElement {
     }
   });
   audio.addEventListener("durationchange", () => set({ duration: audio && Number.isFinite(audio.duration) ? audio.duration : 0 }));
-  audio.addEventListener("playing", () => set({ playing: true, buffering: false, error: null }));
+  audio.addEventListener("playing", () => {
+    set({ playing: true, buffering: false, error: null });
+    startTicker();
+  });
+  audio.addEventListener("seeked", () => audio && setPosition(audio.currentTime));
   audio.addEventListener("pause", () => {
+    if (audio) setPosition(audio.currentTime);
     set({ playing: false });
     persist();
   });
@@ -140,7 +188,8 @@ function load(index: number, autoplay: boolean, startAt = 0): void {
   if (!song) return;
   const element = ensureAudio();
   scrobbled = false;
-  set({ index, position: startAt, duration: song.duration ?? 0, error: null, buffering: autoplay });
+  set({ index, duration: song.duration ?? 0, error: null, buffering: autoplay });
+  setPosition(startAt);
   element.src = streamUrl(song.id);
   // Seeking before metadata is loaded is ignored by some browsers.
   if (startAt) element.addEventListener("loadedmetadata", () => (element.currentTime = startAt), { once: true });
@@ -169,7 +218,8 @@ function onEnded(): void {
     load(0, true);
     return;
   }
-  set({ playing: false, position: 0 });
+  set({ playing: false });
+  setPosition(0);
 }
 
 function shuffled<T>(items: T[]): T[] {
@@ -202,6 +252,9 @@ if ("mediaSession" in navigator) {
 }
 
 export const player = {
+  /** Current state for event handlers, which should read rather than subscribe. */
+  getState: (): PlayerState => state,
+  getPosition: (): number => position,
   /** Replace the queue and start playing at `start`. */
   play(songs: Song[], start = 0, options: { shuffle?: boolean; album?: boolean } = {}): void {
     if (!songs.length) return;
@@ -227,7 +280,7 @@ export const player = {
     const shouldPlay = force ?? element.paused;
     if (shouldPlay) {
       if (!element.src) {
-        load(state.index, true, state.position);
+        load(state.index, true, position);
         return;
       }
       ensureGraph();
@@ -243,7 +296,7 @@ export const player = {
   },
   /** Restart the track if more than 3 s in, otherwise go back one. */
   previous(): void {
-    if (state.position > 3 || state.index === 0) {
+    if (position > 3 || state.index === 0) {
       player.seek(0);
       return;
     }
@@ -255,7 +308,7 @@ export const player = {
   seek(seconds: number): void {
     if (!audio || !current()) return;
     audio.currentTime = Math.max(0, Math.min(seconds, state.duration || seconds));
-    set({ position: audio.currentTime });
+    setPosition(audio.currentTime);
   },
   setVolume(volume: number): void {
     set({ volume: Math.max(0, Math.min(1, volume)), muted: false });
@@ -320,7 +373,8 @@ export const player = {
     audio?.pause();
     if (audio) audio.removeAttribute("src");
     unshuffled = null;
-    set({ queue: [], index: -1, playing: false, position: 0, duration: 0 });
+    set({ queue: [], index: -1, playing: false, duration: 0 });
+    setPosition(0);
     persist();
   },
 };
@@ -330,8 +384,41 @@ function subscribe(listener: () => void): () => void {
   return () => listeners.delete(listener);
 }
 
-export function usePlayer(): PlayerState {
-  return useSyncExternalStore(subscribe, () => state);
+function subscribePosition(listener: () => void): () => void {
+  positionListeners.add(listener);
+  return () => positionListeners.delete(listener);
+}
+
+/** `useSyncExternalStore` with a selector: re-renders only when the selected value changes (by `isEqual`). */
+function useSelected<S, T>(
+  subscribeTo: (listener: () => void) => () => void,
+  read: () => S,
+  selector: (source: S) => T,
+  isEqual: (a: T, b: T) => boolean,
+): T {
+  const last = useRef<{ source: S; selector: (source: S) => T; value: T } | null>(null);
+  return useSyncExternalStore(subscribeTo, () => {
+    const source = read();
+    const cached = last.current;
+    if (cached && cached.source === source && cached.selector === selector) return cached.value;
+    const value = selector(source);
+    if (cached && isEqual(cached.value, value)) {
+      last.current = { source, selector, value: cached.value };
+      return cached.value;
+    }
+    last.current = { source, selector, value };
+    return value;
+  });
+}
+
+/** Subscribe to one slice of the player, e.g. `usePlayer((s) => s.playing)`. */
+export function usePlayer<T>(selector: (state: PlayerState) => T, isEqual: (a: T, b: T) => boolean = Object.is): T {
+  return useSelected(subscribe, () => state, selector, isEqual);
+}
+
+/** Playback position in seconds, updated every frame; pass a selector (e.g. `Math.floor`) to re-render less often. */
+export function usePosition<T = number>(selector: (seconds: number) => T = (seconds) => seconds as T): T {
+  return useSelected(subscribePosition, () => position, selector, Object.is);
 }
 
 export function currentSong(value: PlayerState): Song | undefined {
