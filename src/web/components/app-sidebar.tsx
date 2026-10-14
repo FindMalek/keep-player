@@ -84,12 +84,14 @@ function SubTree({ node, path }: { node: FolderNode; path: string }) {
     <>
       {[...node.folders.values()].map((folder) => (
         <Collapsible key={folder.path} render={<SidebarMenuSubItem />}>
-          <CollapsibleTrigger
-            render={<SidebarMenuSubButton className="font-mono text-muted-foreground [&[data-panel-open]>svg]:rotate-90" />}
+          {/* The trigger is a button (it expands a folder); the sub-button's default would be a link. */}
+          <SidebarMenuSubButton
+            render={<CollapsibleTrigger />}
+            className="w-full font-mono text-muted-foreground [&[data-panel-open]>svg]:rotate-90"
           >
             <ChevronRightIcon className="transition-transform" />
             <span>{folder.name}</span>
-          </CollapsibleTrigger>
+          </SidebarMenuSubButton>
           <CollapsibleContent>
             <SidebarMenuSub className="mr-0 pr-0">
               <SubTree node={folder} path={path} />
@@ -136,84 +138,87 @@ export function AppSidebar({ path, onSearch, onShortcuts }: { path: string; onSe
 
   return (
     <Sidebar collapsible="icon" className="bottom-(--bar-height) h-auto">
-      <SidebarHeader className="gap-1.5">
-        <div className="flex h-7 items-center px-2 group-data-[collapsible=icon]:px-2.5 group-data-[collapsible=icon]:[&_span:last-child]:hidden">
-          <BrandMark />
-        </div>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton variant="outline" size="sm" className="text-muted-foreground" onClick={onSearch} tooltip="search ⌘K">
-              <SearchIcon />
-              <span className="flex-1">search</span>
-              <Kbd>⌘K</Kbd>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarHeader>
-
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel className={LABEL}>library</SidebarGroupLabel>
-          <SidebarMenu>
-            {LIBRARY.map(([href, label, Icon]) => (
-              <SidebarMenuItem key={href}>
-                <SidebarMenuButton
-                  size="sm"
-                  className="font-mono text-muted-foreground"
-                  isActive={href === "/" ? path === "/" : path.startsWith(href)}
-                  tooltip={label}
-                  render={<Link href={href} />}
-                >
-                  <Icon />
-                  <span>{label}</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
-          </SidebarMenu>
-        </SidebarGroup>
-
-        <SidebarGroup className="group-data-[collapsible=icon]:hidden">
-          <SidebarGroupLabel className={LABEL}>playlists</SidebarGroupLabel>
+      {/* `contents` keeps the sidebar's flex layout; the nav makes it a landmark for screen readers. */}
+      <nav aria-label="sidebar" className="contents">
+        <SidebarHeader className="gap-1.5">
+          <div className="flex h-7 items-center px-2 group-data-[collapsible=icon]:px-2.5 group-data-[collapsible=icon]:[&_span:last-child]:hidden">
+            <BrandMark />
+          </div>
           <SidebarMenu>
             <SidebarMenuItem>
-              {playlists.length === 0 ? (
-                <span className="flex h-7 items-center gap-2 px-2 text-faint text-xs">
-                  <ListMusicIcon /> none yet
-                </span>
-              ) : (
-                <SidebarMenuSub className="mx-0 border-0 px-0">
-                  <SubTree node={tree(playlists)} path={path} />
-                </SidebarMenuSub>
+              <SidebarMenuButton variant="outline" size="sm" className="text-muted-foreground" onClick={onSearch} tooltip="search ⌘K">
+                <SearchIcon />
+                <span className="flex-1">search</span>
+                <Kbd>⌘K</Kbd>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarHeader>
+
+        <SidebarContent>
+          <SidebarGroup>
+            <SidebarGroupLabel className={LABEL}>library</SidebarGroupLabel>
+            <SidebarMenu>
+              {LIBRARY.map(([href, label, Icon]) => (
+                <SidebarMenuItem key={href}>
+                  <SidebarMenuButton
+                    size="sm"
+                    className="font-mono text-muted-foreground"
+                    isActive={href === "/" ? path === "/" : path.startsWith(href)}
+                    tooltip={label}
+                    render={<Link href={href} />}
+                  >
+                    <Icon />
+                    <span>{label}</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroup>
+
+          <SidebarGroup className="group-data-[collapsible=icon]:hidden">
+            <SidebarGroupLabel className={LABEL}>playlists</SidebarGroupLabel>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                {playlists.length === 0 ? (
+                  <span className="flex h-7 items-center gap-2 px-2 text-faint text-xs">
+                    <ListMusicIcon /> none yet
+                  </span>
+                ) : (
+                  <SidebarMenuSub className="mx-0 border-0 px-0">
+                    <SubTree node={tree(playlists)} path={path} />
+                  </SidebarMenuSub>
+                )}
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroup>
+        </SidebarContent>
+
+        <SidebarFooter className="border-t">
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <Suspense fallback={<UserButton user={user} onClick={() => setMenuWanted(true)} />}>
+                <UserMenu
+                  defaultOpen={menuWanted}
+                  onSessions={() => setSessionsOpen(true)}
+                  onStorage={() => setStorageOpen(true)}
+                  onShortcuts={onShortcuts}
+                />
+              </Suspense>
+              {storageOpen && (
+                <Suspense>
+                  <StorageDialog open={storageOpen} onOpenChange={setStorageOpen} />
+                </Suspense>
+              )}
+              {sessionsOpen && (
+                <Suspense>
+                  <SessionsDialog open={sessionsOpen} onOpenChange={setSessionsOpen} />
+                </Suspense>
               )}
             </SidebarMenuItem>
           </SidebarMenu>
-        </SidebarGroup>
-      </SidebarContent>
-
-      <SidebarFooter className="border-t">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <Suspense fallback={<UserButton user={user} onClick={() => setMenuWanted(true)} />}>
-              <UserMenu
-                defaultOpen={menuWanted}
-                onSessions={() => setSessionsOpen(true)}
-                onStorage={() => setStorageOpen(true)}
-                onShortcuts={onShortcuts}
-              />
-            </Suspense>
-            {storageOpen && (
-              <Suspense>
-                <StorageDialog open={storageOpen} onOpenChange={setStorageOpen} />
-              </Suspense>
-            )}
-            {sessionsOpen && (
-              <Suspense>
-                <SessionsDialog open={sessionsOpen} onOpenChange={setSessionsOpen} />
-              </Suspense>
-            )}
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarFooter>
+        </SidebarFooter>
+      </nav>
     </Sidebar>
   );
 }

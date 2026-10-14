@@ -1,5 +1,6 @@
 import { type CSSProperties, lazy, Suspense, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { NowPlayingAnnouncer } from "@/components/announcer";
 import { AppSidebar } from "@/components/app-sidebar";
 import { ChordHint } from "@/components/chord-hint";
 import { PageSlot, usePageHost } from "@/components/page-host";
@@ -128,6 +129,13 @@ export function App() {
   return (
     <TooltipProvider delay={400}>
       <div className="flex h-svh flex-col" style={{ "--bar-height": hasTrack ? "4rem" : "0px" } as CSSProperties}>
+        {/* First tab stop: straight to the page, past the sidebar. */}
+        <a
+          href="#content"
+          className="sr-only z-50 bg-background px-3 py-2 font-mono text-xs focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:border"
+        >
+          skip to content
+        </a>
         <SidebarProvider className="min-h-0 flex-1" style={{ "--sidebar-width": "200px" } as CSSProperties}>
           <AppSidebar path={path} onSearch={() => setSearching(true)} onShortcuts={() => setCheatSheet(true)} />
           <SidebarInset className="min-h-0 min-w-0">
@@ -150,6 +158,7 @@ export function App() {
         <PlayerBar panel={panel} onPanel={setPanel} />
       </div>
       <ChordHint />
+      <NowPlayingAnnouncer />
       {cheatSheet && (
         <Suspense>
           <CheatSheet open={cheatSheet} onOpenChange={setCheatSheet} />

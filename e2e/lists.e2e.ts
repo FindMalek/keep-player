@@ -37,8 +37,8 @@ test("in the queue alt+↓ reorders and delete removes", async ({ page, signedIn
   const titles = await trackTitles(page);
   await page.getByRole("button", { name: "play", exact: true }).first().click();
   await page.keyboard.press("q");
-  const queue = page.getByRole("listbox", { name: "queue" });
-  const options = queue.getByRole("option");
+  const queue = page.getByRole("list", { name: "queue" });
+  const options = queue.locator("[data-queue-index]");
   await options.nth(1).locator("button").first().focus();
   await page.keyboard.press("Alt+ArrowDown");
   await expect(options.nth(2)).toContainText(titles[1] as string);

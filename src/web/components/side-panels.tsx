@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { clock } from "@/lib/format";
-import { focusWhenRendered, type ListCommand, listProps } from "@/lib/list-nav";
+import { focusWhenRendered, type ListCommand, useListNav } from "@/lib/list-nav";
 import { currentSong, type Entry, player, usePlayer, usePosition } from "@/lib/player";
 import { queries, queryClient } from "@/lib/queries";
 import { contextUpcoming, type Queue } from "@/lib/queue";
@@ -169,7 +169,7 @@ export function QueuePanel({ onClose }: { onClose: () => void }) {
   const items = useMemo(() => queueItems(queue), [queue]);
   const upcoming = queue.upNext.length + Math.max(0, queue.context.order.length - queue.context.cursor - 1);
   const currentIndex = items.findIndex((item) => item.kind === "entry" && item.state === "current");
-  const listRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLOListElement>(null);
   // A shuffled library is thousands of rows: only the visible ones render, inside the panel's scroll area.
   const virtualizer = useVirtualizer({
     count: items.length,
@@ -231,23 +231,19 @@ export function QueuePanel({ onClose }: { onClose: () => void }) {
     }
   };
 
+  const listNav = useListNav(handler);
+
   return (
     <PanelFrame title="queue" meta={`${upcoming} up next`} onClose={onClose} actions={queue.current && <SaveQueue />}>
-      <div
-        ref={listRef}
-        role="listbox"
-        aria-label="queue"
-        className="relative"
-        style={{ height: virtualizer.getTotalSize() }}
-        {...listProps(handler)}
-      >
+      {/* A list, not a listbox: rows hold their own buttons (jump, remove), which options can't contain. */}
+      <ol ref={listRef} aria-label="queue" className="relative" style={{ height: virtualizer.getTotalSize() }} {...listNav}>
         {virtualizer.getVirtualItems().map((virtual) => {
           const item = items[virtual.index];
           if (!item) return null;
           return (
-            <div
+            <li
               key={item.kind === "entry" ? item.entry.uid : `h-${item.label}`}
-              {...(item.kind === "entry" ? { role: "option", "aria-selected": item.state === "current" } : { role: "presentation" })}
+              aria-current={item.kind === "entry" && item.state === "current" ? "true" : undefined}
               data-queue-index={item.kind === "entry" ? virtual.index : undefined}
               className="absolute inset-x-0"
               style={{ transform: `translateY(${virtual.start - margin}px)` }}
@@ -269,10 +265,10 @@ export function QueuePanel({ onClose }: { onClose: () => void }) {
               ) : (
                 <QueueRow entry={item.entry} state={item.state} />
               )}
-            </div>
+            </li>
           );
         })}
-      </div>
+      </ol>
     </PanelFrame>
   );
 }

@@ -1,4 +1,4 @@
-import type { FocusEvent } from "react";
+import { type FocusEvent, useRef } from "react";
 
 /*
  * Keyboard navigation for lists and grids. The list that holds focus registers a handler; the registry's "list"
@@ -34,15 +34,20 @@ export function runListCommand(command: ListCommand): boolean {
   return active.handler(command);
 }
 
-/** Props for a list container: marks the "list" shortcut scope and makes it the target while focus is inside. */
-export function listProps(handler: ListHandler): {
+/**
+ * Props for a list container: marks the "list" shortcut scope and makes it the target while focus is inside. Commands
+ * always reach the latest `handler` (it closes over state like the selection, which changes without focus moving).
+ */
+export function useListNav(handler: ListHandler): {
   "data-shortcut-scope": "list";
   onFocusCapture: (event: FocusEvent<HTMLElement>) => void;
 } {
+  const latest = useRef(handler);
+  latest.current = handler;
   return {
     "data-shortcut-scope": "list",
     onFocusCapture: (event) => {
-      active = { element: event.currentTarget, handler };
+      active = { element: event.currentTarget, handler: (command) => latest.current(command) };
     },
   };
 }
