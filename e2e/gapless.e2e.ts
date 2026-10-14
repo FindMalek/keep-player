@@ -1,4 +1,4 @@
-import { expect, fakeMediaClock, test } from "./fixtures";
+import { expect, fakeMediaClock, test, trackTitles } from "./fixtures";
 
 const playingCount = (page: import("@playwright/test").Page) =>
   page.evaluate(() => (window as unknown as { __playingMedia: () => number }).__playingMedia());
@@ -9,7 +9,7 @@ test.beforeEach(async ({ page }) => {
 
 test("near the end of a track the preloaded next one takes over, and only one plays", async ({ page, signedIn }) => {
   await signedIn.goto("/album/al-3");
-  const titles = await page.locator("[aria-label=tracks] tbody tr td:nth-child(2) span:first-child").allTextContents();
+  const titles = await trackTitles(page);
   await page.getByRole("button", { name: "play", exact: true }).first().click();
   const bar = page.getByRole("contentinfo");
   await expect(bar.getByRole("link", { name: titles[0] as string })).toBeVisible();
@@ -25,7 +25,7 @@ test("near the end of a track the preloaded next one takes over, and only one pl
 
 test("rapid next and previous land on the right track with one deck playing", async ({ page, signedIn }) => {
   await signedIn.goto("/album/al-3");
-  const titles = await page.locator("[aria-label=tracks] tbody tr td:nth-child(2) span:first-child").allTextContents();
+  const titles = await trackTitles(page);
   await page.getByRole("button", { name: "play", exact: true }).first().click();
   for (let i = 0; i < 6; i += 1) await page.keyboard.press("Shift+ArrowRight");
   await page.keyboard.press("Shift+ArrowLeft");

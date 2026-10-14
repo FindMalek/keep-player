@@ -51,6 +51,10 @@ component overwrites them). App code composes them in `src/web/components/`. Ico
 production the server serves them itself: hashed assets `immutable`, `index.html` `no-cache` with the CSP header. In
 development (`bun run dev`) Bun bundles on the fly with hot reload instead. e2e tests always run the executable.
 
+A service worker (`src/web/sw.ts`, built to `/sw.js`) keeps the app shell for offline, serves covers cache-first, and
+downloads the next three songs into an LRU audio cache it serves Range requests from (`lib/offline.ts` is the page
+side). Albums and playlists can be kept offline (pinned, never evicted).
+
 Pages are separate chunks (`src/web/routes.tsx`), preloaded when a link is hovered or focused and all fetched once the
 browser is idle. The first screen is budgeted (`bun run size`) and the home page must score ≥ 95 on Lighthouse
 (`e2e/lighthouse.e2e.ts`).

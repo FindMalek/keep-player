@@ -1,4 +1,4 @@
-import { LogOutIcon, MonitorIcon, MonitorSmartphoneIcon, MoonIcon, SunIcon } from "lucide-react";
+import { HardDriveDownloadIcon, LogOutIcon, MonitorIcon, MonitorSmartphoneIcon, MoonIcon, SunIcon } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,7 +22,7 @@ const THEMES = [
 
 const LABEL = "font-mono text-[10.5px] text-faint";
 
-export function UserMenu({ defaultOpen, onSessions }: { defaultOpen: boolean; onSessions: () => void }) {
+export function UserMenu({ defaultOpen, onSessions, onStorage }: { defaultOpen: boolean; onSessions: () => void; onStorage: () => void }) {
   const theme = useTheme();
   const user = useUser() ?? "";
   return (
@@ -46,6 +46,10 @@ export function UserMenu({ defaultOpen, onSessions }: { defaultOpen: boolean; on
           </DropdownMenuRadioGroup>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={onStorage}>
+          <HardDriveDownloadIcon />
+          offline storage
+        </DropdownMenuItem>
         <DropdownMenuItem onClick={onSessions}>
           <MonitorSmartphoneIcon />
           sessions

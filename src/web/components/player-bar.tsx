@@ -30,12 +30,14 @@ import { Button } from "@/components/ui/button";
 import { VolumeControlMute, VolumeControlSlider } from "@/components/ui/volume-control";
 import { useEngineController } from "@/lib/engine-controller";
 import { quality } from "@/lib/format";
+import { useCachedIds } from "@/lib/offline";
 import { currentSong, player, usePlayer, usePosition } from "@/lib/player";
 import type { Song } from "@/lib/types";
 import { CAN_PICK_OUTPUT } from "@/lib/use-output-devices";
 import { Cover } from "./cover";
 import { Hint } from "./hint";
 import { Link } from "./link";
+import { OfflineMark } from "./offline-mark";
 import { ToolButton } from "./tool-button";
 
 export type Panel = "queue" | "lyrics" | null;
@@ -99,6 +101,9 @@ export function PlayerBar({ panel, onPanel }: { panel: Panel; onPanel: (panel: P
   const repeat = usePlayer((state) => state.queue.repeat);
   const buffering = usePlayer((state) => state.buffering);
   const error = usePlayer((state) => state.error);
+  const cached = useCachedIds();
+  const songId = usePlayer((state) => currentSong(state)?.id ?? "");
+  const offline = cached.has(songId);
   if (!song) return null;
 
   return (
@@ -159,6 +164,7 @@ export function PlayerBar({ panel, onPanel }: { panel: Panel; onPanel: (panel: P
             </span>
           ) : (
             <span className="mr-2 truncate font-mono text-[11px] text-muted-foreground">
+              {offline && !buffering && <OfflineMark />}
               {buffering ? "loading…" : quality(song.suffix, song.bitRate)}
             </span>
           )}

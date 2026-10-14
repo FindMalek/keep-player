@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ExternalLinkIcon } from "lucide-react";
 import { Fragment, type ReactNode } from "react";
 import { Cover } from "@/components/cover";
+import { KeepOffline } from "@/components/keep-offline";
 import { AlbumGrid, Content, EmptyState, PageHeader, Section, TrackList } from "@/components/library";
 import { Link } from "@/components/link";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +21,7 @@ function Hero({
   onPlay,
   onShuffle,
   onQueue,
+  extra,
 }: {
   cover?: string;
   kind: ReactNode;
@@ -28,6 +30,8 @@ function Hero({
   onPlay: () => void;
   onShuffle: () => void;
   onQueue: () => void;
+  /** More actions after "add to queue" (keep offline). */
+  extra?: ReactNode;
 }) {
   return (
     <header className="flex items-end gap-5 border-b px-5 pt-[18px] pb-4">
@@ -44,6 +48,7 @@ function Hero({
           <Button variant="outline" onClick={onQueue}>
             add to queue
           </Button>
+          {extra}
         </div>
       </div>
     </header>
@@ -83,6 +88,7 @@ export function AlbumPage({ id }: { id: string }) {
         onPlay={() => player.play(songs, 0, { album: true, shuffle: false, source })}
         onShuffle={() => player.play(songs, -1, { shuffle: true, source })}
         onQueue={() => player.addToQueue(songs)}
+        extra={<KeepOffline group={`album:${album.id}`} songs={songs} />}
       >
         {album.artistId && (
           <Link href={`/artist/${album.artistId}`} className="font-medium underline-offset-3 hover:underline">
@@ -233,6 +239,7 @@ export function PlaylistPage({ id }: { id: string }) {
         onPlay={() => player.play(songs, 0, { shuffle: false, source })}
         onShuffle={() => player.play(songs, -1, { shuffle: true, source })}
         onQueue={() => player.addToQueue(songs)}
+        extra={<KeepOffline group={`playlist:${playlist.id}`} songs={songs} />}
       >
         <span className="text-muted-foreground">{[plural(songs.length, "track"), length(playlist.duration)].join(" · ")}</span>
         {playlist.comment && <Bio>{playlist.comment}</Bio>}

@@ -43,7 +43,7 @@ function index(request: Request): Response {
   });
 }
 
-export const webRoutes: Record<string, (request: Request) => Response> & { "/*": (request: Request) => Response } = {
+export const webRoutes = {
   ...Object.fromEntries(
     Object.entries(ASSETS)
       .filter(([url]) => url !== "/index.html")
@@ -53,4 +53,4 @@ export const webRoutes: Record<string, (request: Request) => Response> & { "/*":
       ]),
   ),
   "/*": index,
-};
+} as Record<string, (request: Request) => Response> & Record<"/*" | "/sw.js", (request: Request) => Response>;

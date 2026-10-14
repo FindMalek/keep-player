@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Empty, EmptyDescription } from "@/components/ui/empty";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { clock } from "@/lib/format";
+import { useCachedIds } from "@/lib/offline";
 import { currentSong, player, type QueueSource, usePlayer } from "@/lib/player";
 import { api } from "@/lib/subsonic";
 import type { Album, Song } from "@/lib/types";
@@ -12,6 +13,7 @@ import { usePageVirtualizer, VIRTUALIZE_FROM } from "@/lib/virtual";
 import { Cover } from "./cover";
 import { Equalizer } from "./equalizer";
 import { Link } from "./link";
+import { OfflineMark } from "./offline-mark";
 import { VirtualGrid } from "./virtual-grid";
 
 export function PageHeader({ title, meta, children }: { title: ReactNode; meta?: ReactNode; children?: ReactNode }) {
@@ -137,6 +139,8 @@ interface TrackRowProps {
   showAlbum: boolean;
   showArtist: boolean;
   onPlay: (index: number) => void;
+  /** Saved in the offline cache. */
+  offline: boolean;
   /** Set when virtualized: lets the virtualizer measure the row. */
   measure?: (element: Element | null) => void;
   virtualIndex?: number;
@@ -150,6 +154,7 @@ const TrackRow = memo(function TrackRow({
   showAlbum,
   showArtist,
   onPlay,
+  offline,
   measure,
   virtualIndex,
 }: TrackRowProps) {
@@ -194,7 +199,10 @@ const TrackRow = memo(function TrackRow({
           )}
         </TableCell>
       )}
-      <TableCell className="py-0 text-right font-mono text-muted-foreground tabular-nums">{clock(song.duration)}</TableCell>
+      <TableCell className="py-0 text-right font-mono text-muted-foreground tabular-nums">
+        {offline && <OfflineMark />}
+        {clock(song.duration)}
+      </TableCell>
       <TableCell className="py-0">
         <div className="flex justify-end opacity-0 group-focus-within/row:opacity-100 group-hover/row:opacity-100">
           <Button variant="ghost" size="icon-xs" onClick={() => player.playNext([song])} aria-label={`play ${song.title} next`}>
@@ -208,6 +216,7 @@ const TrackRow = memo(function TrackRow({
     </TableRow>
   );
 });
+
 // Survives minification, so the render-count e2e test can find rows in React's fiber tree.
 TrackRow.displayName = "TrackRow";
 
@@ -224,6 +233,7 @@ export function TrackList({
 }: TrackListProps & { onNearEnd?: () => void; source?: QueueSource }) {
   const playingId = usePlayer((state) => currentSong(state)?.id);
   const playing = usePlayer((state) => state.playing);
+  const cached = useCachedIds();
   const onPlay = useCallback((index: number) => player.play(songs, index, { album: asAlbum, source }), [songs, asAlbum, source]);
   const items = useMemo<TrackItem[]>(() => {
     const multiDisc = asAlbum && new Set(songs.map((song) => song.discNumber ?? 1)).size > 1;
@@ -301,6 +311,7 @@ export function TrackList({
                 showAlbum={showAlbum}
                 showArtist={showArtist}
                 onPlay={onPlay}
+                offline={cached.has(item.song.id)}
                 measure={virtual ? virtualizer.measureElement : undefined}
                 virtualIndex={virtualIndex}
               />

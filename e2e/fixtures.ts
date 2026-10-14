@@ -63,3 +63,10 @@ export function fakeMediaClock(): void {
     return play.call(this);
   };
 }
+
+/** Titles of the track table's rows, once they've rendered. */
+export async function trackTitles(page: Page): Promise<string[]> {
+  const cells = page.locator("[aria-label=tracks] tbody tr td:nth-child(2) span:first-child");
+  await expect(cells.first()).toBeVisible();
+  return cells.allTextContents();
+}
