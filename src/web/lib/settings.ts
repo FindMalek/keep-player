@@ -9,10 +9,12 @@ export interface Settings {
   ratings: boolean;
   /** No animations or view transitions, whatever the OS says. */
   reduceMotion: boolean;
+  /** Open the mini player by itself when you leave the tab while music plays (Chromium). */
+  miniPlayerWhenHidden: boolean;
 }
 
 const KEY = "keep-player:settings";
-const DEFAULTS: Settings = { ratings: false, reduceMotion: false };
+const DEFAULTS: Settings = { ratings: false, reduceMotion: false, miniPlayerWhenHidden: false };
 
 function read(): Settings {
   try {

@@ -1,4 +1,7 @@
-import type { Album, Artist, Playlist, Song } from "../../src/web/lib/types";
+import type { Album, Song as AppSong, Artist, Playlist } from "../../src/web/lib/types";
+
+/** Songs as getSong returns them: the list fields plus where the file lives and what it is. */
+type Song = AppSong & { parent?: string; path?: string; samplingRate?: number; channelCount?: number };
 
 /** Navidrome's getLyricsBySongId shape. */
 export interface StructuredLyrics {
@@ -102,6 +105,10 @@ export function createLibrary(trackCount = 10_000, seed = 7): Library {
           artistId: artist.id,
           track: t,
           discNumber: 1,
+          parent: album.id,
+          path: `${artist.name}/${album.name}/${String(t).padStart(2, "0")}.mp3`,
+          samplingRate: 44100,
+          channelCount: 2,
           year: album.year,
           genre,
           coverArt: album.coverArt,

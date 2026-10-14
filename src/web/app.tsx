@@ -11,6 +11,7 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { loadLikes, toggleLiked } from "@/lib/likes";
 import { openListFilter } from "@/lib/list-filter";
 import { runListCommand } from "@/lib/list-nav";
+import { openMiniPlayer, setAutoMiniPlayer, useMiniWindow } from "@/lib/mini-player";
 import { transition } from "@/lib/motion";
 import { notify } from "@/lib/notify";
 import { PageScrollContext } from "@/lib/page-scroll";
@@ -43,6 +44,7 @@ import { appShortcuts } from "./app-shortcuts";
 const Login = lazy(() => import("@/components/login").then((module) => ({ default: module.Login })));
 const SplitView = lazy(() => import("@/components/split-view").then((module) => ({ default: module.SplitView })));
 const QueuePanel = lazy(() => import("@/components/side-panels").then((module) => ({ default: module.QueuePanel })));
+const InfoPanel = lazy(() => import("@/components/side-panels").then((module) => ({ default: module.InfoPanel })));
 const LyricsPanel = lazy(() => import("@/components/side-panels").then((module) => ({ default: module.LyricsPanel })));
 
 const NowPlayingFull = lazy(() => import("@/components/now-playing-full").then((module) => ({ default: module.NowPlayingFull })));
@@ -51,6 +53,7 @@ const CheatSheet = lazy(() => import("@/components/cheat-sheet").then((module) =
 // Only loaded on the first ⌘K (cmdk + dialog stay out of the first paint), then kept mounted.
 const SearchPalette = lazy(() => import("@/components/search-palette").then((module) => ({ default: module.SearchPalette })));
 
+const MiniPlayerPortal = lazy(() => import("@/components/mini-player").then((module) => ({ default: module.MiniPlayerPortal })));
 const OfflineBanner = lazy(() => import("@/components/offline-banner").then((module) => ({ default: module.OfflineBanner })));
 const TopProgressLine = lazy(() => import("@/components/top-progress").then((module) => ({ default: module.TopProgressLine })));
 
@@ -71,6 +74,17 @@ function TopProgress() {
       <TopProgressLine />
     </Suspense>
   ) : null;
+}
+
+/** The tab icon from the theme's own tokens (a square in the text color, the glyph in the page color). */
+function tabIcon(playing: boolean): string {
+  const tokens = getComputedStyle(document.documentElement);
+  const square = tokens.getPropertyValue("--foreground").trim();
+  const glyph = tokens.getPropertyValue("--background").trim();
+  const shape = playing ? "M4.5 3.5h2.5v9H4.5zM9 3.5h2.5v9H9z" : "M5 3.5v9l7-4.5z";
+  return `data:image/svg+xml,${encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><rect width="16" height="16" fill="${square}"/><path d="${shape}" fill="${glyph}"/></svg>`,
+  )}`;
 }
 
 function Page({ path }: { path: string }) {
@@ -114,6 +128,9 @@ export function App() {
   // Panels slide in and out as a view transition (app.css), the page reflows under a cross-fade.
   const setPanel = (update: Panel | ((value: Panel) => Panel)) => transition(() => setPanelNow(update));
   const reduceMotion = useSetting("reduceMotion");
+  const miniWindow = useMiniWindow();
+  const autoMini = useSetting("miniPlayerWhenHidden");
+  useEffect(() => setAutoMiniPlayer(autoMini), [autoMini]);
   useEffect(() => {
     document.documentElement.dataset.motion = reduceMotion ? "reduce" : "system";
   }, [reduceMotion]);
@@ -142,6 +159,7 @@ export function App() {
       openCheatSheet: () => setCheatSheet(true),
       toggleFullScreen: () => setFullScreen((value) => !value),
       findInList: openListFilter,
+      openMiniPlayer: () => void openMiniPlayer(),
       likeCurrent: () => {
         const song = currentSong(player.getState());
         if (song) void toggleLiked("song", song.id, song.title);
@@ -173,7 +191,10 @@ export function App() {
   }, [user]);
 
   useEffect(() => {
-    document.title = nowPlaying && playing ? `${nowPlaying.title} · ${nowPlaying.artist ?? ""}` : "keep music";
+    document.title = nowPlaying && playing ? `▶ ${nowPlaying.title} · ${nowPlaying.artist ?? ""}` : "keep music";
+    // The tab icon says it too: pause bars while playing (click it to pause), the play mark otherwise.
+    const icon = document.querySelector<HTMLLinkElement>("link[rel=icon]");
+    if (icon) icon.href = tabIcon(playing);
   }, [nowPlaying, playing]);
 
   if (checkingSession) return null;
@@ -187,6 +208,11 @@ export function App() {
   return (
     <>
       <TopProgress />
+      {miniWindow && (
+        <Suspense>
+          <MiniPlayerPortal target={miniWindow} />
+        </Suspense>
+      )}
       {unreachable && (
         <Suspense>
           <OfflineBanner />
@@ -210,7 +236,13 @@ export function App() {
                   side={
                     <div className="h-full" style={{ viewTransitionName: "side-panel" }}>
                       <Suspense>
-                        {panel === "queue" ? <QueuePanel onClose={() => setPanel(null)} /> : <LyricsPanel onClose={() => setPanel(null)} />}
+                        {panel === "queue" ? (
+                          <QueuePanel onClose={() => setPanel(null)} />
+                        ) : panel === "info" ? (
+                          <InfoPanel onClose={() => setPanel(null)} />
+                        ) : (
+                          <LyricsPanel onClose={() => setPanel(null)} />
+                        )}
                       </Suspense>
                     </div>
                   }

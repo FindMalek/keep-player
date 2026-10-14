@@ -1,21 +1,25 @@
+import { queryOptions, useQuery } from "@tanstack/react-query";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { ListPlusIcon, XIcon } from "lucide-react";
-import { type FormEvent, memo, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { type FormEvent, Fragment, memo, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { clock } from "@/lib/format";
+import { clock, quality } from "@/lib/format";
 import { closeListFilter, songMatches, useListFilter } from "@/lib/list-filter";
 import { focusWhenRendered, type ListCommand, useListNav } from "@/lib/list-nav";
 import { currentSong, type Entry, player, usePlayer } from "@/lib/player";
 import { queries, queryClient } from "@/lib/queries";
 import { contextUpcoming, type Queue } from "@/lib/queue";
+import { api } from "@/lib/subsonic";
+import type { Song } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Cover } from "./cover";
 import { Hint } from "./hint";
 import { EmptyState } from "./library";
+import { Link } from "./link";
 import { ListFilterBar } from "./list-filter-bar";
 import { LyricsView } from "./lyrics-view";
 import { Truncated } from "./truncated";
@@ -333,6 +337,127 @@ export function LyricsPanel({ onClose }: { onClose: () => void }) {
   return (
     <PanelFrame title="lyrics" onClose={onClose}>
       {song ? <LyricsView key={song.id} song={song} size="panel" /> : <EmptyState>nothing playing</EmptyState>}
+    </PanelFrame>
+  );
+}
+
+/** What getSong says about a file beyond what lists carry (OpenSubsonic fields where the server has them). */
+interface SongDetails extends Song {
+  path?: string;
+  parent?: string;
+  played?: string;
+  bitDepth?: number;
+  samplingRate?: number;
+  channelCount?: number;
+  musicBrainzId?: string;
+  displayComposer?: string;
+  contributors?: { role: string; subRole?: string; artist: { name: string } }[];
+}
+
+const songDetails = (id: string) =>
+  queryOptions({
+    queryKey: ["song", id],
+    queryFn: () => api<{ song: SongDetails }>("getSong", { id }).then((response) => response.song),
+    staleTime: 60_000,
+  });
+
+function Facts({ title, rows }: { title: string; rows: [string, ReactNode][] }) {
+  const shown = rows.filter(([, value]) => value !== undefined && value !== null && value !== "");
+  if (!shown.length) return null;
+  return (
+    <section className="flex flex-col gap-1.5">
+      <h3 className="font-mono text-[10.5px] text-faint">{title}</h3>
+      <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1 text-[12.5px]">
+        {shown.map(([label, value]) => (
+          <Fragment key={label}>
+            <dt className="text-muted-foreground">{label}</dt>
+            <dd className="min-w-0 [overflow-wrap:anywhere]">{value}</dd>
+          </Fragment>
+        ))}
+      </dl>
+    </section>
+  );
+}
+
+const megabytes = (bytes?: number) => (bytes ? `${(bytes / 1024 / 1024).toFixed(1)} MB` : undefined);
+const db = (value?: number) => (value === undefined ? undefined : `${value > 0 ? "+" : ""}${value.toFixed(2)} dB`);
+
+/** `i`: everything about the playing song: credits, the file, your plays, ReplayGain, where it lives. */
+export function InfoPanel({ onClose }: { onClose: () => void }) {
+  const current = usePlayer(currentSong);
+  const { data } = useQuery({ ...songDetails(current?.id ?? ""), enabled: Boolean(current) });
+  const song = data ?? current;
+  if (!song)
+    return (
+      <PanelFrame title="info" onClose={onClose}>
+        <EmptyState>nothing playing</EmptyState>
+      </PanelFrame>
+    );
+  const details = song as SongDetails;
+  const credits = (details.contributors ?? []).map((credit): [string, ReactNode] => [credit.subRole ?? credit.role, credit.artist.name]);
+  const rg = song.replayGain;
+  return (
+    <PanelFrame title="info" onClose={onClose}>
+      <div className="flex flex-col gap-5 px-3.5 py-3">
+        <Facts
+          title="credits"
+          rows={[
+            ["artist", song.artist],
+            ["album", song.album],
+            ["composer", details.displayComposer],
+            ...credits,
+            ["year", song.year],
+            ["disc · track", song.track ? `${song.discNumber ?? 1} · ${song.track}` : undefined],
+            ["genre", song.genre],
+          ]}
+        />
+        <Facts
+          title="file"
+          rows={[
+            ["format", quality(song.suffix, song.bitRate)],
+            ["bit depth", details.bitDepth ? `${details.bitDepth} bit` : undefined],
+            ["sample rate", details.samplingRate ? `${(details.samplingRate / 1000).toFixed(1)} kHz` : undefined],
+            ["channels", details.channelCount],
+            ["size", megabytes(song.size)],
+            ["path", details.path && <span className="font-mono text-[11px]">{details.path}</span>],
+          ]}
+        />
+        <Facts
+          title="you"
+          rows={[
+            ["plays", song.playCount ?? 0],
+            [
+              "last played",
+              details.played ? new Date(details.played).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }) : undefined,
+            ],
+          ]}
+        />
+        <Facts
+          title="replaygain"
+          rows={[
+            ["track", db(rg?.trackGain)],
+            ["album", db(rg?.albumGain)],
+            ["track peak", rg?.trackPeak?.toFixed(3)],
+          ]}
+        />
+        <div className="flex flex-wrap gap-x-3 gap-y-1 font-mono text-[11px]">
+          {details.parent && (
+            <Link href={`/folders/${encodeURIComponent(details.parent)}`} className="underline-offset-3 hover:underline">
+              open folder
+            </Link>
+          )}
+          {details.musicBrainzId && (
+            <a
+              href={`https://musicbrainz.org/recording/${details.musicBrainzId}`}
+              target="_blank"
+              rel="noreferrer"
+              className="underline-offset-3 hover:underline"
+            >
+              musicbrainz
+            </a>
+          )}
+        </div>
+      </div>
     </PanelFrame>
   );
 }

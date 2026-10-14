@@ -21,6 +21,7 @@ const SHORTCUTS = appShortcuts({
   toggleFullScreen: noop,
   findInList: () => true,
   likeCurrent: noop,
+  openMiniPlayer: noop,
 });
 
 /** "shift+arrowright" → "Shift+ArrowRight", "mod+k" → "ControlOrMeta+k", chords → one press per step. */
@@ -159,6 +160,23 @@ const CHECKS: Record<string, Check> = {
     await expect(page.getByRole("dialog", { name: titles[0] as string })).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(page.getByRole("dialog")).toHaveCount(0);
+  },
+  info: async (page, press) => {
+    await press();
+    await expect(page.getByRole("complementary", { name: "info" })).toBeVisible();
+  },
+  "mini-player": async (page, press) => {
+    await press();
+    // Headless Chromium may or may not offer Document PiP: either the window opens or the app says it can't.
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () =>
+            Boolean((window as unknown as { documentPictureInPicture?: { window: Window | null } }).documentPictureInPicture?.window) ||
+            document.body.innerText.includes("the mini player needs"),
+        ),
+      )
+      .toBe(true);
   },
   close: async (page, press) => {
     await page.locator("body").press("q");

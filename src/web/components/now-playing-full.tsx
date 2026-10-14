@@ -1,20 +1,52 @@
-import { useRef } from "react";
+import { PauseIcon, PlayIcon, SkipBackIcon, SkipForwardIcon } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
-import { currentSong, usePlayer } from "@/lib/player";
+import { currentSong, player, usePlayer } from "@/lib/player";
+import { peekUpcoming } from "@/lib/queue";
+import type { Song } from "@/lib/types";
+import { cn } from "@/lib/utils";
 import { Cover } from "./cover";
 import { LikeButton } from "./like-button";
 import { LyricsView } from "./lyrics-view";
 
-/** ⇧F: the cover large and the lyrics big, for across the room. Esc closes. */
+const IDLE_MS = 3000;
+const sameSongs = (a: Song[], b: Song[]) => a.length === b.length && a.every((song, index) => song.id === b[index]?.id);
+
+/** Pointer and keys keep the controls up; after 3 s of neither, they fade and the cursor hides. */
+function useIdle(active: boolean): [boolean, () => void] {
+  const [idle, setIdle] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const wake = () => {
+    setIdle(false);
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => setIdle(true), IDLE_MS);
+  };
+  // biome-ignore lint/correctness/useExhaustiveDependencies: restart the timer when the view opens
+  useEffect(() => {
+    if (!active) return;
+    wake();
+    return () => clearTimeout(timer.current);
+  }, [active]);
+  return [idle, wake];
+}
+
+/** ⇧F: the cover large and the lyrics big, for across the room, with what's next and the three buttons. Esc closes. */
 export function NowPlayingFull({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const song = usePlayer(currentSong);
+  const playing = usePlayer((state) => state.playing);
+  const next = usePlayer((state) => peekUpcoming(state.queue, 3), sameSongs);
+  const [idle, wake] = useIdle(open);
   // Focus lands on the title, not the first lyric line (which would draw a focus ring on it).
   const title = useRef<HTMLHeadingElement>(null);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         initialFocus={title}
-        className="top-0 left-0 grid h-svh w-screen bg-background max-w-none translate-x-0 translate-y-0 grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-10 border-0 p-10 sm:max-w-none"
+        onPointerMove={wake}
+        onKeyDown={wake}
+        data-idle={idle || undefined}
+        className="group/full top-0 left-0 grid h-svh w-screen bg-background max-w-none translate-x-0 translate-y-0 grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-10 border-0 p-10 data-idle:cursor-none sm:max-w-none"
       >
         {song ? (
           <>
@@ -25,7 +57,34 @@ export function NowPlayingFull({ open, onOpenChange }: { open: boolean; onOpenCh
                   {song.title}
                 </DialogTitle>
                 <DialogDescription className="truncate text-lg">{[song.artist, song.album].filter(Boolean).join(" · ")}</DialogDescription>
-                <LikeButton kind="song" id={song.id} label={song.title} className="-ml-1.5 mt-2" />
+              </div>
+              <div className="flex flex-col gap-4 transition-opacity duration-200 group-data-idle/full:opacity-0">
+                <div className="-ml-1.5 flex items-center gap-1">
+                  <Button variant="ghost" size="icon" aria-label="previous" onClick={() => player.previous()}>
+                    <SkipBackIcon className="fill-current" />
+                  </Button>
+                  <Button size="icon" aria-label={playing ? "pause" : "play"} onClick={() => player.toggle()}>
+                    {playing ? <PauseIcon className="fill-current" /> : <PlayIcon className="fill-current" />}
+                  </Button>
+                  <Button variant="ghost" size="icon" aria-label="next" onClick={() => player.next()}>
+                    <SkipForwardIcon className="fill-current" />
+                  </Button>
+                  <LikeButton kind="song" id={song.id} label={song.title} className="ml-1" />
+                </div>
+                {next.length > 0 && (
+                  <section aria-label="up next" className="flex flex-col gap-1">
+                    <h2 className="font-mono text-[11px] text-faint">up next</h2>
+                    <ol className="flex flex-col gap-0.5 text-muted-foreground text-sm">
+                      {next.map((upcoming, index) => (
+                        // biome-ignore lint/suspicious/noArrayIndexKey: the same song can come up twice (repeat)
+                        <li key={`${upcoming.id}-${index}`} className={cn("truncate", index > 0 && "text-faint")}>
+                          {upcoming.title}
+                          {upcoming.artist && <span className="text-faint"> · {upcoming.artist}</span>}
+                        </li>
+                      ))}
+                    </ol>
+                  </section>
+                )}
               </div>
             </div>
             <div className="min-h-0 overflow-y-auto">
