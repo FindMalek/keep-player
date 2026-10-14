@@ -1,6 +1,6 @@
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { useCallback, useMemo, useRef, useState } from "react";
-import { AlbumGrid, Content, EmptyState, PageHeader, Section, TrackList } from "@/components/library";
+import { type ReactNode, useCallback, useMemo, useRef, useState } from "react";
+import { AlbumGrid, AlbumGridSkeleton, Content, EmptyState, PageHeader, Section, TrackList } from "@/components/library";
 import { Link } from "@/components/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -8,9 +8,29 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { plural } from "@/lib/format";
 import { player } from "@/lib/player";
 import { queries, queryClient } from "@/lib/queries";
-import type { Artist } from "@/lib/types";
+import type { Album, Artist } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useColumns, usePageVirtualizer } from "@/lib/virtual";
+
+/** A home row: skeleton cards while loading (so nothing below moves when it arrives), hidden only once known empty. */
+function AlbumRow({
+  title,
+  query,
+  action,
+  priority = 0,
+}: {
+  title: string;
+  query: { data?: Album[]; isPending: boolean };
+  action?: ReactNode;
+  priority?: number;
+}) {
+  if (!query.isPending && !query.data?.length) return null;
+  return (
+    <Section title={title} action={action}>
+      {query.data ? <AlbumGrid albums={query.data} priority={priority} /> : <AlbumGridSkeleton count={12} />}
+    </Section>
+  );
+}
 
 export function HomePage() {
   const newest = useQuery(queries.albumList("newest", 12));
@@ -28,30 +48,18 @@ export function HomePage() {
         </Content>
       ) : (
         <>
-          <Section title="recently added">
-            <AlbumGrid albums={newest.data ?? []} />
-          </Section>
-          {(recent.data?.length ?? 0) > 0 && (
-            <Section title="recently played" deferred>
-              <AlbumGrid albums={recent.data ?? []} />
-            </Section>
-          )}
-          {(frequent.data?.length ?? 0) > 0 && (
-            <Section title="most played" deferred>
-              <AlbumGrid albums={frequent.data ?? []} />
-            </Section>
-          )}
-          <Section
+          <AlbumRow title="recently added" query={newest} priority={8} />
+          <AlbumRow title="recently played" query={recent} />
+          <AlbumRow title="most played" query={frequent} />
+          <AlbumRow
             title="rediscover"
-            deferred
+            query={random}
             action={
               <Button variant="link" size="xs" className="h-auto p-0 font-mono text-muted-foreground" onClick={() => void random.refetch()}>
                 shuffle
               </Button>
             }
-          >
-            <AlbumGrid albums={random.data ?? []} />
-          </Section>
+          />
         </>
       )}
     </>
@@ -107,7 +115,7 @@ export function AlbumsPage() {
         </ToggleGroup>
       </PageHeader>
       <Content>
-        <AlbumGrid albums={albums} onNearEnd={loadMore} />
+        <AlbumGrid albums={albums} onNearEnd={loadMore} priority={16} />
       </Content>
     </>
   );

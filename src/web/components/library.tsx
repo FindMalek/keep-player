@@ -2,6 +2,7 @@ import { ListEndIcon, ListStartIcon, PlayIcon } from "lucide-react";
 import { memo, type ReactNode, useCallback, useEffect, useMemo, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Empty, EmptyDescription } from "@/components/ui/empty";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { clock } from "@/lib/format";
 import { useCachedIds } from "@/lib/offline";
@@ -28,20 +29,9 @@ export function PageHeader({ title, meta, children }: { title: ReactNode; meta?:
   );
 }
 
-export function Section({
-  title,
-  action,
-  deferred,
-  children,
-}: {
-  title: string;
-  action?: ReactNode;
-  deferred?: boolean;
-  children: ReactNode;
-}) {
+export function Section({ title, action, children }: { title: string; action?: ReactNode; children: ReactNode }) {
   return (
-    // Below-the-fold sections skip layout and paint until scrolled near (`deferred`).
-    <section className={cn("px-5 pt-3.5 pb-1.5", deferred && "[contain-intrinsic-size:auto_420px] [content-visibility:auto]")}>
+    <section className="px-5 pt-3.5 pb-1.5">
       <header className="mb-2.5 flex items-baseline justify-between">
         <h2 className="font-mono text-muted-foreground text-xs">{title}</h2>
         {action}
@@ -72,11 +62,11 @@ export async function playAlbum(id: string, shuffle = false): Promise<void> {
   });
 }
 
-const AlbumCard = memo(function AlbumCard({ album }: { album: Album }) {
+const AlbumCard = memo(function AlbumCard({ album, priority = false }: { album: Album; priority?: boolean }) {
   return (
     <div className="group/album relative">
       <Link href={`/album/${album.id}`} className="flex flex-col gap-px">
-        <Cover id={album.coverArt} size={180} className="mb-1.5 group-hover/album:[&_img]:opacity-85" />
+        <Cover id={album.coverArt} size={180} className="mb-1.5 group-hover/album:[&_img]:opacity-85" priority={priority} />
         <span className="truncate text-[12.5px]">{album.name}</span>
         <span className="truncate text-[11.5px] text-muted-foreground">
           {album.artist}
@@ -98,16 +88,34 @@ const AlbumCard = memo(function AlbumCard({ album }: { album: Album }) {
   );
 });
 
+/** Placeholder cards with the exact geometry of real ones (square cover, two text lines). */
+export function AlbumGridSkeleton({ count }: { count: number }) {
+  return (
+    <div aria-hidden className="grid grid-cols-[repeat(auto-fill,minmax(136px,1fr))] gap-x-3 gap-y-4">
+      {Array.from({ length: count }, (_, index) => (
+        // biome-ignore lint/suspicious/noArrayIndexKey: placeholders have no identity
+        <div key={index} className="flex flex-col gap-px">
+          <Skeleton className="mb-1.5 aspect-square" />
+          <Skeleton className="my-[3px] h-3 w-3/4" />
+          <Skeleton className="my-[3px] h-2.5 w-1/2" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /** Cover (as wide as the column) plus two lines of text. */
 const albumCardHeight = (width: number) => width + 6 + 18 + 16;
 
-export function AlbumGrid({ albums, onNearEnd }: { albums: Album[]; onNearEnd?: () => void }) {
+/** `priority`: how many leading covers are above the fold (fetched first, not lazy). */
+export function AlbumGrid({ albums, onNearEnd, priority = 0 }: { albums: Album[]; onNearEnd?: () => void; priority?: number }) {
+  const first = new Set(albums.slice(0, priority).map((album) => album.id));
   if (!albums.length) return <EmptyState>no albums</EmptyState>;
   return (
     <VirtualGrid
       items={albums}
       getKey={(album) => album.id}
-      renderItem={(album) => <AlbumCard album={album} />}
+      renderItem={(album) => <AlbumCard album={album} priority={first.has(album.id)} />}
       min={136}
       gap={12}
       rowGap={16}

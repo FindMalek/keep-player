@@ -15,8 +15,18 @@ function post(message: Message): void {
   void navigator.serviceWorker?.ready.then((registration) => registration.active?.postMessage(message));
 }
 
+/**
+ * Registered once the page has loaded and the browser is idle: installing downloads the whole app shell, which must
+ * not compete with the first paint.
+ */
 export function registerServiceWorker(): void {
   if (!("serviceWorker" in navigator)) return;
+  const idle = (run: () => void) => ("requestIdleCallback" in window ? requestIdleCallback(run, { timeout: 5000 }) : setTimeout(run, 2000));
+  if (document.readyState === "complete") idle(register);
+  else window.addEventListener("load", () => idle(register), { once: true });
+}
+
+function register(): void {
   navigator.serviceWorker.addEventListener("message", (event: MessageEvent<Status>) => {
     if (event.data?.type !== "status") return;
     status = event.data;
