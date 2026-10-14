@@ -536,6 +536,9 @@ export const player = {
     if (!current()) player.play(songs);
     else edit(Q.addToQueue(state.queue, songs));
   },
+  move(entry: Q.Entry, delta: -1 | 1): void {
+    edit(Q.move(state.queue, entry, delta));
+  },
   remove(entry: Q.Entry): void {
     edit(Q.remove(state.queue, entry));
   },

@@ -1,12 +1,15 @@
 import { ListEndIcon, ListStartIcon, PlayIcon } from "lucide-react";
-import { memo, type ReactNode, useCallback, useEffect, useMemo, useRef } from "react";
+import { memo, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Empty, EmptyDescription } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { clock } from "@/lib/format";
+import { focusWhenRendered, type ListCommand, listProps, rememberedFocus, rememberFocus } from "@/lib/list-nav";
 import { useCachedIds } from "@/lib/offline";
 import { currentSong, player, type QueueSource, usePlayer } from "@/lib/player";
+import { queries, queryClient } from "@/lib/queries";
+import { go, navigationType } from "@/lib/router";
 import { api } from "@/lib/subsonic";
 import type { Album, Song } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -15,6 +18,7 @@ import { Cover } from "./cover";
 import { Equalizer } from "./equalizer";
 import { Link } from "./link";
 import { OfflineMark } from "./offline-mark";
+import { SelectionBar } from "./selection-bar";
 import { VirtualGrid } from "./virtual-grid";
 
 export function PageHeader({ title, meta, children }: { title: ReactNode; meta?: ReactNode; children?: ReactNode }) {
@@ -104,6 +108,14 @@ export function AlbumGridSkeleton({ count }: { count: number }) {
   );
 }
 
+const albumSongs = async (album: Album) => (await queryClient.fetchQuery(queries.album(album.id))).song ?? [];
+const ALBUM_ACTIONS = {
+  open: (album: Album) => go(`/album/${album.id}`),
+  play: (album: Album) => void playAlbum(album.id),
+  playNext: (album: Album) => void albumSongs(album).then(player.playNext),
+  queue: (album: Album) => void albumSongs(album).then(player.addToQueue),
+};
+
 /** Cover (as wide as the column) plus two lines of text. */
 const albumCardHeight = (width: number) => width + 6 + 18 + 16;
 
@@ -121,6 +133,7 @@ export function AlbumGrid({ albums, onNearEnd, priority = 0 }: { albums: Album[]
       rowGap={16}
       estimateRow={albumCardHeight}
       onNearEnd={onNearEnd}
+      actions={ALBUM_ACTIONS}
     />
   );
 }
@@ -149,6 +162,9 @@ interface TrackRowProps {
   onPlay: (index: number) => void;
   /** Saved in the offline cache. */
   offline: boolean;
+  selected: boolean;
+  /** ⌘/ctrl-click toggles the row, ⇧-click extends the selection to it. */
+  onSelectClick: (index: number, extend: boolean) => void;
   /** Set when virtualized: lets the virtualizer measure the row. */
   measure?: (element: Element | null) => void;
   virtualIndex?: number;
@@ -163,6 +179,8 @@ const TrackRow = memo(function TrackRow({
   showArtist,
   onPlay,
   offline,
+  selected,
+  onSelectClick,
   measure,
   virtualIndex,
 }: TrackRowProps) {
@@ -170,11 +188,17 @@ const TrackRow = memo(function TrackRow({
     <TableRow
       ref={measure}
       data-index={virtualIndex}
-      tabIndex={0}
+      data-song-index={index}
+      // One tab stop for the whole list (the first row); j/k and the arrows move from there.
+      tabIndex={index === 0 ? 0 : -1}
+      aria-selected={selected}
+      data-state={selected ? "selected" : undefined}
       data-playing={status ? true : undefined}
-      className="group/row h-[34px] border-muted outline-none hover:bg-card focus-visible:bg-card focus-visible:shadow-[inset_2px_0_0_var(--foreground)]"
+      className="group/row h-[34px] scroll-my-12 border-muted outline-none hover:bg-card focus-visible:bg-card focus-visible:shadow-[inset_2px_0_0_var(--foreground)]"
       onDoubleClick={() => onPlay(index)}
-      onKeyDown={(event) => event.key === "Enter" && event.target === event.currentTarget && onPlay(index)}
+      onClick={(event) => {
+        if (event.metaKey || event.ctrlKey || event.shiftKey) onSelectClick(index, event.shiftKey);
+      }}
     >
       <TableCell className="relative py-0 font-mono text-muted-foreground tabular-nums">
         <span className="group-hover/row:invisible">{status ? <Equalizer playing={status === "playing"} /> : number}</span>
@@ -266,6 +290,102 @@ export function TrackList({
     // Ask for the next page when the reader is 80% of the way down what's loaded.
     if (virtual && onNearEnd && last >= items.length * 0.8) onNearEnd();
   }, [virtual, onNearEnd, last, items.length]);
+  // --- keyboard navigation and selection (#28) ---
+  const [selected, setSelected] = useState<ReadonlySet<number>>(() => new Set());
+  const anchor = useRef<number | null>(null);
+  const itemIndexOf = useMemo(() => {
+    const map = new Map<number, number>();
+    for (const [at, item] of items.entries()) if (item.kind === "song") map.set(item.index, at);
+    return map;
+  }, [items]);
+  const focusSong = useCallback(
+    (index: number) => {
+      const target = Math.max(0, Math.min(songs.length - 1, index));
+      if (virtual) virtualizer.scrollToIndex(itemIndexOf.get(target) ?? 0, { align: "auto" });
+      focusWhenRendered(() => listRef.current?.querySelector<HTMLElement>(`[data-song-index="${target}"]`) ?? null);
+      rememberFocus(target);
+      return target;
+    },
+    [songs.length, virtual, virtualizer, itemIndexOf],
+  );
+  const onSelectClick = useCallback((index: number, extend: boolean) => {
+    setSelected((current) => {
+      const next = new Set(current);
+      if (extend && anchor.current !== null) {
+        for (let at = Math.min(anchor.current, index); at <= Math.max(anchor.current, index); at += 1) next.add(at);
+      } else if (next.has(index)) next.delete(index);
+      else next.add(index);
+      return next;
+    });
+    if (!extend) anchor.current = index;
+  }, []);
+  const selectedSongs = () => [...selected].sort((a, b) => a - b).flatMap((at) => songs[at] ?? []);
+  const handler = (command: ListCommand): boolean => {
+    const current = Number(document.activeElement?.closest("[data-song-index]")?.getAttribute("data-song-index") ?? -1);
+    const targets = () => (selected.size ? selectedSongs() : songs[current] ? [songs[current] as Song] : []);
+    switch (command) {
+      case "down":
+        focusSong(current + 1);
+        return true;
+      case "up":
+        focusSong(current < 0 ? 0 : current - 1);
+        return true;
+      case "first":
+        focusSong(0);
+        return true;
+      case "last":
+        focusSong(songs.length - 1);
+        return true;
+      case "extend-down":
+      case "extend-up": {
+        const from = Math.max(current, 0);
+        anchor.current ??= from;
+        const to = focusSong(from + (command === "extend-down" ? 1 : -1));
+        const start = anchor.current;
+        setSelected(() => new Set(Array.from({ length: Math.abs(to - start) + 1 }, (_, step) => Math.min(start, to) + step)));
+        return true;
+      }
+      case "toggle":
+        if (current < 0) return false;
+        onSelectClick(current, false);
+        return true;
+      case "select-all":
+        setSelected(new Set(songs.map((_, at) => at)));
+        return true;
+      case "clear":
+        if (!selected.size) return false;
+        setSelected(new Set());
+        anchor.current = null;
+        return true;
+      case "play":
+        if (selected.size) player.play(selectedSongs(), 0, { source });
+        else if (current >= 0) onPlay(current);
+        else return false;
+        return true;
+      case "play-next":
+        player.playNext(targets());
+        return true;
+      case "queue":
+        player.addToQueue(targets());
+        return true;
+      case "open": {
+        const song = songs[current];
+        if (!song) return false;
+        // On an album page "open" means the artist; elsewhere the album.
+        go(asAlbum && song.artistId ? `/artist/${song.artistId}` : song.albumId ? `/album/${song.albumId}` : "/");
+        return true;
+      }
+      default:
+        return false;
+    }
+  };
+  // Back/forward: put focus back on the row it was on.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: once, when the list first has rows
+  useEffect(() => {
+    const remembered = rememberedFocus();
+    if (navigationType() === "pop" && remembered !== undefined && songs.length) focusSong(remembered);
+  }, [songs.length > 0]);
+
   if (!songs.length) return <EmptyState>no tracks</EmptyState>;
 
   const shown = virtual
@@ -276,7 +396,17 @@ export function TrackList({
   const columns = showAlbum ? 5 : 4;
 
   return (
-    <div ref={listRef}>
+    <div ref={listRef} {...listProps(handler)}>
+      {selected.size > 0 && (
+        <SelectionBar
+          songs={selectedSongs()}
+          onPlay={() => player.play(selectedSongs(), 0, { source })}
+          onClear={() => {
+            setSelected(new Set());
+            anchor.current = null;
+          }}
+        />
+      )}
       <Table className="table-fixed text-[13px]" aria-label="tracks" aria-rowcount={virtual ? items.length + 1 : undefined}>
         <colgroup>
           <col className="w-10" />
@@ -320,6 +450,8 @@ export function TrackList({
                 showArtist={showArtist}
                 onPlay={onPlay}
                 offline={cached.has(item.song.id)}
+                selected={selected.has(item.index)}
+                onSelectClick={onSelectClick}
                 measure={virtual ? virtualizer.measureElement : undefined}
                 virtualIndex={virtualIndex}
               />

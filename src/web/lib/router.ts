@@ -32,10 +32,21 @@ function restoreScroll(top: number): void {
   requestAnimationFrame(attempt);
 }
 
+let lastNavigation: "push" | "pop" = "push";
+
+/** Whether the current page came from back/forward (restore focus and scroll) or a new navigation. */
+export function navigationType(): "push" | "pop" {
+  return lastNavigation;
+}
+
 window.history.scrollRestoration = "manual";
-window.addEventListener("popstate", (event) => restoreScroll((event.state as { scroll?: number } | null)?.scroll ?? 0));
+window.addEventListener("popstate", (event) => {
+  lastNavigation = "pop";
+  restoreScroll((event.state as { scroll?: number } | null)?.scroll ?? 0);
+});
 
 function push(path: string): void {
+  lastNavigation = "push";
   rememberScroll();
   window.history.pushState({ scroll: 0 }, "", path);
   window.dispatchEvent(new Event(NAVIGATE));

@@ -23,7 +23,9 @@ export interface Shortcut {
   label: string;
   group: ShortcutGroup;
   scope: Scope;
-  run: (event: KeyboardEvent) => void;
+  /** Return `false` when it doesn't apply right now, so the next matching shortcut (e.g. the global one) runs. */
+  // biome-ignore lint/suspicious/noConfusingVoidType: most handlers return nothing; only list handlers say "not mine"
+  run: (event: KeyboardEvent) => void | boolean;
   /** Shown in the cheat sheet but handled elsewhere (e.g. ⌘B by the sidebar itself). */
   passive?: boolean;
 }
@@ -62,6 +64,8 @@ const NAMED: Record<string, string> = {
   Escape: "escape",
   Enter: "enter",
   Delete: "delete",
+  Home: "home",
+  End: "end",
   Minus: "-",
   Equal: "=",
 };
@@ -274,9 +278,11 @@ function isTyping(target: EventTarget | null): boolean {
   return target instanceof HTMLElement && (target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName));
 }
 
-/** Inside a dialog, menu or the palette only that layer's own shortcuts apply. */
+/** Inside a dialog, menu, select or the palette only that layer's own shortcuts apply (our own lists aren't layers). */
 function inLayer(target: EventTarget | null): boolean {
-  return target instanceof Element && target.closest("[role=dialog],[role=alertdialog],[role=menu],[role=listbox]") !== null;
+  if (!(target instanceof Element)) return false;
+  if (target.closest("[role=dialog],[role=alertdialog],[role=menu]")) return true;
+  return target.closest("[role=listbox]") !== null && target.closest("[data-shortcut-scope=list]") === null;
 }
 
 function scopeAllowed(scope: Scope, target: EventTarget | null): boolean {
@@ -297,13 +303,16 @@ export function handleKey(event: KeyboardEvent): void {
   candidates.sort((a, b) => rank[a.scope] - rank[b.scope]);
 
   const sequence = pending ? `${pending} ${binding}` : binding;
-  const exact = candidates.find((shortcut) => bindingsOf(shortcut).some((keys) => normalize(keys) === sequence));
+  const matches = candidates.filter((shortcut) => bindingsOf(shortcut).some((keys) => normalize(keys) === sequence));
   // Typing in a field only lets modifier shortcuts (⌘K) through.
-  if (exact && (!typing || binding.includes("mod+"))) {
+  if (matches.length && (!typing || binding.includes("mod+"))) {
     setPending(null);
-    // Space on a focused button would also "click" it; the shortcut wins.
-    event.preventDefault();
-    exact.run(event);
+    for (const shortcut of matches) {
+      if (shortcut.run(event) === false) continue;
+      // Space on a focused button would also "click" it; the shortcut wins.
+      event.preventDefault();
+      return;
+    }
     return;
   }
   if (typing) return;

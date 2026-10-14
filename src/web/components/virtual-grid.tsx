@@ -1,4 +1,6 @@
 import { type ReactNode, useEffect, useRef } from "react";
+import { focusWhenRendered, type ListCommand, listProps, rememberedFocus, rememberFocus } from "@/lib/list-nav";
+import { navigationType } from "@/lib/router";
 import { cn } from "@/lib/utils";
 import { useColumns, usePageVirtualizer } from "@/lib/virtual";
 
@@ -16,6 +18,8 @@ interface VirtualGridProps<T> {
   virtualizeFrom?: number;
   onNearEnd?: () => void;
   className?: string;
+  /** Keyboard actions for the focused item (enter opens, ⇧enter plays next, a queues). */
+  actions?: { open?: (item: T) => void; play?: (item: T) => void; playNext?: (item: T) => void; queue?: (item: T) => void };
 }
 
 /**
@@ -33,6 +37,7 @@ export function VirtualGrid<T>({
   virtualizeFrom = 60,
   onNearEnd,
   className,
+  actions,
 }: VirtualGridProps<T>) {
   const ref = useRef<HTMLDivElement>(null);
   const { columns, width } = useColumns(ref, min, gap);
@@ -51,12 +56,47 @@ export function VirtualGrid<T>({
     if (virtual && onNearEnd && last >= rowCount * 0.8) onNearEnd();
   }, [virtual, onNearEnd, last, rowCount]);
 
+  const focusItem = (index: number) => {
+    const target = Math.max(0, Math.min(items.length - 1, index));
+    if (virtual) virtualizer.scrollToIndex(Math.floor(target / columns), { align: "auto" });
+    focusWhenRendered(
+      () => ref.current?.querySelector<HTMLElement>(`[data-grid-index="${target}"] a, [data-grid-index="${target}"] button`) ?? null,
+    );
+    rememberFocus(target);
+  };
+  const handler = (command: ListCommand): boolean => {
+    const current = Number(document.activeElement?.closest("[data-grid-index]")?.getAttribute("data-grid-index") ?? -1);
+    const item = items[current];
+    const steps: Partial<Record<ListCommand, number>> = { left: -1, right: 1, up: -columns, down: columns };
+    const step = steps[command];
+    if (step !== undefined) {
+      focusItem(current < 0 ? 0 : current + step);
+      return true;
+    }
+    if (command === "first" || command === "last") {
+      focusItem(command === "first" ? 0 : items.length - 1);
+      return true;
+    }
+    const action = { play: actions?.open ?? actions?.play, open: actions?.open, "play-next": actions?.playNext, queue: actions?.queue }[
+      command as string
+    ];
+    if (!item || !action) return false;
+    action(item);
+    return true;
+  };
+  // Back/forward: put focus back on the card it was on.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: once, when the grid first has items
+  useEffect(() => {
+    const remembered = rememberedFocus();
+    if (navigationType() === "pop" && remembered !== undefined && items.length) focusItem(remembered);
+  }, [items.length > 0]);
+
   const style = { gridTemplateColumns: `repeat(auto-fill, minmax(${min}px, 1fr))`, columnGap: gap, rowGap };
   if (!virtual)
     return (
-      <div ref={ref} className={cn("grid", className)} style={style}>
-        {items.map((item) => (
-          <div key={getKey(item)} className="min-w-0">
+      <div ref={ref} className={cn("grid", className)} style={style} {...listProps(handler)}>
+        {items.map((item, index) => (
+          <div key={getKey(item)} className="min-w-0" data-grid-index={index}>
             {renderItem(item)}
           </div>
         ))}
@@ -65,7 +105,7 @@ export function VirtualGrid<T>({
 
   const margin = virtualizer.options.scrollMargin;
   return (
-    <div ref={ref} className={cn("relative", className)} style={{ height: virtualizer.getTotalSize() }}>
+    <div ref={ref} className={cn("relative", className)} style={{ height: virtualizer.getTotalSize() }} {...listProps(handler)}>
       {rows.map((row) => (
         <div
           key={row.key}
@@ -79,8 +119,8 @@ export function VirtualGrid<T>({
             paddingBottom: rowGap,
           }}
         >
-          {items.slice(row.index * columns, row.index * columns + columns).map((item) => (
-            <div key={getKey(item)} className="min-w-0">
+          {items.slice(row.index * columns, row.index * columns + columns).map((item, column) => (
+            <div key={getKey(item)} className="min-w-0" data-grid-index={row.index * columns + column}>
               {renderItem(item)}
             </div>
           ))}

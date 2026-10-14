@@ -247,6 +247,27 @@ export function remove(queue: Queue, target: Entry): Queue {
   return { ...queue, context: { ...queue.context, order: queue.context.order.filter((_, index) => index !== orderIndex) } };
 }
 
+/**
+ * Move an upcoming entry one step up or down within its part of the queue (your queue, or what's left of the context).
+ * Returns the queue unchanged at the edges.
+ */
+export function move(queue: Queue, target: Entry, delta: -1 | 1): Queue {
+  if (target.from === "user") {
+    const at = queue.upNext.findIndex((entry) => entry.uid === target.uid);
+    const to = at + delta;
+    if (at < 0 || to < 0 || to >= queue.upNext.length) return queue;
+    const upNext = [...queue.upNext];
+    [upNext[at], upNext[to]] = [upNext[to] as Entry, upNext[at] as Entry];
+    return { ...queue, upNext };
+  }
+  const at = target.orderIndex ?? -1;
+  const to = at + delta;
+  if (at <= queue.context.cursor || to <= queue.context.cursor || to >= queue.context.order.length) return queue;
+  const order = [...queue.context.order];
+  [order[at], order[to]] = [order[to] as number, order[at] as number];
+  return { ...queue, context: { ...queue.context, order } };
+}
+
 export const clearUpNext = (queue: Queue): Queue => ({ ...queue, upNext: [] });
 
 /** Drop the rest of the context; the current song keeps playing. */

@@ -6,6 +6,7 @@ import { PageSlot, usePageHost } from "@/components/page-host";
 import { type Panel, PlayerBar } from "@/components/player-bar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { runListCommand } from "@/lib/list-nav";
 import { notify } from "@/lib/notify";
 import { PageScrollContext } from "@/lib/page-scroll";
 import { currentSong, player, usePlayer } from "@/lib/player";
@@ -88,6 +89,7 @@ export function App() {
       player,
       go,
       notify,
+      runListCommand,
       togglePanel: (next) => setPanel((value) => (value === next ? null : next)),
       closeTopLayer: () => setPanel(null),
       openSearch: () => setSearching(true),

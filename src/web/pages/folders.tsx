@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Item, ItemContent, ItemMedia, ItemTitle } from "@/components/ui/item";
 import { VirtualGrid } from "@/components/virtual-grid";
 import { queries } from "@/lib/queries";
+import { go } from "@/lib/router";
 import type { Song } from "@/lib/types";
 
 function FolderList({ folders }: { folders: { id: string; name: string }[] }) {
@@ -19,6 +20,7 @@ function FolderList({ folders }: { folders: { id: string; name: string }[] }) {
       rowGap={2}
       estimateRow={() => 26}
       virtualizeFrom={200}
+      actions={{ open: (folder) => go(`/folders/${folder.id}`) }}
       renderItem={(folder) => (
         <Item size="xs" className="h-[26px] px-1.5 py-0 text-[13px] hover:bg-card" render={<Link href={`/folders/${folder.id}`} />}>
           <ItemMedia variant="icon" className="text-muted-foreground">

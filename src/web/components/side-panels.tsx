@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { clock } from "@/lib/format";
+import { focusWhenRendered, type ListCommand, listProps } from "@/lib/list-nav";
 import { currentSong, type Entry, player, usePlayer, usePosition } from "@/lib/player";
 import { queries, queryClient } from "@/lib/queries";
 import { contextUpcoming, type Queue } from "@/lib/queue";
@@ -63,7 +64,8 @@ const QueueRow = memo(function QueueRow({ entry, state }: { entry: Entry; state:
           state === "current" && "bg-border hover:bg-border",
         )}
         onClick={() => state === "next" && player.jumpTo(entry)}
-        disabled={state !== "next"}
+        // Not `disabled`: played and current rows stay focusable for keyboard navigation.
+        aria-disabled={state !== "next"}
       >
         <Cover id={song.coverArt} size={32} />
         <span className="flex min-w-0 flex-col">
@@ -182,15 +184,71 @@ export function QueuePanel({ onClose }: { onClose: () => void }) {
   }, []);
   const margin = virtualizer.options.scrollMargin;
 
+  // Keyboard: j/k move, enter jumps, delete removes, alt+↑/↓ reorders (#28).
+  const entryIndexes = items.flatMap((item, index) => (item.kind === "entry" ? [index] : []));
+  const focusRow = (index: number) => {
+    virtualizer.scrollToIndex(index, { align: "auto" });
+    focusWhenRendered(() => listRef.current?.querySelector<HTMLElement>(`[data-queue-index="${index}"] button`) ?? null);
+  };
+  const handler = (command: ListCommand): boolean => {
+    const current = Number(document.activeElement?.closest("[data-queue-index]")?.getAttribute("data-queue-index") ?? -1);
+    const item = items[current];
+    const position = entryIndexes.indexOf(current);
+    const step = (delta: number) => entryIndexes[Math.max(0, Math.min(entryIndexes.length - 1, position + delta))];
+    switch (command) {
+      case "down":
+      case "up": {
+        const target = position < 0 ? entryIndexes[0] : step(command === "down" ? 1 : -1);
+        if (target !== undefined) focusRow(target);
+        return true;
+      }
+      case "first":
+      case "last": {
+        const target = command === "first" ? entryIndexes[0] : entryIndexes.at(-1);
+        if (target !== undefined) focusRow(target);
+        return true;
+      }
+      case "play":
+        if (item?.kind !== "entry" || item.state !== "next") return false;
+        player.jumpTo(item.entry);
+        return true;
+      case "remove":
+        if (item?.kind !== "entry" || item.state !== "next") return false;
+        player.remove(item.entry);
+        // Stay on the row that slid into this place.
+        focusRow(current);
+        return true;
+      case "move-up":
+      case "move-down": {
+        if (item?.kind !== "entry" || item.state !== "next") return false;
+        const delta = command === "move-up" ? -1 : 1;
+        player.move(item.entry, delta);
+        focusRow(current + delta);
+        return true;
+      }
+      default:
+        return false;
+    }
+  };
+
   return (
     <PanelFrame title="queue" meta={`${upcoming} up next`} onClose={onClose} actions={queue.current && <SaveQueue />}>
-      <div ref={listRef} className="relative" style={{ height: virtualizer.getTotalSize() }}>
+      <div
+        ref={listRef}
+        role="listbox"
+        aria-label="queue"
+        className="relative"
+        style={{ height: virtualizer.getTotalSize() }}
+        {...listProps(handler)}
+      >
         {virtualizer.getVirtualItems().map((virtual) => {
           const item = items[virtual.index];
           if (!item) return null;
           return (
             <div
               key={item.kind === "entry" ? item.entry.uid : `h-${item.label}`}
+              {...(item.kind === "entry" ? { role: "option", "aria-selected": item.state === "current" } : { role: "presentation" })}
+              data-queue-index={item.kind === "entry" ? virtual.index : undefined}
               className="absolute inset-x-0"
               style={{ transform: `translateY(${virtual.start - margin}px)` }}
             >
