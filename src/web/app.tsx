@@ -11,10 +11,12 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { loadLikes, toggleLiked } from "@/lib/likes";
 import { openListFilter } from "@/lib/list-filter";
 import { runListCommand } from "@/lib/list-nav";
+import { transition } from "@/lib/motion";
 import { notify } from "@/lib/notify";
 import { PageScrollContext } from "@/lib/page-scroll";
 import { currentSong, player, usePlayer } from "@/lib/player";
 import { go, usePath } from "@/lib/router";
+import { useSetting } from "@/lib/settings";
 import { installShortcuts, useShortcuts } from "@/lib/shortcuts";
 import { useCheckingSession, useUser } from "@/lib/subsonic";
 import { welcomeTip } from "@/lib/tips";
@@ -104,7 +106,13 @@ installShortcuts();
 export function App() {
   const user = useUser();
   const checkingSession = useCheckingSession();
-  const [panel, setPanel] = useState<Panel>(null);
+  const [panel, setPanelNow] = useState<Panel>(null);
+  // Panels slide in and out as a view transition (app.css), the page reflows under a cross-fade.
+  const setPanel = (update: Panel | ((value: Panel) => Panel)) => transition(() => setPanelNow(update));
+  const reduceMotion = useSetting("reduceMotion");
+  useEffect(() => {
+    document.documentElement.dataset.motion = reduceMotion ? "reduce" : "system";
+  }, [reduceMotion]);
   const [searching, setSearching] = useState(false);
   const [cheatSheet, setCheatSheet] = useState(false);
   const [fullScreen, setFullScreen] = useState(false);
@@ -189,9 +197,11 @@ export function App() {
                 <SplitView
                   host={host}
                   side={
-                    <Suspense>
-                      {panel === "queue" ? <QueuePanel onClose={() => setPanel(null)} /> : <LyricsPanel onClose={() => setPanel(null)} />}
-                    </Suspense>
+                    <div className="h-full" style={{ viewTransitionName: "side-panel" }}>
+                      <Suspense>
+                        {panel === "queue" ? <QueuePanel onClose={() => setPanel(null)} /> : <LyricsPanel onClose={() => setPanel(null)} />}
+                      </Suspense>
+                    </div>
                   }
                 />
               </Suspense>

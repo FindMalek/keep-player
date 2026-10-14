@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { ExternalLinkIcon } from "lucide-react";
-import { Fragment, type ReactNode } from "react";
+import { Fragment, type ReactNode, useState } from "react";
 import { ArtistCard } from "@/components/artist-card";
 import { Cover } from "@/components/cover";
 import { KeepOffline } from "@/components/keep-offline";
@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { cachedSummary } from "@/lib/cached";
 import { length, plural, quality } from "@/lib/format";
 import type { LikeKind } from "@/lib/likes";
+import { consumeMorph } from "@/lib/motion";
 import { player } from "@/lib/player";
 import { queries, queryClient } from "@/lib/queries";
 import type { Album, Artist, Playlist, Song } from "@/lib/types";
@@ -28,6 +29,7 @@ function Hero({
   onQueue,
   extra,
   like,
+  morph = false,
 }: {
   cover?: string;
   kind: ReactNode;
@@ -40,10 +42,14 @@ function Hero({
   extra?: ReactNode;
   /** A heart for albums and artists. */
   like?: { kind: LikeKind; id: string };
+  /** Take over the clicked card's cover in the page transition. */
+  morph?: boolean;
 }) {
   return (
     <header className="flex items-end gap-5 border-b px-5 pt-[18px] pb-4">
-      <Cover id={cover} size={160} className="w-[152px] shrink-0" priority />
+      <div className="shrink-0" style={morph ? { viewTransitionName: "album-cover" } : undefined}>
+        <Cover id={cover} size={160} className="w-[152px]" priority />
+      </div>
       <div className="flex min-w-0 flex-col gap-1.5">
         <div className="self-start">{kind}</div>
         <h1 className="font-medium text-[26px] leading-[1.1] tracking-tight [overflow-wrap:anywhere]">{title}</h1>
@@ -87,6 +93,7 @@ const Bio = ({ children }: { children: ReactNode }) => (
 );
 
 export function AlbumPage({ id }: { id: string }) {
+  const [morph] = useState(() => consumeMorph(id));
   const {
     data: album,
     error,
@@ -119,6 +126,7 @@ export function AlbumPage({ id }: { id: string }) {
         onQueue={() => player.addToQueue(songs)}
         extra={<KeepOffline group={`album:${album.id}`} songs={songs} />}
         like={{ kind: "album", id: album.id }}
+        morph={morph}
       >
         {album.artistId && (
           <ArtistCard id={album.artistId} name={album.artist}>

@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { clock } from "@/lib/format";
 import { closeListFilter, songMatches, useListFilter } from "@/lib/list-filter";
 import { focusWhenRendered, type ListCommand, rememberedFocus, rememberFocus, useListNav } from "@/lib/list-nav";
+import { setMorph } from "@/lib/motion";
 import { useCachedIds } from "@/lib/offline";
 import { currentSong, player, type QueueSource, usePlayer } from "@/lib/player";
 import { queries, queryClient } from "@/lib/queries";
@@ -77,7 +78,16 @@ export async function playAlbum(id: string, shuffle = false): Promise<void> {
 const AlbumCard = memo(function AlbumCard({ album, priority = false }: { album: Album; priority?: boolean }) {
   return (
     <div className="group/album relative">
-      <Link href={`/album/${album.id}`} className="flex flex-col gap-px">
+      <Link
+        href={`/album/${album.id}`}
+        className="flex flex-col gap-px"
+        onClick={(event) => {
+          // Only the clicked card gets the name: an album can be on the page twice (home rows).
+          const cover = event.currentTarget.firstElementChild as HTMLElement | null;
+          if (cover) cover.style.viewTransitionName = "album-cover";
+          setMorph(album.id);
+        }}
+      >
         <Cover id={album.coverArt} size={180} className="mb-1.5 group-hover/album:[&_img]:opacity-85" priority={priority} />
         <Truncated text={album.name} className="text-[12.5px]" />
         <span className="truncate text-[11.5px] text-muted-foreground">

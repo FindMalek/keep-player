@@ -1,4 +1,5 @@
 import { HeartIcon } from "lucide-react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { type LikeKind, toggleLiked, useLiked } from "@/lib/likes";
 import { cn } from "@/lib/utils";
@@ -18,6 +19,8 @@ export function LikeButton({
   className?: string;
 }) {
   const liked = useLiked(id);
+  // A small pop when you like something (not when it loads liked).
+  const [popping, setPopping] = useState(false);
   return (
     <Button
       variant="ghost"
@@ -25,14 +28,17 @@ export function LikeButton({
       aria-label={liked ? `unlike ${label}` : `like ${label}`}
       aria-pressed={liked}
       className={cn(
+        popping && "animate-like",
         quiet && !liked && "opacity-0 focus-visible:opacity-100 group-focus-within/row:opacity-100 group-hover/row:opacity-100",
         className,
       )}
       onClick={(event) => {
         event.stopPropagation();
+        setPopping(!liked);
         void toggleLiked(kind, id, label);
       }}
       onDoubleClick={(event) => event.stopPropagation()}
+      onAnimationEnd={() => setPopping(false)}
     >
       <HeartIcon className={cn(liked && "fill-current")} />
     </Button>
