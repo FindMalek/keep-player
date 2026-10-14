@@ -24,7 +24,6 @@ import {
   VolumeControlSlider,
 } from "@/components/ui/volume-control";
 import type { VolumeControlProps } from "@/components/ui/volume-control";
-import { useAudioPlayer } from "@/hooks/use-audio-player";
 import type {
   AudioPlayerController,
   UseAudioPlayerOptions,
@@ -80,17 +79,6 @@ export interface AudioPlayerProps
   /** Keyboard shortcuts while focus is inside. Default true. */
   shortcuts?: boolean;
 }
-
-const InternalPlayer = ({
-  options,
-  children,
-}: {
-  options: UseAudioPlayerOptions;
-  children: (player: AudioPlayerController) => ReactNode;
-}) => {
-  const player = useAudioPlayer(options);
-  return <>{children(player)}</>;
-};
 
 const isEditable = (target: EventTarget | null) =>
   target instanceof HTMLElement &&
@@ -207,49 +195,15 @@ const PlayerRoot = ({
   );
 };
 
+// Local edit: always driven by an external `player` (keep-player's engine); the internal <audio> fallback
+// (useAudioPlayer) is dropped so it stays off the first screen.
 export const AudioPlayer = ({
   player,
-  src,
-  autoPlay,
-  loop,
-  volume,
-  muted,
-  playbackRate,
-  preload,
-  crossOrigin,
-  onPlay,
-  onPause,
-  onEnded,
-  onError,
   shortcuts = true,
   ...props
-}: AudioPlayerProps) => {
-  if (player) {
-    return <PlayerRoot player={player} shortcuts={shortcuts} {...props} />;
-  }
-  return (
-    <InternalPlayer
-      options={{
-        autoPlay,
-        crossOrigin,
-        loop,
-        muted,
-        onEnded,
-        onError,
-        onPause,
-        onPlay,
-        playbackRate,
-        preload,
-        src,
-        volume,
-      }}
-    >
-      {(internal) => (
-        <PlayerRoot player={internal} shortcuts={shortcuts} {...props} />
-      )}
-    </InternalPlayer>
-  );
-};
+}: AudioPlayerProps & { player: AudioPlayerController }) => (
+  <PlayerRoot player={player} shortcuts={shortcuts} {...props} />
+);
 
 export const AudioPlayerArtwork = ({
   className,

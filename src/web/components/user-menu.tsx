@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
@@ -22,7 +23,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { SidebarMenuButton } from "@/components/ui/sidebar";
-import { queries } from "@/lib/queries";
+import { apiQueries } from "@/lib/api-queries";
+import { setSetting, useSetting } from "@/lib/settings";
 import { logout, useUser } from "@/lib/subsonic";
 import { setTheme, type Theme, useTheme } from "@/lib/theme";
 
@@ -48,8 +50,9 @@ export function UserMenu({
   onShortcuts: () => void;
 }) {
   const theme = useTheme();
+  const ratings = useSetting("ratings");
   const user = useUser() ?? "";
-  const admin = useQuery(queries.session()).data?.admin;
+  const admin = useQuery(apiQueries.session()).data?.admin;
   return (
     <DropdownMenu defaultOpen={defaultOpen}>
       <DropdownMenuTrigger render={<SidebarMenuButton size="sm" className="font-mono" tooltip={user} />}>
@@ -70,6 +73,10 @@ export function UserMenu({
             ))}
           </DropdownMenuRadioGroup>
         </DropdownMenuGroup>
+        <DropdownMenuSeparator />
+        <DropdownMenuCheckboxItem checked={ratings} onCheckedChange={(checked) => setSetting("ratings", checked === true)}>
+          show ratings
+        </DropdownMenuCheckboxItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={onShortcuts}>
           <KeyboardIcon />

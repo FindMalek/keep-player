@@ -20,6 +20,7 @@ const SHORTCUTS = appShortcuts({
   openCheatSheet: noop,
   toggleFullScreen: noop,
   findInList: () => true,
+  likeCurrent: noop,
 });
 
 /** "shift+arrowright" → "Shift+ArrowRight", "mod+k" → "ControlOrMeta+k", chords → one press per step. */
@@ -169,6 +170,15 @@ const CHECKS: Record<string, Check> = {
     await press();
     await expect(page.getByRole("dialog", { name: "search" })).toBeVisible();
   },
+  like: async (page, press, titles) => {
+    await page.getByRole("button", { name: "play", exact: true }).first().click();
+    const bar = page.getByRole("contentinfo");
+    await expect(bar.getByRole("button", { name: `like ${titles[0]}`, exact: true })).toBeVisible();
+    await press();
+    await expect(bar.getByRole("button", { name: `unlike ${titles[0]}`, exact: true })).toBeVisible();
+    await press();
+    await expect(bar.getByRole("button", { name: `like ${titles[0]}`, exact: true })).toBeVisible();
+  },
   "find-in-list": async (page, press, titles) => {
     await press();
     const filter = page.getByRole("textbox", { name: "filter this list" });
@@ -213,6 +223,10 @@ const CHECKS: Record<string, Check> = {
   "go-genres": async (page, press) => {
     await press();
     await expect(page).toHaveURL(/\/genres$/);
+  },
+  "go-liked": async (page, press) => {
+    await press();
+    await expect(page).toHaveURL(/\/liked$/);
   },
   "go-folders": async (page, press) => {
     await press();

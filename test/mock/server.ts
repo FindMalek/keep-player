@@ -14,6 +14,7 @@ const library = createLibrary(Number(process.env.MOCK_TRACKS ?? 10_000));
 const albumsById = new Map(library.albums.map((album) => [album.id, album]));
 const songsById = new Map(library.songs.map((song) => [song.id, song]));
 const starred = new Map<string, string>();
+const ratings = new Map<string, number>();
 let playQueue: { entry: Song[]; current?: string; position?: number; changed?: string; changedBy?: string } | null = null;
 
 type Params = URLSearchParams;
@@ -39,7 +40,8 @@ function authorized(params: Params): boolean {
 
 function withStar<T extends { id: string }>(item: T): T {
   const time = starred.get(item.id);
-  return time ? { ...item, starred: time } : item;
+  const rating = ratings.get(item.id);
+  return { ...item, ...(time ? { starred: time } : {}), ...(rating ? { userRating: rating } : {}) };
 }
 
 function summary(album: Album): Album {
@@ -295,8 +297,15 @@ function handle(endpoint: string, params: Params, request: Request): Response {
         starred2: {
           song: library.songs.filter((song) => starred.has(song.id)).map(withStar),
           album: library.albums.filter((album) => starred.has(album.id)).map(summary),
+          artist: library.artists.filter((artist) => starred.has(artist.id)).map(({ album: _albums, ...artist }) => withStar(artist)),
         },
       });
+    case "setRating": {
+      const rating = Number(params.get("rating"));
+      if (rating) ratings.set(id, rating);
+      else ratings.delete(id);
+      return ok();
+    }
     case "star":
     case "unstar":
       for (const key of ["id", "albumId", "artistId"])

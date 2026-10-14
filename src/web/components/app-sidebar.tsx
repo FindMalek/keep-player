@@ -3,6 +3,7 @@ import {
   ChevronRightIcon,
   Disc3Icon,
   FolderIcon,
+  HeartIcon,
   HouseIcon,
   ListMusicIcon,
   MonitorIcon,
@@ -46,6 +47,7 @@ const LIBRARY = [
   ["/albums", "albums", Disc3Icon],
   ["/artists", "artists", UsersIcon],
   ["/songs", "songs", MusicIcon],
+  ["/liked", "liked songs", HeartIcon],
   ["/genres", "genres", TagIcon],
   ["/folders", "folders", FolderIcon],
 ] as const;

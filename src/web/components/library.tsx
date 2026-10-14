@@ -11,15 +11,18 @@ import { useCachedIds } from "@/lib/offline";
 import { currentSong, player, type QueueSource, usePlayer } from "@/lib/player";
 import { queries, queryClient } from "@/lib/queries";
 import { go, navigationType } from "@/lib/router";
+import { useSetting } from "@/lib/settings";
 import { api } from "@/lib/subsonic";
 import type { Album, Song } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { usePageVirtualizer, VIRTUALIZE_FROM } from "@/lib/virtual";
 import { Cover } from "./cover";
 import { Equalizer } from "./equalizer";
+import { LikeButton } from "./like-button";
 import { Link } from "./link";
 import { ListFilterBar } from "./list-filter-bar";
 import { OfflineMark } from "./offline-mark";
+import { Rating } from "./rating";
 import { SelectionBar } from "./selection-bar";
 import { VirtualGrid } from "./virtual-grid";
 
@@ -164,6 +167,8 @@ interface TrackRowProps {
   onPlay: (index: number) => void;
   /** Saved in the offline cache. */
   offline: boolean;
+  /** Show the 1–5 rating column (a setting). */
+  ratings: boolean;
   selected: boolean;
   /** ⌘/ctrl-click toggles the row, ⇧-click extends the selection to it. */
   onSelectClick: (index: number, extend: boolean) => void;
@@ -181,6 +186,7 @@ const TrackRow = memo(function TrackRow({
   showArtist,
   onPlay,
   offline,
+  ratings,
   selected,
   onSelectClick,
   measure,
@@ -233,6 +239,14 @@ const TrackRow = memo(function TrackRow({
           )}
         </TableCell>
       )}
+      {ratings && (
+        <TableCell className="py-0">
+          <Rating id={song.id} value={song.userRating} label={song.title} />
+        </TableCell>
+      )}
+      <TableCell className="w-8 py-0">
+        <LikeButton kind="song" id={song.id} label={song.title} quiet />
+      </TableCell>
       <TableCell className="py-0 text-right font-mono text-muted-foreground tabular-nums">
         {offline && <OfflineMark />}
         {clock(song.duration)}
@@ -292,6 +306,7 @@ function TrackRows({
   const playingId = usePlayer((state) => currentSong(state)?.id);
   const playing = usePlayer((state) => state.playing);
   const cached = useCachedIds();
+  const ratings = useSetting("ratings");
   const onPlay = useCallback(
     (index: number) => {
       const song = songs[index];
@@ -428,7 +443,7 @@ function TrackRows({
     : items.map((item) => ({ item, virtualIndex: undefined }));
   const top = virtual ? (windowItems[0]?.start ?? 0) - virtualizer.options.scrollMargin : 0;
   const bottom = virtual ? virtualizer.getTotalSize() - ((windowItems.at(-1)?.end ?? 0) - virtualizer.options.scrollMargin) : 0;
-  const columns = showAlbum ? 5 : 4;
+  const columns = (showAlbum ? 6 : 5) + (ratings ? 1 : 0);
 
   return (
     <div ref={listRef} {...listNav}>
@@ -454,6 +469,8 @@ function TrackRows({
           <col className="w-10" />
           <col />
           {showAlbum && <col className="w-[38%] max-lg:hidden" />}
+          {ratings && <col className="w-20" />}
+          <col className="w-8" />
           <col className="w-14" />
           <col className="w-16" />
         </colgroup>
@@ -462,6 +479,10 @@ function TrackRows({
             <TableHead className={cn(LABEL, "h-6")}>#</TableHead>
             <TableHead className={cn(LABEL, "h-6")}>title</TableHead>
             {showAlbum && <TableHead className={cn(LABEL, "h-6 max-lg:hidden")}>album</TableHead>}
+            {ratings && <TableHead className={cn(LABEL, "h-6")}>rating</TableHead>}
+            <TableHead className="h-6 w-8">
+              <span className="sr-only">liked</span>
+            </TableHead>
             <TableHead className={cn(LABEL, "h-6 text-right")}>time</TableHead>
             <TableHead className="h-6">
               <span className="sr-only">actions</span>
@@ -494,6 +515,7 @@ function TrackRows({
                 showArtist={showArtist}
                 onPlay={onPlay}
                 offline={cached.has(item.song.id)}
+                ratings={ratings}
                 selected={selected.has(item.index)}
                 onSelectClick={onSelectClick}
                 measure={virtual ? virtualizer.measureElement : undefined}

@@ -48,8 +48,8 @@ test("track rows don't re-render while a song plays", async ({ page, signedIn })
   await page.addInitScript(countRowRenders);
   await page.addInitScript(fakeMediaClock);
   await signedIn.goto("/songs");
-  // Like a person would: double-click the first song (its play button only shows on hover).
-  await page.locator("[aria-label=tracks] tbody tr").first().dblclick();
+  // Like a person would: double-click the first song's title (its play button only shows on hover).
+  await page.locator("[aria-label=tracks] tbody tr").first().locator("td").nth(1).dblclick();
   const elapsed = page.locator("[data-slot=audio-player-time][data-type=current]");
   await expect(elapsed).toHaveText("0:01", { timeout: 10_000 });
   // Precache downloads mark rows as saved for offline; let that settle, it isn't playback.
