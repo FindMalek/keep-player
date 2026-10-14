@@ -16,6 +16,7 @@ const COOKIE = "kp_session";
 const FOLDERS_TTL_MS = 10 * 60_000;
 /** Requests that change or read data must carry this header. Cross-site pages can't set it without a CORS preflight. */
 export const CSRF_HEADER = "x-keep-player";
+const CLIENT_HEADER = "x-keep-client";
 
 /** Subsonic endpoints the app uses. Anything else is refused, so the proxy can't be used as a general API gateway. */
 const ENDPOINTS = new Set([
@@ -48,6 +49,8 @@ const ENDPOINTS = new Set([
   "getNowPlaying",
   "getPlayQueue",
   "savePlayQueue",
+  "getPlayQueueByIndex",
+  "savePlayQueueByIndex",
   "getPlaylists",
   "getPlaylist",
   "createPlaylist",
@@ -226,8 +229,15 @@ export function createApi({ upstreams, covers, lyrics, indexes, library, session
     if (!upstream) return json({ error: "server removed from config" }, 401);
 
     const query = new URLSearchParams(url.search);
+    // Long lists (a 1,000-song play queue) come as a form body: same params, no URL length limit on either hop.
+    const form = request.method === "POST" ? new URLSearchParams(await request.text()) : null;
+    if (form) for (const [name, value] of form) query.append(name, value);
     for (const name of STRIPPED) query.delete(name);
     for (const [name, value] of upstreamQuery(session)) query.set(name, value);
+    // Each browser is its own Subsonic client ("keep-player@<id>"), so a play queue saved here is told apart from one
+    // saved by Arpeggi or another browser (`changedBy`).
+    const client = request.headers.get(CLIENT_HEADER);
+    if (client && /^[a-z0-9-]{1,32}$/.test(client)) query.set("c", `keep-player@${client}`);
 
     const headers = new Headers();
     for (const name of ["range", "if-none-match", "if-modified-since"]) {
@@ -235,7 +245,15 @@ export function createApi({ upstreams, covers, lyrics, indexes, library, session
       if (value) headers.set(name, value);
     }
     const started = performance.now();
-    const response = await fetch(`${upstream.url}/rest/${endpoint}?${query}`, { headers, redirect: "manual" }).catch(() => null);
+    const response = await (form
+      ? fetch(`${upstream.url}/rest/${endpoint}`, {
+          method: "POST",
+          headers: { ...Object.fromEntries(headers), "content-type": "application/x-www-form-urlencoded" },
+          body: query,
+          redirect: "manual",
+        })
+      : fetch(`${upstream.url}/rest/${endpoint}?${query}`, { headers, redirect: "manual" })
+    ).catch(() => null);
     if (!response) return json({ error: "server unreachable" }, 502);
     const out = new Headers(SECURITY_HEADERS);
     for (const name of ["content-type", "content-length", "content-range", "accept-ranges", "etag", "last-modified", "cache-control"]) {

@@ -180,7 +180,12 @@ function handle(endpoint: string, params: Params, request: Request): Response {
     case "getLicense":
       return ok({ license: { valid: true } });
     case "getOpenSubsonicExtensions":
-      return ok({ openSubsonicExtensions: [{ name: "songLyrics", versions: [1] }] });
+      return ok({
+        openSubsonicExtensions: [
+          { name: "songLyrics", versions: [1] },
+          { name: "indexBasedQueue", versions: [1] },
+        ],
+      });
     case "getAlbumList2":
       return ok({ albumList2: { album: page(albumList(params), params).map(summary) } });
     case "getAlbum": {
@@ -325,6 +330,31 @@ function handle(endpoint: string, params: Params, request: Request): Response {
       return ok();
     case "getPlayQueue":
       return ok(playQueue ? { playQueue } : {});
+    case "savePlayQueueByIndex": {
+      const entry = params.getAll("id").flatMap((songId) => songsById.get(songId) ?? []);
+      const index = Number(params.get("currentIndex") ?? 0);
+      playQueue = {
+        entry,
+        current: entry[index]?.id,
+        position: Number(params.get("position") ?? 0),
+        changed: new Date().toISOString(),
+        changedBy: params.get("c") ?? "",
+      };
+      return ok();
+    }
+    case "getPlayQueueByIndex": {
+      if (!playQueue) return ok({});
+      const { current, ...rest } = playQueue;
+      return ok({
+        playQueueByIndex: {
+          ...rest,
+          currentIndex: Math.max(
+            0,
+            rest.entry.findIndex((song) => song.id === current),
+          ),
+        },
+      });
+    }
     case "getNowPlaying":
       return ok({ nowPlaying: {} });
     case "getCoverArt":

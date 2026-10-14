@@ -11,10 +11,25 @@ export interface Settings {
   reduceMotion: boolean;
   /** Open the mini player by itself when you leave the tab while music plays (Chromium). */
   miniPlayerWhenHidden: boolean;
+  /** Save the queue to the server and offer queues from Arpeggi or other browsers. */
+  queueSync: boolean;
+  /** Take a newer queue from another device without asking (never while this one plays). */
+  followOtherDevices: boolean;
 }
 
 const KEY = "keep-player:settings";
-const DEFAULTS: Settings = { ratings: false, reduceMotion: false, miniPlayerWhenHidden: false };
+const DEFAULTS: Settings = {
+  ratings: false,
+  reduceMotion: false,
+  miniPlayerWhenHidden: false,
+  queueSync: true,
+  followOtherDevices: false,
+};
+
+/** Read outside React (the queue sync). */
+export function getSetting<K extends keyof Settings>(key: K): Settings[K] {
+  return settings[key];
+}
 
 function read(): Settings {
   try {

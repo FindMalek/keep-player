@@ -168,7 +168,11 @@ export function App() {
   );
 
   useEffect(() => {
-    if (user) void loadLikes();
+    if (!user) return;
+    void loadLikes();
+    // The queue hand-off (Arpeggi, other browsers) waits until the first screen is done.
+    const id = setTimeout(() => void import("@/lib/queue-sync").then((sync) => sync.startQueueSync()), 1500);
+    return () => clearTimeout(id);
   }, [user]);
 
   useEffect(() => {

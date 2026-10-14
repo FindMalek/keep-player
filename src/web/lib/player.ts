@@ -616,6 +616,16 @@ export const player = {
   move(entry: Q.Entry, delta: -1 | 1): void {
     edit(Q.move(state.queue, entry, delta));
   },
+  /** Take over a queue from another device, paused at `seconds` in its current song (the queue hand-off). */
+  adopt(songs: Song[], index: number, seconds: number): void {
+    if (!songs.length) return;
+    setQueue(Q.playContext(Q.clearUpNext(state.queue), songs, index, { source: { kind: "handoff", name: "your other device" } }));
+    load(false, seconds);
+  },
+  /** Notified on every state change (the queue sync listens). */
+  subscribe(listener: () => void): () => void {
+    return subscribe(listener);
+  },
   remove(entry: Q.Entry): void {
     removed(Q.remove(state.queue, entry), `removed ${entry.song.title} from the queue`);
   },
