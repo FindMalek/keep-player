@@ -61,12 +61,13 @@ export function closestByDuration(records: LrclibRecord[], seconds: number): Lrc
 }
 
 function fromLrclib(record: LrclibRecord): Lyrics {
+  const lrclibId = record.id;
   if (record.syncedLyrics) {
     const { lines, offset } = parseLrc(record.syncedLyrics);
-    if (lines.length) return { status: "synced", lines, offset, source: "lrclib" };
+    if (lines.length) return { status: "synced", lines, offset, source: "lrclib", lrclibId };
   }
-  if (record.plainLyrics) return { status: "plain", lines: parsePlain(record.plainLyrics), offset: 0, source: "lrclib" };
-  if (record.instrumental) return { status: "instrumental", lines: [], offset: 0, source: "lrclib" };
+  if (record.plainLyrics) return { status: "plain", lines: parsePlain(record.plainLyrics), offset: 0, source: "lrclib", lrclibId };
+  if (record.instrumental) return { status: "instrumental", lines: [], offset: 0, source: "lrclib", lrclibId };
   return MISSING;
 }
 
@@ -77,20 +78,47 @@ interface StructuredLyrics {
   line: { start?: number; value: string }[];
 }
 
-/** Navidrome's own lyrics (embedded or .lrc next to the file): synced first. */
-function fromNavidrome(list: StructuredLyrics[]): Lyrics | null {
+/** For each main line, the text of the other-language line closest in time (or at the same position, for plain). */
+function align(main: { start: number }[], other: StructuredLyrics): string[] {
+  if (!other.synced) return main.map((_, index) => other.line[index]?.value ?? "");
+  return main.map((line) => {
+    let best = "";
+    let gap = Number.POSITIVE_INFINITY;
+    for (const candidate of other.line) {
+      const distance = Math.abs((candidate.start ?? 0) - line.start);
+      if (distance < gap) {
+        gap = distance;
+        best = candidate.value;
+      }
+    }
+    return gap <= 1500 ? best : "";
+  });
+}
+
+/** Navidrome's own lyrics (embedded or .lrc next to the file): synced first; other languages become translations. */
+export function fromNavidrome(list: StructuredLyrics[]): Lyrics | null {
   const pick = list.find((lyrics) => lyrics.synced && lyrics.line.length) ?? list.find((lyrics) => lyrics.line.length);
   if (!pick) return null;
+  const others = list.filter((lyrics) => lyrics !== pick && lyrics.line.length && lyrics.lang && lyrics.lang !== pick.lang);
+  const withTranslations = (lyrics: Lyrics): Lyrics =>
+    others.length
+      ? { ...lyrics, translations: others.map((other) => ({ lang: other.lang as string, lines: align(lyrics.lines, other) })) }
+      : lyrics;
   if (!pick.synced)
-    return { status: "plain", lines: pick.line.map((line) => ({ start: 0, end: 0, text: line.value })), offset: 0, source: "navidrome" };
+    return withTranslations({
+      status: "plain",
+      lines: pick.line.map((line) => ({ start: 0, end: 0, text: line.value })),
+      offset: 0,
+      source: "navidrome",
+    });
   const offset = pick.offset ?? 0;
   const lines = pick.line.map((line) => ({ start: Math.max(0, (line.start ?? 0) - offset), text: line.value }));
-  return {
+  return withTranslations({
     status: "synced",
     offset,
     source: "navidrome",
     lines: lines.map((line, index) => ({ ...line, end: lines[index + 1]?.start ?? line.start + 5000 })),
-  };
+  });
 }
 
 export class LyricsService {
@@ -101,13 +129,13 @@ export class LyricsService {
   ) {}
 
   /** Song ids are only unique per server, so the cache key carries the upstream. */
-  cached(upstreamId: string, songId: string): (Lyrics & { lrclibId: number | null; fetched: number }) | null {
+  cached(upstreamId: string, songId: string): (Lyrics & { fetched: number }) | null {
     const row = this.db
       .query<{ body: string; lrclib_id: number | null; fetched: number }, [string]>(
         "select body, lrclib_id, fetched from lyrics where song_id = ?",
       )
       .get(`${upstreamId}:${songId}`);
-    return row ? { ...(JSON.parse(row.body) as Lyrics), lrclibId: row.lrclib_id, fetched: row.fetched } : null;
+    return row ? { ...(JSON.parse(row.body) as Lyrics), fetched: row.fetched } : null;
   }
 
   private store(upstreamId: string, songId: string, lyrics: Lyrics, lrclibId: number | null): void {
@@ -120,7 +148,7 @@ export class LyricsService {
   async get(upstream: Upstream, credentials: Credentials, songId: string): Promise<Lyrics> {
     const cached = this.cached(upstream.id, songId);
     if (cached && (cached.status !== "missing" || this.now() - cached.fetched < RETRY_MISSING_MS)) {
-      const { lrclibId: _id, fetched: _at, ...lyrics } = cached;
+      const { fetched: _at, ...lyrics } = cached;
       return lyrics;
     }
     const own = await subsonic<{ lyricsList?: { structuredLyrics?: StructuredLyrics[] } }>(upstream, credentials, "getLyricsBySongId", {

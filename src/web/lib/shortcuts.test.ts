@@ -17,6 +17,7 @@ test("the default map has no two actions on the same key in a scope", () => {
     openSearch: noop,
     toggleSearch: noop,
     openCheatSheet: noop,
+    toggleFullScreen: noop,
   });
   expect(findConflicts(shortcuts)).toEqual([]);
   expect(findConflicts([...shortcuts, { id: "clash", keys: ["Shift+S"], scope: "global" }])).toEqual([["shift+s", "stop-after", "clash"]]);

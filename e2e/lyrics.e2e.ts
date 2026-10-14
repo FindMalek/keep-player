@@ -1,4 +1,4 @@
-import { expect, test } from "./fixtures";
+import { expect, fakeMediaClock, test } from "./fixtures";
 
 test("lyrics come from Navidrome, fall back to LRCLIB, and say when there are none", async ({ page, signedIn }) => {
   const lyricsOf = (id: string) =>
@@ -19,6 +19,43 @@ test("the lyrics panel shows LRCLIB lyrics for a song Navidrome has none for", a
   for (let i = 0; i < 4; i += 1) await page.keyboard.press("n");
   await page.keyboard.press("y");
   const panel = page.getByRole("complementary", { name: "lyrics" });
-  await expect(panel.getByText("synced · lrclib")).toBeVisible();
   await expect(panel.getByRole("button", { name: /from lrclib 1$/ })).toBeVisible();
+  await expect(panel.getByRole("link", { name: "off-sync? report on lrclib" })).toHaveAttribute("href", "https://lrclib.net/tracks/4");
 });
+
+test("synced lyrics follow the song, a click seeks, and ] nudges the timing for good", async ({ page, signedIn }) => {
+  await page.addInitScript(fakeMediaClock);
+  // so-2 is album al-0's third track and has synced lyrics in Navidrome (a line every 5 s).
+  await signedIn.goto("/album/al-0");
+  await page.getByRole("button", { name: "play", exact: true }).first().click();
+  await page.keyboard.press("n");
+  await page.keyboard.press("n");
+  await page.keyboard.press("y");
+  const panel = page.getByRole("complementary", { name: "lyrics" });
+  const third = panel.getByRole("button", { name: /line 3$/ });
+  await third.click();
+  await expect
+    .poll(async () => seconds(await page.locator("[data-slot=audio-player-time][data-type=current]").textContent()))
+    .toBeGreaterThanOrEqual(10);
+  await expect(third).toHaveClass(/text-foreground/);
+
+  await page.locator("body").press("]");
+  await expect(panel.getByText("+0.25 s")).toBeVisible();
+  await page.waitForTimeout(900);
+  await page.reload();
+  await page.keyboard.press("y");
+  await expect(page.getByRole("complementary", { name: "lyrics" }).getByText("+0.25 s")).toBeVisible();
+});
+
+test("a song with no lyrics anywhere offers an LRCLIB search", async ({ page, signedIn }) => {
+  await signedIn.goto("/album/al-0");
+  await page.getByRole("button", { name: "play", exact: true }).first().click();
+  // so-1 has none in Navidrome and isn't on the fake LRCLIB.
+  await page.keyboard.press("n");
+  await page.keyboard.press("y");
+  const panel = page.getByRole("complementary", { name: "lyrics" });
+  await expect(panel.getByText("no lyrics for this song")).toBeVisible();
+  await expect(panel.getByRole("link", { name: "search lrclib" })).toBeVisible();
+});
+
+const seconds = (text: string | null) => (text ?? "0:00").split(":").reduce((total, part) => total * 60 + Number(part), 0);

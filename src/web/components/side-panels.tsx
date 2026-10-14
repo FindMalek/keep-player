@@ -1,4 +1,3 @@
-import { useQuery } from "@tanstack/react-query";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { ListPlusIcon, XIcon } from "lucide-react";
 import { type FormEvent, memo, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
@@ -8,13 +7,14 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { clock } from "@/lib/format";
 import { focusWhenRendered, type ListCommand, useListNav } from "@/lib/list-nav";
-import { currentSong, type Entry, player, usePlayer, usePosition } from "@/lib/player";
+import { currentSong, type Entry, player, usePlayer } from "@/lib/player";
 import { queries, queryClient } from "@/lib/queries";
 import { contextUpcoming, type Queue } from "@/lib/queue";
 import { cn } from "@/lib/utils";
 import { Cover } from "./cover";
 import { Hint } from "./hint";
 import { EmptyState } from "./library";
+import { LyricsView } from "./lyrics-view";
 
 function PanelFrame({
   title,
@@ -273,73 +273,11 @@ export function QueuePanel({ onClose }: { onClose: () => void }) {
   );
 }
 
-/** Index of the line playing at `ms` (the last one that has started), by binary search. */
-export function activeLine(lines: { start: number }[], ms: number): number {
-  let low = 0;
-  let high = lines.length - 1;
-  let found = -1;
-  while (low <= high) {
-    const middle = (low + high) >> 1;
-    if ((lines[middle]?.start ?? 0) <= ms) {
-      found = middle;
-      low = middle + 1;
-    } else high = middle - 1;
-  }
-  return found;
-}
-
 export function LyricsPanel({ onClose }: { onClose: () => void }) {
   const song = usePlayer(currentSong);
-  const { data: lyrics, isPending: loading } = useQuery({ ...queries.lyrics(song?.id ?? ""), enabled: Boolean(song) });
-  const synced = lyrics?.status === "synced" ? lyrics.lines : null;
-
-  // Re-renders only when the active line changes, not every frame.
-  const active = usePosition((seconds) => (synced ? activeLine(synced, seconds * 1000) : -1));
-  const activeRef = useRef<HTMLButtonElement>(null);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: scroll only when the active line changes
-  useEffect(() => {
-    activeRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
-  }, [active]);
-
-  const meta = lyrics && lyrics.status !== "missing" ? `${lyrics.status}${lyrics.source === "lrclib" ? " · lrclib" : ""}` : undefined;
   return (
-    <PanelFrame title="lyrics" meta={meta} onClose={onClose}>
-      {!song ? (
-        <EmptyState>nothing playing</EmptyState>
-      ) : loading ? (
-        <EmptyState>loading…</EmptyState>
-      ) : lyrics?.status === "instrumental" ? (
-        <EmptyState>instrumental</EmptyState>
-      ) : !lyrics?.lines.length ? (
-        <EmptyState>no lyrics for this track</EmptyState>
-      ) : synced ? (
-        <div className="flex flex-col gap-1.5 px-2 py-3 font-medium text-[17px] leading-[1.35] tracking-tight">
-          {synced.map((line, index) => (
-            <button
-              type="button"
-              // Lines repeat (choruses), so the index is the identity.
-              // biome-ignore lint/suspicious/noArrayIndexKey: see above
-              key={index}
-              ref={index === active ? activeRef : undefined}
-              className={cn(
-                "text-left text-faint transition-colors duration-200 hover:text-foreground",
-                index < active && "text-muted-foreground",
-                index === active && "text-foreground",
-              )}
-              onClick={() => player.seek(line.start / 1000)}
-            >
-              {line.text || " "}
-            </button>
-          ))}
-        </div>
-      ) : (
-        <div className="flex flex-col gap-1.5 px-2 py-3 font-medium text-[17px] leading-[1.35] tracking-tight">
-          {lyrics.lines.map((line, index) => (
-            // biome-ignore lint/suspicious/noArrayIndexKey: plain lyrics have no ids and repeat
-            <p key={index}>{line.text || " "}</p>
-          ))}
-        </div>
-      )}
+    <PanelFrame title="lyrics" onClose={onClose}>
+      {song ? <LyricsView key={song.id} song={song} size="panel" /> : <EmptyState>nothing playing</EmptyState>}
     </PanelFrame>
   );
 }

@@ -5,6 +5,10 @@ export interface Lyrics {
   /** From the file's `[offset:]` tag; added to every time already. */
   offset: number;
   source: "navidrome" | "lrclib" | null;
+  /** LRCLIB's record, for "report off-sync" (lrclib.net/tracks/:id). */
+  lrclibId?: number;
+  /** Other languages Navidrome has for the same song (translation / romanization), one text per line. */
+  translations?: { lang: string; lines: string[] }[];
 }
 
 export interface LyricLine {

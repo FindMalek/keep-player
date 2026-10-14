@@ -87,3 +87,27 @@ test("Navidrome first, then LRCLIB search by normalized title and closest length
   lrclibUp = true;
   expect(service.cached("default", "later")).toBeNull();
 });
+
+test("other languages from Navidrome come along as translations, aligned by time", async () => {
+  const { fromNavidrome } = await import("./lyrics");
+  const lyrics = fromNavidrome([
+    {
+      synced: true,
+      lang: "jpn",
+      line: [
+        { start: 1000, value: "こんにちは" },
+        { start: 5000, value: "さようなら" },
+      ],
+    },
+    {
+      synced: true,
+      lang: "eng",
+      line: [
+        { start: 1100, value: "hello" },
+        { start: 5050, value: "goodbye" },
+      ],
+    },
+  ]);
+  expect(lyrics?.lines.map((line) => line.text)).toEqual(["こんにちは", "さようなら"]);
+  expect(lyrics?.translations).toEqual([{ lang: "eng", lines: ["hello", "goodbye"] }]);
+});
