@@ -2,11 +2,11 @@ import { createHash, randomBytes } from "node:crypto";
 import type { Server } from "bun";
 import type { Upstream } from "./config";
 import { type CoverCache, snapCoverSize } from "./covers";
+import type { LyricsService } from "./lyrics";
 import type { LoginLimiter } from "./rate-limit";
-import type { Session, SessionStore } from "./sessions";
+import type { SessionStore } from "./sessions";
+import { subsonic, upstreamQuery } from "./subsonic";
 
-const CLIENT = "keep-player";
-const VERSION = "1.16.1";
 const COOKIE = "kp_session";
 /** Requests that change or read data must carry this header. Cross-site pages can't set it without a CORS preflight. */
 export const CSRF_HEADER = "x-keep-player";
@@ -95,20 +95,17 @@ function tokenFor(password: string): { token: string; salt: string } {
   };
 }
 
-function upstreamQuery(session: Pick<Session, "user" | "token" | "salt">): URLSearchParams {
-  return new URLSearchParams({ u: session.user, t: session.token, s: session.salt, v: VERSION, c: CLIENT });
-}
-
 export interface ApiOptions {
   upstreams: Upstream[];
   covers: CoverCache;
+  lyrics: LyricsService;
   sessions: SessionStore;
   limiter: LoginLimiter;
   idleSeconds: number;
   trustProxy: boolean;
 }
 
-export function createApi({ upstreams, covers, sessions, limiter, idleSeconds, trustProxy }: ApiOptions) {
+export function createApi({ upstreams, covers, lyrics, sessions, limiter, idleSeconds, trustProxy }: ApiOptions) {
   const upstreamFor = (id: string) => upstreams.find((upstream) => upstream.id === id);
 
   function clientIp(request: Request, server: Server<unknown>): string {
@@ -143,7 +140,16 @@ export function createApi({ upstreams, covers, sessions, limiter, idleSeconds, t
       return json({ error: "wrong username or password" }, 401);
     }
     limiter.succeed(keys);
-    const cookie = sessions.create({ server: upstream.id, user, token, salt, agent: request.headers.get("user-agent") ?? "" });
+    // Admins' sessions can run the background jobs (lyrics backfill, search index) when no service account is set.
+    const profile = await subsonic<{ user?: { adminRole?: boolean } }>(upstream, { user, token, salt }, "getUser", { username: user });
+    const cookie = sessions.create({
+      server: upstream.id,
+      user,
+      token,
+      salt,
+      agent: request.headers.get("user-agent") ?? "",
+      admin: Boolean(profile?.user?.adminRole),
+    });
     return json({ user, server: upstream.id }, 200, { "set-cookie": sessionCookie(request, cookie, idleSeconds) });
   }
 
@@ -239,5 +245,16 @@ export function createApi({ upstreams, covers, sessions, limiter, idleSeconds, t
     });
   }
 
-  return { login, logout, current, listSessions, revokeSession, proxy, cover };
+  /** `/api/lyrics/:songId`: one shape whatever the source (Navidrome, LRCLIB), cached server-side. */
+  async function songLyrics(request: Request & { params: { songId: string } }): Promise<Response> {
+    if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
+    const session = sessions.get(cookieValue(request));
+    if (!session) return json({ error: "signed out" }, 401);
+    const upstream = upstreamFor(session.server);
+    if (!upstream) return json({ error: "server removed from config" }, 401);
+    const result = await lyrics.get(upstream, session, request.params.songId);
+    return json(result, 200, { "cache-control": "private, no-cache" });
+  }
+
+  return { login, logout, current, listSessions, revokeSession, proxy, cover, songLyrics };
 }

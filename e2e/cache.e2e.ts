@@ -39,23 +39,26 @@ test("a reload paints the library from IndexedDB before the server answers", asy
 test("logging out deletes the persisted cache", async ({ page, signedIn }) => {
   await expect(signedIn.locator('a[href^="/album/"]').first()).toBeVisible();
   // Number of queries in the persisted cache (the persister may leave an empty snapshot behind).
+  // -1 while a navigation (logout reloads the page) is in the way; the poll just tries again.
   const cached = () =>
-    page.evaluate(
-      () =>
-        new Promise<number>((resolve) => {
-          // idb-keyval's default database and store.
-          const open = indexedDB.open("keyval-store");
-          open.onsuccess = () => {
-            const request = open.result.transaction("keyval").objectStore("keyval").get("keep-player:cache");
-            request.onsuccess = () =>
-              resolve(
-                request.result ? (JSON.parse(request.result) as { clientState: { queries: unknown[] } }).clientState.queries.length : 0,
-              );
-            request.onerror = () => resolve(0);
-          };
-          open.onerror = () => resolve(0);
-        }),
-    );
+    page
+      .evaluate(
+        () =>
+          new Promise<number>((resolve) => {
+            // idb-keyval's default database and store.
+            const open = indexedDB.open("keyval-store");
+            open.onsuccess = () => {
+              const request = open.result.transaction("keyval").objectStore("keyval").get("keep-player:cache");
+              request.onsuccess = () =>
+                resolve(
+                  request.result ? (JSON.parse(request.result) as { clientState: { queries: unknown[] } }).clientState.queries.length : 0,
+                );
+              request.onerror = () => resolve(0);
+            };
+            open.onerror = () => resolve(0);
+          }),
+      )
+      .catch(() => -1);
   await expect.poll(cached, { timeout: 5000 }).toBeGreaterThan(0);
   await page.getByRole("button", { name: /demo$/ }).click();
   await page.getByRole("menuitem", { name: "log out" }).click();

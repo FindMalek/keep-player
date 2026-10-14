@@ -16,3 +16,11 @@ test("a rotated secret invalidates existing sessions instead of failing", () => 
   const cookie = new SessionStore(path, "old", 60_000).create({ server: "default", user: "demo", token: "t", salt: "s", agent: "" });
   expect(new SessionStore(path, "new", 60_000).get(cookie)).toBeNull();
 });
+
+test("background jobs borrow only an admin's session", () => {
+  const store = new SessionStore(":memory:", "secret", 60_000);
+  store.create({ server: "default", user: "guest", token: "g", salt: "g", agent: "" });
+  expect(store.adminCredentials("default")).toBeNull();
+  store.create({ server: "default", user: "boss", token: "b", salt: "b", agent: "", admin: true });
+  expect(store.adminCredentials("default")).toMatchObject({ user: "boss", token: "b" });
+});

@@ -26,7 +26,13 @@ export default defineConfig({
       // The real artifact: the compiled executable with the bundled, minified, code-split app.
       command: "bun scripts/build.ts && ./dist/keep-player",
       url: `http://127.0.0.1:${APP}/healthz`,
-      env: { PORT: String(APP), NAVIDROME_URL: `http://127.0.0.1:${MOCK}`, DATA_DIR: "test-results/data" },
+      env: {
+        PORT: String(APP),
+        NAVIDROME_URL: `http://127.0.0.1:${MOCK}`,
+        DATA_DIR: "test-results/data",
+        LRCLIB_URL: `http://127.0.0.1:${MOCK}/lrclib`,
+        LYRICS_BACKFILL: "off",
+      },
       timeout: 120_000,
     },
   ],
