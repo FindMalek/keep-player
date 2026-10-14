@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import type { Server } from "bun";
 import type { Upstream } from "./config";
+import { type CoverCache, snapCoverSize } from "./covers";
 import type { LoginLimiter } from "./rate-limit";
 import type { Session, SessionStore } from "./sessions";
 
@@ -100,13 +101,14 @@ function upstreamQuery(session: Pick<Session, "user" | "token" | "salt">): URLSe
 
 export interface ApiOptions {
   upstreams: Upstream[];
+  covers: CoverCache;
   sessions: SessionStore;
   limiter: LoginLimiter;
   idleSeconds: number;
   trustProxy: boolean;
 }
 
-export function createApi({ upstreams, sessions, limiter, idleSeconds, trustProxy }: ApiOptions) {
+export function createApi({ upstreams, covers, sessions, limiter, idleSeconds, trustProxy }: ApiOptions) {
   const upstreamFor = (id: string) => upstreams.find((upstream) => upstream.id === id);
 
   function clientIp(request: Request, server: Server<unknown>): string {
@@ -204,5 +206,38 @@ export function createApi({ upstreams, sessions, limiter, idleSeconds, trustProx
     return new Response(response.body, { status: response.status, headers: out });
   }
 
-  return { login, logout, current, listSessions, revokeSession, proxy };
+  /**
+   * `/cover/:id/:size`: credential-free and size-snapped, so the URL is stable and the browser can keep it forever.
+   * Navidrome's cover ids change when the art does, which is what makes `immutable` safe.
+   */
+  async function cover(request: Request & { params: { id: string; size: string } }): Promise<Response> {
+    const session = sessions.get(cookieValue(request));
+    if (!session) return json({ error: "signed out" }, 401);
+    const upstream = upstreamFor(session.server);
+    if (!upstream) return json({ error: "server removed from config" }, 401);
+    const size = snapCoverSize(Number(request.params.size) || 256);
+    const started = performance.now();
+    const path = await covers.get(
+      `${upstream.id}:${request.params.id}`,
+      size,
+      (id, wanted) => {
+        const query = upstreamQuery(session);
+        query.set("id", id);
+        query.set("size", String(wanted));
+        return fetch(`${upstream.url}/rest/getCoverArt?${query}`, { signal: AbortSignal.timeout(15_000) }).catch(() => null);
+      },
+      request.params.id,
+    );
+    if (!path) return new Response(null, { status: 404, headers: { ...SECURITY_HEADERS, "cache-control": "private, max-age=3600" } });
+    return new Response(Bun.file(path), {
+      headers: {
+        ...SECURITY_HEADERS,
+        "content-type": "image/webp",
+        "cache-control": "private, max-age=31536000, immutable",
+        "server-timing": `cover;dur=${(performance.now() - started).toFixed(1)}`,
+      },
+    });
+  }
+
+  return { login, logout, current, listSessions, revokeSession, proxy, cover };
 }

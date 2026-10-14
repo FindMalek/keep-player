@@ -1,6 +1,7 @@
 import { join } from "node:path";
 import { createApi } from "./server/api";
 import { config } from "./server/config";
+import { CoverCache } from "./server/covers";
 import { font } from "./server/fonts";
 import { LoginLimiter } from "./server/rate-limit";
 import { SessionStore } from "./server/sessions";
@@ -12,7 +13,15 @@ const idleSeconds = config.sessionIdleDays * 86_400;
 const sessions = new SessionStore(join(config.dataDir, "sessions.db"), config.sessionSecret, idleSeconds * 1000);
 setInterval(() => sessions.purgeIdle(), 3_600_000).unref();
 
-const api = createApi({ upstreams: config.upstreams, sessions, limiter: new LoginLimiter(), idleSeconds, trustProxy: config.trustProxy });
+const covers = new CoverCache(join(config.dataDir, "covers"), config.coverCacheMb * 1024 * 1024);
+const api = createApi({
+  upstreams: config.upstreams,
+  covers,
+  sessions,
+  limiter: new LoginLimiter(),
+  idleSeconds,
+  trustProxy: config.trustProxy,
+});
 
 const server = Bun.serve({
   port: config.port,
@@ -27,6 +36,7 @@ const server = Bun.serve({
     "/auth/sessions": { GET: api.listSessions },
     "/auth/sessions/:id": { DELETE: api.revokeSession },
     "/rest/*": api.proxy,
+    "/cover/:id/:size": api.cover,
     "/fonts/:name": font,
     ...webRoutes,
   },

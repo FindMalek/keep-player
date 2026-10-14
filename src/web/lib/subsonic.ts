@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from "react";
+import { snapCoverSize } from "../../shared/cover-sizes";
 
 /*
  * The browser never holds credentials: the server keeps them in a session behind an httpOnly cookie and adds them to
@@ -141,9 +142,20 @@ export async function api<T>(endpoint: string, params: Record<string, string | n
   return body;
 }
 
-/** Credential-free, so the browser (and later the service worker) can cache covers and audio by URL. */
-export function coverUrl(id: string | undefined, size = 300): string | null {
-  return id ? `/rest/getCoverArt?${new URLSearchParams({ id, size: String(size) })}` : null;
+/** Credential-free and size-snapped, so the browser caches each cover forever (`immutable`). `size` is in pixels. */
+export function coverUrl(id: string | undefined, size = 256): string | null {
+  return id ? `/cover/${encodeURIComponent(id)}/${snapCoverSize(size)}` : null;
+}
+
+/** 1x and 2x sources for a cover drawn at `cssSize` CSS pixels. */
+export function coverSrcSet(id: string, cssSize: number): string {
+  return `${coverUrl(id, cssSize)} 1x, ${coverUrl(id, cssSize * 2)} 2x`;
+}
+
+/** Fetch a cover ahead of time (next tracks, hovered albums) so it's in the browser cache when it's drawn. */
+export function preloadCover(id: string | undefined, cssSize: number): void {
+  const url = coverUrl(id, cssSize * Math.min(window.devicePixelRatio || 1, 2));
+  if (url) new Image().src = url;
 }
 
 export function streamUrl(id: string): string {

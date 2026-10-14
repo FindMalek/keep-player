@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import type { Album, Song } from "../../src/web/lib/types";
 import { createLibrary } from "./library";
+import { greyPng } from "./png";
 
 /**
  * A small Subsonic/OpenSubsonic server over a seeded library, for e2e tests and perf budgets.
@@ -157,10 +158,9 @@ function stream(song: Song, request: Request): Response {
   });
 }
 
-function cover(id: string): Response {
+function cover(id: string, size: number): Response {
   const shade = 24 + ([...id].reduce((sum, char) => sum + char.charCodeAt(0), 0) % 40);
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><rect width="10" height="10" fill="rgb(${shade},${shade},${shade})"/></svg>`;
-  return new Response(svg, { headers: { "content-type": "image/svg+xml", "cache-control": "max-age=86400" } });
+  return new Response(greyPng(Math.min(Math.max(size || 300, 16), 512), shade), { headers: { "content-type": "image/png" } });
 }
 
 function handle(endpoint: string, params: Params, request: Request): Response {
@@ -278,7 +278,7 @@ function handle(endpoint: string, params: Params, request: Request): Response {
     case "getNowPlaying":
       return ok({ nowPlaying: {} });
     case "getCoverArt":
-      return cover(id);
+      return cover(id, Number(params.get("size") ?? 300));
     case "stream":
     case "download": {
       const song = songsById.get(id);

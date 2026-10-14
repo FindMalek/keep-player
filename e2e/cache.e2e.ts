@@ -1,7 +1,7 @@
 import type { Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
 
-/** From now on every API call takes 5 s, so anything that shows up sooner came from the cache. */
+/** From now on every API call takes 5 s, so anything that shows up well before that came from the cache. */
 async function slowApi(page: Page): Promise<void> {
   await page.route("**/rest/**", async (route) => {
     await new Promise((resolve) => setTimeout(resolve, 5000));
@@ -13,12 +13,13 @@ test("hovering an album prefetches it, and back to home needs no network", async
   await expect(signedIn.locator('a[href^="/album/"]').first()).toBeVisible();
   const link = page.locator('a[href^="/album/"]').first();
   await link.hover();
-  await page.waitForResponse((response) => response.url().includes("/rest/getAlbum?"));
+  // Wait for the whole prefetch (not just its headers) before the server slows down.
+  await (await page.waitForResponse((response) => response.url().includes("/rest/getAlbum?"))).finished();
   await slowApi(page);
   await link.click();
-  await expect(page.getByRole("table", { name: "tracks" })).toBeVisible({ timeout: 1000 });
+  await expect(page.getByRole("table", { name: "tracks" })).toBeVisible({ timeout: 2500 });
   await page.goBack();
-  await expect(page.locator('a[href^="/album/"]').first()).toBeVisible({ timeout: 1000 });
+  await expect(page.locator('a[href^="/album/"]').first()).toBeVisible({ timeout: 2500 });
 });
 
 test("a reload paints the library from IndexedDB before the server answers", async ({ page, signedIn }) => {
@@ -27,7 +28,7 @@ test("a reload paints the library from IndexedDB before the server answers", asy
   await page.waitForTimeout(1500);
   await slowApi(page);
   await page.reload();
-  await expect(page.locator('a[href^="/album/"]').first()).toBeVisible({ timeout: 1000 });
+  await expect(page.locator('a[href^="/album/"]').first()).toBeVisible({ timeout: 2500 });
 });
 
 test("logging out deletes the persisted cache", async ({ page, signedIn }) => {

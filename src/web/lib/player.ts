@@ -1,6 +1,6 @@
 import { useRef, useSyncExternalStore } from "react";
 import type { FrameSource } from "./audio/types";
-import { coverUrl, scrobble, streamUrl } from "./subsonic";
+import { coverUrl, preloadCover, scrobble, streamUrl } from "./subsonic";
 import type { Song } from "./types";
 
 export type Repeat = "off" | "all" | "one";
@@ -211,6 +211,8 @@ function load(index: number, autoplay: boolean, startAt = 0): void {
   if (startAt) element.addEventListener("loadedmetadata", () => (element.currentTime = startAt), { once: true });
   applyVolume();
   updateMediaSession();
+  // The player bar shows the next covers within minutes; have them cached by then.
+  for (const next of state.queue.slice(index + 1, index + 3)) preloadCover(next.coverArt, 42);
   persist();
   if (autoplay) {
     ensureGraph();
