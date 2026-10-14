@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { SidebarMenuButton } from "@/components/ui/sidebar";
 import { apiQueries } from "@/lib/api-queries";
+import { MINI_PLAYER_SUPPORTED } from "@/lib/mini-player";
 import { setSetting, useSetting } from "@/lib/settings";
 import { logout, useUser } from "@/lib/subsonic";
 import { setTheme, type Theme, useTheme } from "@/lib/theme";
@@ -52,6 +53,7 @@ export function UserMenu({
   const theme = useTheme();
   const ratings = useSetting("ratings");
   const reduceMotion = useSetting("reduceMotion");
+  const miniWhenHidden = useSetting("miniPlayerWhenHidden");
   const user = useUser() ?? "";
   const admin = useQuery(apiQueries.session()).data?.admin;
   return (
@@ -81,6 +83,14 @@ export function UserMenu({
         <DropdownMenuCheckboxItem checked={reduceMotion} onCheckedChange={(checked) => setSetting("reduceMotion", checked === true)}>
           reduce motion
         </DropdownMenuCheckboxItem>
+        {MINI_PLAYER_SUPPORTED && (
+          <DropdownMenuCheckboxItem
+            checked={miniWhenHidden}
+            onCheckedChange={(checked) => setSetting("miniPlayerWhenHidden", checked === true)}
+          >
+            mini player when you leave the tab
+          </DropdownMenuCheckboxItem>
+        )}
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={onShortcuts}>
           <KeyboardIcon />

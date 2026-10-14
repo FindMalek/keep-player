@@ -1,10 +1,12 @@
 import {
   ChevronDownIcon,
+  InfoIcon,
   ListMusicIcon,
   LoaderCircleIcon,
   MicVocalIcon,
   MoonIcon,
   PauseIcon,
+  PictureInPicture2Icon,
   PlayIcon,
   Repeat1Icon,
   RepeatIcon,
@@ -31,8 +33,10 @@ import { Button } from "@/components/ui/button";
 import { VolumeControlMute, VolumeControlSlider } from "@/components/ui/volume-control";
 import { useEngineController } from "@/lib/engine-controller";
 import { quality } from "@/lib/format";
+import { MINI_PLAYER_SUPPORTED, openMiniPlayer } from "@/lib/mini-player";
 import { useCachedIds } from "@/lib/offline";
 import { currentSong, player, usePlayer, usePosition } from "@/lib/player";
+import { contextUpcoming } from "@/lib/queue";
 import type { Song } from "@/lib/types";
 import { CAN_PICK_OUTPUT } from "@/lib/use-output-devices";
 import { cn } from "@/lib/utils";
@@ -44,7 +48,7 @@ import { OfflineMark } from "./offline-mark";
 import { ToolButton } from "./tool-button";
 import { Truncated } from "./truncated";
 
-export type Panel = "queue" | "lyrics" | null;
+export type Panel = "queue" | "lyrics" | "info" | null;
 
 const ICON_BUTTON = "size-8 rounded-none text-muted-foreground hover:bg-transparent hover:text-foreground";
 
@@ -117,6 +121,38 @@ function NowPlaying({ song }: { song: Song }) {
   );
 }
 
+const PEEK_SECONDS = 15;
+
+/** The last 15 s of a song: what comes next, and a way to skip it before it starts. */
+function UpNextPeek() {
+  const nearEnd = usePosition((seconds) => {
+    const { duration } = player.getState();
+    return duration > PEEK_SECONDS * 2 && duration - seconds <= PEEK_SECONDS;
+  });
+  const next = usePlayer((state) =>
+    state.queue.repeat === "one" ? undefined : (state.queue.upNext[0] ?? contextUpcoming(state.queue)[0]),
+  );
+  if (!nearEnd || !next) return null;
+  return (
+    <div
+      role="status"
+      className="absolute right-4 bottom-full mb-2 flex max-w-80 items-center gap-2.5 border bg-popover px-2.5 py-1.5 text-popover-foreground shadow-md"
+    >
+      <Cover id={next.song.coverArt} size={32} className="size-7 shrink-0" />
+      <span className="flex min-w-0 flex-col">
+        <span className="font-mono text-[10.5px] text-faint">up next</span>
+        <span className="truncate text-xs">
+          {next.song.title}
+          {next.song.artist && <span className="text-muted-foreground"> · {next.song.artist}</span>}
+        </span>
+      </span>
+      <Button variant="ghost" size="xs" className="shrink-0 font-mono" onClick={() => player.remove(next)}>
+        skip it
+      </Button>
+    </div>
+  );
+}
+
 export function PlayerBar({ panel, onPanel }: { panel: Panel; onPanel: (panel: Panel) => void }) {
   const controller = useEngineController();
   const song = usePlayer(currentSong);
@@ -137,7 +173,8 @@ export function PlayerBar({ panel, onPanel }: { panel: Panel; onPanel: (panel: P
   if (!song) return null;
 
   return (
-    <footer className="shrink-0 border-t bg-background">
+    <footer className="relative shrink-0 border-t bg-background">
+      <UpNextPeek />
       <AudioPlayer
         player={controller}
         shortcuts={false}
@@ -211,6 +248,18 @@ export function PlayerBar({ panel, onPanel }: { panel: Panel; onPanel: (panel: P
               <MicVocalIcon />
             </ToolButton>
           </Hint>
+          <Hint label="song info" shortcut="info">
+            <ToolButton on={panel === "info"} onClick={() => onPanel(panel === "info" ? null : "info")} aria-label="song info">
+              <InfoIcon />
+            </ToolButton>
+          </Hint>
+          {MINI_PLAYER_SUPPORTED && (
+            <Hint label="mini player" shortcut="mini-player">
+              <ToolButton on={false} onClick={() => void openMiniPlayer()} aria-label="mini player">
+                <PictureInPicture2Icon />
+              </ToolButton>
+            </Hint>
+          )}
           <Hint label="queue" shortcut="queue">
             <ToolButton on={panel === "queue"} onClick={() => onPanel(panel === "queue" ? null : "queue")} aria-label="queue">
               <ListMusicIcon />

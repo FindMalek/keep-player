@@ -19,6 +19,7 @@ export interface AppActions {
   /** ⌘F: false when there's no list to filter, so the browser's own find opens. */
   findInList: () => boolean;
   likeCurrent: () => void;
+  openMiniPlayer: () => void;
 }
 
 /** The default map. Everything it calls is passed in, so a unit test can check it for conflicts without a browser. */
@@ -61,6 +62,8 @@ export function appShortcuts(actions: AppActions): Shortcut[] {
     global("like", ["f"], "like the current song", "playback", () => actions.likeCurrent()),
     global("queue", ["q"], "queue", "panels", () => actions.togglePanel("queue")),
     global("lyrics", ["y"], "lyrics", "panels", () => actions.togglePanel("lyrics")),
+    global("info", ["i"], "song info", "panels", () => actions.togglePanel("info")),
+    global("mini-player", ["shift+m"], "mini player (always on top)", "panels", () => actions.openMiniPlayer()),
     global("full-screen", ["shift+f"], "full-screen now playing", "panels", () => actions.toggleFullScreen()),
     global("close", ["escape"], "close the top panel", "panels", () => actions.closeTopLayer()),
     global("search", ["mod+k", "/"], "search", "navigation", (event) =>
