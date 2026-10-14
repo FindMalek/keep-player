@@ -12,6 +12,7 @@ import { currentSong, player, usePlayer } from "@/lib/player";
 import { go, usePath } from "@/lib/router";
 import { installShortcuts, useShortcuts } from "@/lib/shortcuts";
 import { useCheckingSession, useUser } from "@/lib/subsonic";
+import { welcomeTip } from "@/lib/tips";
 import {
   AlbumPage,
   AlbumsPage,
@@ -32,6 +33,8 @@ const Login = lazy(() => import("@/components/login").then((module) => ({ defaul
 const SplitView = lazy(() => import("@/components/split-view").then((module) => ({ default: module.SplitView })));
 const QueuePanel = lazy(() => import("@/components/side-panels").then((module) => ({ default: module.QueuePanel })));
 const LyricsPanel = lazy(() => import("@/components/side-panels").then((module) => ({ default: module.LyricsPanel })));
+
+const CheatSheet = lazy(() => import("@/components/cheat-sheet").then((module) => ({ default: module.CheatSheet })));
 
 // Only loaded on the first ⌘K (cmdk + dialog stay out of the first paint), then kept mounted.
 const SearchPalette = lazy(() => import("@/components/search-palette").then((module) => ({ default: module.SearchPalette })));
@@ -70,6 +73,7 @@ export function App() {
   const checkingSession = useCheckingSession();
   const [panel, setPanel] = useState<Panel>(null);
   const [searching, setSearching] = useState(false);
+  const [cheatSheet, setCheatSheet] = useState(false);
   const [searchLoaded, setSearchLoaded] = useState(false);
   if (searching && !searchLoaded) setSearchLoaded(true);
   const path = usePath();
@@ -88,8 +92,15 @@ export function App() {
       closeTopLayer: () => setPanel(null),
       openSearch: () => setSearching(true),
       toggleSearch: () => setSearching((value) => !value),
+      openCheatSheet: () => setCheatSheet(true),
     }),
   );
+
+  useEffect(() => {
+    if (!user) return;
+    const id = setTimeout(() => welcomeTip(() => setCheatSheet(true)), 4000);
+    return () => clearTimeout(id);
+  }, [user]);
 
   useEffect(() => {
     if (user)
@@ -116,7 +127,7 @@ export function App() {
     <TooltipProvider delay={400}>
       <div className="flex h-svh flex-col" style={{ "--bar-height": hasTrack ? "4rem" : "0px" } as CSSProperties}>
         <SidebarProvider className="min-h-0 flex-1" style={{ "--sidebar-width": "200px" } as CSSProperties}>
-          <AppSidebar path={path} onSearch={() => setSearching(true)} />
+          <AppSidebar path={path} onSearch={() => setSearching(true)} onShortcuts={() => setCheatSheet(true)} />
           <SidebarInset className="min-h-0 min-w-0">
             {showPanel ? (
               <Suspense fallback={<PageSlot host={host} />}>
@@ -137,6 +148,11 @@ export function App() {
         <PlayerBar panel={panel} onPanel={setPanel} />
       </div>
       <ChordHint />
+      {cheatSheet && (
+        <Suspense>
+          <CheatSheet open={cheatSheet} onOpenChange={setCheatSheet} />
+        </Suspense>
+      )}
       {createPortal(
         <PageScrollContext.Provider value={host}>
           <Suspense>

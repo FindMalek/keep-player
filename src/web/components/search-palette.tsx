@@ -1,11 +1,22 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { Command, CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import {
+  Command,
+  CommandDialog,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandShortcut,
+} from "@/components/ui/command";
 import { player } from "@/lib/player";
 import { queries } from "@/lib/queries";
 import { go } from "@/lib/router";
+import { bindingsOf, useShortcutList } from "@/lib/shortcuts";
 import type { Album, Artist, Song } from "@/lib/types";
 import { Cover } from "./cover";
+import { KeyCombo } from "./key-combo";
 
 interface Results {
   artist?: Artist[];
@@ -42,6 +53,15 @@ export function SearchPalette({ open, onOpenChange }: { open: boolean; onOpenCha
     onOpenChange(false);
   };
   const songs = results.song ?? [];
+  const shortcuts = useShortcutList();
+  const needle = text.trim().toLowerCase();
+  // Commands from the shortcut registry, so the palette doubles as a command menu ("shuffle", "go to genres").
+  // Commands only: seeking and volume steps are things you press, not things you look up.
+  const actions = shortcuts
+    .filter((shortcut) => !shortcut.passive && !/^(jump|seek|nudge|volume)-|^search$/.test(shortcut.id))
+    .sort((a, b) => Number(b.group === "navigation") - Number(a.group === "navigation"))
+    .filter((shortcut) => !needle || shortcut.label.includes(needle))
+    .slice(0, needle ? 5 : 10);
 
   return (
     <CommandDialog
@@ -53,42 +73,65 @@ export function SearchPalette({ open, onOpenChange }: { open: boolean; onOpenCha
     >
       <Command shouldFilter={false}>
         <CommandInput placeholder="search artists, albums, songs" value={text} onValueChange={setText} className="h-11 font-mono text-sm" />
-        {text.trim() && (
-          <CommandList className="max-h-[56vh]">
-            <CommandEmpty className="font-mono text-faint">no matches</CommandEmpty>
-            {(results.artist?.length ?? 0) > 0 && (
-              <CommandGroup heading="artists">
-                {results.artist?.map((artist) => (
-                  <CommandItem key={artist.id} value={`ar-${artist.id}`} onSelect={run(() => go(`/artist/${artist.id}`))}>
-                    <Row cover={artist.coverArt} title={artist.name} sub={`${artist.albumCount ?? 0} albums`} />
-                  </CommandItem>
-                ))}
-              </CommandGroup>
-            )}
-            {(results.album?.length ?? 0) > 0 && (
-              <CommandGroup heading="albums">
-                {results.album?.map((album) => (
-                  <CommandItem key={album.id} value={`al-${album.id}`} onSelect={run(() => go(`/album/${album.id}`))}>
-                    <Row cover={album.coverArt} title={album.name} sub={`${album.artist ?? ""}${album.year ? ` · ${album.year}` : ""}`} />
-                  </CommandItem>
-                ))}
-              </CommandGroup>
-            )}
-            {songs.length > 0 && (
-              <CommandGroup heading="songs">
-                {songs.map((song, index) => (
+        <CommandList className="max-h-[56vh]">
+          {needle && <CommandEmpty className="font-mono text-faint">no matches</CommandEmpty>}
+          {actions.length > 0 && (
+            <CommandGroup heading="actions">
+              {actions.map((shortcut) => {
+                const binding = bindingsOf(shortcut)[0];
+                return (
                   <CommandItem
-                    key={song.id}
-                    value={`so-${song.id}`}
-                    onSelect={run(() => player.play(songs, index, { source: { kind: "search", name: `“${query}”` } }))}
+                    key={shortcut.id}
+                    value={`action-${shortcut.id}`}
+                    onSelect={run(() => shortcut.run(new KeyboardEvent("keydown")))}
                   >
-                    <Row cover={song.coverArt} title={song.title} sub={`${song.artist ?? ""} · ${song.album ?? ""}`} />
+                    <span className="truncate">{shortcut.label}</span>
+                    {binding && (
+                      <CommandShortcut>
+                        <KeyCombo binding={binding} />
+                      </CommandShortcut>
+                    )}
                   </CommandItem>
-                ))}
-              </CommandGroup>
-            )}
-          </CommandList>
-        )}
+                );
+              })}
+            </CommandGroup>
+          )}
+          {needle && (
+            <>
+              {(results.artist?.length ?? 0) > 0 && (
+                <CommandGroup heading="artists">
+                  {results.artist?.map((artist) => (
+                    <CommandItem key={artist.id} value={`ar-${artist.id}`} onSelect={run(() => go(`/artist/${artist.id}`))}>
+                      <Row cover={artist.coverArt} title={artist.name} sub={`${artist.albumCount ?? 0} albums`} />
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              )}
+              {(results.album?.length ?? 0) > 0 && (
+                <CommandGroup heading="albums">
+                  {results.album?.map((album) => (
+                    <CommandItem key={album.id} value={`al-${album.id}`} onSelect={run(() => go(`/album/${album.id}`))}>
+                      <Row cover={album.coverArt} title={album.name} sub={`${album.artist ?? ""}${album.year ? ` · ${album.year}` : ""}`} />
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              )}
+              {songs.length > 0 && (
+                <CommandGroup heading="songs">
+                  {songs.map((song, index) => (
+                    <CommandItem
+                      key={song.id}
+                      value={`so-${song.id}`}
+                      onSelect={run(() => player.play(songs, index, { source: { kind: "search", name: `“${query}”` } }))}
+                    >
+                      <Row cover={song.coverArt} title={song.title} sub={`${song.artist ?? ""} · ${song.album ?? ""}`} />
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              )}
+            </>
+          )}
+        </CommandList>
       </Command>
     </CommandDialog>
   );

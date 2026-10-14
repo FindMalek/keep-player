@@ -1,4 +1,4 @@
-import { HardDriveDownloadIcon, LogOutIcon, MonitorIcon, MonitorSmartphoneIcon, MoonIcon, SunIcon } from "lucide-react";
+import { HardDriveDownloadIcon, KeyboardIcon, LogOutIcon, MonitorIcon, MonitorSmartphoneIcon, MoonIcon, SunIcon } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -8,6 +8,7 @@ import {
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
   DropdownMenuSeparator,
+  DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { SidebarMenuButton } from "@/components/ui/sidebar";
@@ -22,7 +23,17 @@ const THEMES = [
 
 const LABEL = "font-mono text-[10.5px] text-faint";
 
-export function UserMenu({ defaultOpen, onSessions, onStorage }: { defaultOpen: boolean; onSessions: () => void; onStorage: () => void }) {
+export function UserMenu({
+  defaultOpen,
+  onSessions,
+  onStorage,
+  onShortcuts,
+}: {
+  defaultOpen: boolean;
+  onSessions: () => void;
+  onStorage: () => void;
+  onShortcuts: () => void;
+}) {
   const theme = useTheme();
   const user = useUser() ?? "";
   return (
@@ -46,6 +57,11 @@ export function UserMenu({ defaultOpen, onSessions, onStorage }: { defaultOpen: 
           </DropdownMenuRadioGroup>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={onShortcuts}>
+          <KeyboardIcon />
+          keyboard shortcuts
+          <DropdownMenuShortcut>?</DropdownMenuShortcut>
+        </DropdownMenuItem>
         <DropdownMenuItem onClick={onStorage}>
           <HardDriveDownloadIcon />
           offline storage

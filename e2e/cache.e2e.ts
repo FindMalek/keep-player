@@ -11,10 +11,15 @@ async function slowApi(page: Page): Promise<void> {
 
 test("hovering an album prefetches it, and back to home needs no network", async ({ page, signedIn }) => {
   await expect(signedIn.locator('a[href^="/album/"]').first()).toBeVisible();
-  const link = page.locator('a[href^="/album/"]').first();
+  // One exact album, so the link clicked is the link hovered even if the grid re-renders in between.
+  const href = (await page.locator('a[href^="/album/"]').first().getAttribute("href")) ?? "";
+  const id = href.split("/").pop() ?? "";
+  const link = page.locator(`a[href="${href}"]`).first();
+  // Listen before hovering: a fast prefetch can finish before a later listener starts.
+  const prefetched = page.waitForResponse((response) => response.url().includes("/rest/getAlbum?") && response.url().includes(`id=${id}`));
   await link.hover();
   // Wait for the whole prefetch (not just its headers) before the server slows down.
-  await (await page.waitForResponse((response) => response.url().includes("/rest/getAlbum?"))).finished();
+  await (await prefetched).finished();
   await slowApi(page);
   await link.click();
   await expect(page.getByRole("table", { name: "tracks" })).toBeVisible({ timeout: 4000 });
