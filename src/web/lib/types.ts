@@ -1,9 +1,3 @@
-export interface Credentials {
-  user: string;
-  token: string;
-  salt: string;
-}
-
 export interface ReplayGain {
   trackGain?: number;
   albumGain?: number;

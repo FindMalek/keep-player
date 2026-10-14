@@ -1,8 +1,12 @@
-import type { Credentials } from "./types";
+import { useSyncExternalStore } from "react";
 
-const STORAGE_KEY = "keep-player:auth";
-const VERSION = "1.16.1";
-const CLIENT = "keep-player";
+/*
+ * The browser never holds credentials: the server keeps them in a session behind an httpOnly cookie and adds them to
+ * every upstream call. Only the username is remembered here, to render the app shell before the first request.
+ */
+const USER_KEY = "keep-player:user";
+/** Must match the server's CSRF check (src/server/api.ts). */
+const HEADERS = { "x-keep-player": "1" };
 
 export class ApiError extends Error {
   constructor(
@@ -13,81 +17,93 @@ export class ApiError extends Error {
   }
 }
 
-export function loadCredentials(): Credentials | null {
+function readUser(): string | null {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as Credentials) : null;
+    // Older versions kept the Subsonic token here; drop it.
+    localStorage.removeItem("keep-player:auth");
+    return localStorage.getItem(USER_KEY);
   } catch {
     return null;
   }
 }
 
-function saveCredentials(credentials: Credentials | null): void {
+let user = readUser();
+const listeners = new Set<() => void>();
+
+function setUser(next: string | null): void {
+  user = next;
   try {
-    if (credentials) localStorage.setItem(STORAGE_KEY, JSON.stringify(credentials));
-    else localStorage.removeItem(STORAGE_KEY);
+    if (next) localStorage.setItem(USER_KEY, next);
+    else localStorage.removeItem(USER_KEY);
   } catch {
-    // Private windows can refuse storage; the session still works until reload.
+    // Private windows can refuse storage; the session cookie still works.
   }
+  for (const listener of listeners) listener();
 }
 
-let credentials = loadCredentials();
+/** The signed-in username, or null; re-renders when the session ends (logout, expiry, revoked elsewhere). */
+export function useUser(): string | null {
+  return useSyncExternalStore(
+    (listener) => {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+    () => user,
+  );
+}
 
-export async function login(user: string, password: string): Promise<Credentials> {
+export async function login(name: string, password: string): Promise<void> {
   const response = await fetch("/auth/login", {
     method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ user, password }),
-  });
-  if (!response.ok) throw new Error(response.status === 401 ? "wrong username or password" : "server unreachable");
-  credentials = (await response.json()) as Credentials;
-  saveCredentials(credentials);
-  return credentials;
+    headers: { ...HEADERS, "content-type": "application/json" },
+    body: JSON.stringify({ user: name, password }),
+  }).catch(() => null);
+  if (!response) throw new Error("server unreachable");
+  const body = (await response.json().catch(() => ({}))) as { user?: string; error?: string };
+  if (!response.ok || !body.user) throw new Error(body.error ?? "login failed");
+  setUser(body.user);
 }
 
-export function logout(): void {
-  credentials = null;
-  saveCredentials(null);
+export async function logout(): Promise<void> {
+  await fetch("/auth/logout", { method: "POST", headers: HEADERS }).catch(() => undefined);
+  try {
+    // The queue and position belong to this account.
+    localStorage.removeItem("keep-player:state");
+  } catch {
+    // Nothing to clear.
+  }
+  setUser(null);
   window.location.assign("/");
 }
 
-export function currentUser(): string | null {
-  return credentials?.user ?? null;
+function query(params: Record<string, string | number | boolean | undefined>): string {
+  const search = new URLSearchParams({ f: "json" });
+  for (const [key, value] of Object.entries(params)) if (value !== undefined) search.set(key, String(value));
+  return search.toString();
 }
 
-function query(extra: Record<string, string | number | boolean | undefined> = {}): string {
-  const params = new URLSearchParams({
-    u: credentials?.user ?? "",
-    t: credentials?.token ?? "",
-    s: credentials?.salt ?? "",
-    v: VERSION,
-    c: CLIENT,
-    f: "json",
-  });
-  for (const [key, value] of Object.entries(extra)) if (value !== undefined) params.set(key, String(value));
-  return params.toString();
-}
-
-/** One Subsonic call; throws ApiError, and logs out when the stored token stops working. */
+/** One Subsonic call through the server's session proxy; throws ApiError, and signs out when the session is gone. */
 export async function api<T>(endpoint: string, params: Record<string, string | number | boolean | undefined> = {}): Promise<T> {
-  const response = await fetch(`/rest/${endpoint}?${query(params)}`);
+  const response = await fetch(`/rest/${endpoint}?${query(params)}`, { headers: HEADERS });
+  if (response.status === 401) {
+    setUser(null);
+    throw new ApiError(401, "signed out");
+  }
   if (!response.ok) throw new ApiError(response.status, `${endpoint}: ${response.status}`);
   const body = (await response.json())["subsonic-response"] as T & { status: string; error?: { code: number; message: string } };
-  if (body.status !== "ok") {
-    if (body.error?.code === 40 || body.error?.code === 41) logout();
-    throw new ApiError(body.error?.code ?? 0, body.error?.message ?? endpoint);
-  }
+  if (body.status !== "ok") throw new ApiError(body.error?.code ?? 0, body.error?.message ?? endpoint);
   return body;
 }
 
+/** Credential-free, so the browser (and later the service worker) can cache covers and audio by URL. */
 export function coverUrl(id: string | undefined, size = 300): string | null {
-  return id ? `/rest/getCoverArt?${query({ id, size })}` : null;
+  return id ? `/rest/getCoverArt?${new URLSearchParams({ id, size: String(size) })}` : null;
 }
 
 export function streamUrl(id: string): string {
-  return `/rest/stream?${query({ id, format: "raw" })}`;
+  return `/rest/stream?${new URLSearchParams({ id, format: "raw" })}`;
 }
 
 export function scrobble(id: string, submission: boolean): void {
-  void fetch(`/rest/scrobble?${query({ id, submission, time: Date.now() })}`).catch(() => undefined);
+  void fetch(`/rest/scrobble?${query({ id, submission, time: Date.now() })}`, { headers: HEADERS }).catch(() => undefined);
 }

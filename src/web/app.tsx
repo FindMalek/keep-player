@@ -9,7 +9,7 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { currentSong, player, usePlayer } from "@/lib/player";
 import { usePath } from "@/lib/router";
-import { loadCredentials } from "@/lib/subsonic";
+import { useUser } from "@/lib/subsonic";
 import { AlbumsPage, ArtistsPage, GenresPage, HomePage, SongsPage } from "@/pages/browse";
 import { AlbumPage, ArtistPage, GenrePage, PlaylistPage } from "@/pages/detail";
 import { FoldersPage } from "@/pages/folders";
@@ -49,7 +49,7 @@ function isTyping(target: EventTarget | null): boolean {
 }
 
 export function App() {
-  const [signedIn, setSignedIn] = useState(() => loadCredentials() !== null);
+  const user = useUser();
   const [panel, setPanel] = useState<Panel>(null);
   const [searching, setSearching] = useState(false);
   const [searchLoaded, setSearchLoaded] = useState(false);
@@ -94,7 +94,7 @@ export function App() {
     document.title = nowPlaying && playing ? `${nowPlaying.title} · ${nowPlaying.artist ?? ""}` : "keep music";
   }, [nowPlaying, playing]);
 
-  if (!signedIn) return <Login onDone={() => setSignedIn(true)} />;
+  if (!user) return <Login />;
 
   return (
     <TooltipProvider delay={400}>

@@ -1,0 +1,147 @@
+import { Database } from "bun:sqlite";
+import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
+
+/** What the proxy needs to call the upstream as this user. Encrypted at rest; never sent to the browser. */
+export interface Session {
+  /** Public id (a prefix of the stored hash), safe to show and to revoke by. */
+  id: string;
+  server: string;
+  user: string;
+  token: string;
+  salt: string;
+  created: number;
+  seen: number;
+  agent: string;
+}
+
+const MINUTE = 60_000;
+
+/**
+ * Sessions in SQLite. The cookie holds a random 256-bit value; only its SHA-256 is stored, so a copy of the database
+ * can't be replayed as cookies. The Subsonic token + salt are AES-256-GCM encrypted with a key from the session secret.
+ */
+export class SessionStore {
+  private readonly db: Database;
+  private readonly key: Buffer;
+
+  constructor(
+    path: string,
+    secret: string,
+    private readonly idleMs: number,
+    private readonly now: () => number = Date.now,
+  ) {
+    this.db = new Database(path, { create: true, strict: true });
+    this.db.run("pragma journal_mode = wal");
+    this.db.run(
+      "create table if not exists sessions (hash text primary key, server text not null, user text not null, secret blob not null, created integer not null, seen integer not null, agent text not null default '')",
+    );
+    this.key = createHash("sha256").update(`keep-player:sessions:${secret}`).digest();
+  }
+
+  private static hash(cookie: string): string {
+    return createHash("sha256").update(cookie).digest("hex");
+  }
+
+  private seal(value: string): Uint8Array {
+    const iv = randomBytes(12);
+    const cipher = createCipheriv("aes-256-gcm", this.key, iv);
+    const body = Buffer.concat([cipher.update(value, "utf8"), cipher.final()]);
+    return Buffer.concat([iv, cipher.getAuthTag(), body]);
+  }
+
+  private open(sealed: Uint8Array): string | null {
+    try {
+      const data = Buffer.from(sealed);
+      const decipher = createDecipheriv("aes-256-gcm", this.key, data.subarray(0, 12));
+      decipher.setAuthTag(data.subarray(12, 28));
+      return Buffer.concat([decipher.update(data.subarray(28)), decipher.final()]).toString("utf8");
+    } catch {
+      // Wrong secret (it was rotated) or tampered row: treat as no session.
+      return null;
+    }
+  }
+
+  /** Returns the cookie value. */
+  create(input: { server: string; user: string; token: string; salt: string; agent: string }): string {
+    const cookie = randomBytes(32).toString("base64url");
+    const time = this.now();
+    this.db
+      .query(
+        "insert into sessions (hash, server, user, secret, created, seen, agent) values ($hash, $server, $user, $secret, $time, $time, $agent)",
+      )
+      .run({
+        hash: SessionStore.hash(cookie),
+        server: input.server,
+        user: input.user,
+        secret: this.seal(JSON.stringify({ token: input.token, salt: input.salt })),
+        time,
+        agent: input.agent.slice(0, 300),
+      });
+    return cookie;
+  }
+
+  /** The session for a cookie, or null when missing or idle too long. Marks it as seen (at most once a minute). */
+  get(cookie: string | undefined): Session | null {
+    if (!cookie) return null;
+    const hash = SessionStore.hash(cookie);
+    const row = this.db.query<RowData, [string]>("select * from sessions where hash = ?").get(hash);
+    if (!row) return null;
+    const time = this.now();
+    if (time - row.seen > this.idleMs) {
+      this.db.query("delete from sessions where hash = ?").run(hash);
+      return null;
+    }
+    const secret = this.open(row.secret);
+    if (!secret) return null;
+    if (time - row.seen > MINUTE) this.db.query("update sessions set seen = ? where hash = ?").run(time, hash);
+    const { token, salt } = JSON.parse(secret) as { token: string; salt: string };
+    return {
+      id: hash.slice(0, 16),
+      server: row.server,
+      user: row.user,
+      token,
+      salt,
+      created: row.created,
+      seen: row.seen,
+      agent: row.agent,
+    };
+  }
+
+  delete(cookie: string): void {
+    this.db.query("delete from sessions where hash = ?").run(SessionStore.hash(cookie));
+  }
+
+  list(server: string, user: string): Omit<Session, "token" | "salt">[] {
+    return this.db
+      .query<RowData, [string, string]>("select * from sessions where server = ? and user = ? order by seen desc")
+      .all(server, user)
+      .map((row) => ({
+        id: row.hash.slice(0, 16),
+        server: row.server,
+        user: row.user,
+        created: row.created,
+        seen: row.seen,
+        agent: row.agent,
+      }));
+  }
+
+  /** Revokes one of this user's sessions by its public id. */
+  revoke(server: string, user: string, id: string): boolean {
+    if (!/^[0-9a-f]{16}$/.test(id)) return false;
+    return this.db.query("delete from sessions where server = ? and user = ? and hash like ?").run(server, user, `${id}%`).changes > 0;
+  }
+
+  purgeIdle(): void {
+    this.db.query("delete from sessions where seen < ?").run(this.now() - this.idleMs);
+  }
+}
+
+interface RowData {
+  hash: string;
+  server: string;
+  user: string;
+  secret: Uint8Array;
+  created: number;
+  seen: number;
+  agent: string;
+}
