@@ -17,6 +17,7 @@ import { Hint } from "./hint";
 import { EmptyState } from "./library";
 import { ListFilterBar } from "./list-filter-bar";
 import { LyricsView } from "./lyrics-view";
+import { Truncated } from "./truncated";
 
 function PanelFrame({
   title,
@@ -37,9 +38,11 @@ function PanelFrame({
         <h2 className="font-medium font-mono text-[13px]">{title}</h2>
         <span className="flex-1 font-mono text-muted-foreground text-xs">{meta}</span>
         {actions}
-        <Button variant="ghost" size="icon-sm" onClick={onClose} aria-label={`close ${title}`}>
-          <XIcon />
-        </Button>
+        <Hint label={`close ${title}`} shortcut="close">
+          <Button variant="ghost" size="icon-sm" onClick={onClose} aria-label={`close ${title}`}>
+            <XIcon />
+          </Button>
+        </Hint>
       </header>
       <ScrollArea className="min-h-0 flex-1">
         <div className="p-1.5 pb-4">{children}</div>
@@ -71,21 +74,23 @@ const QueueRow = memo(function QueueRow({ entry, state }: { entry: Entry; state:
       >
         <Cover id={song.coverArt} size={32} />
         <span className="flex min-w-0 flex-col">
-          <span className="truncate">{song.title}</span>
+          <Truncated text={song.title} />
           <span className="truncate text-muted-foreground text-xs">{song.artist}</span>
         </span>
         <span className="font-mono text-muted-foreground text-xs tabular-nums">{clock(song.duration)}</span>
       </button>
       {state === "next" && (
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          className="opacity-0 focus-visible:opacity-100 group-hover/queue:opacity-100"
-          onClick={() => player.remove(entry)}
-          aria-label={`remove ${song.title}`}
-        >
-          <XIcon />
-        </Button>
+        <Hint label="remove from the queue" shortcut="list-remove">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="opacity-0 focus-visible:opacity-100 group-hover/queue:opacity-100"
+            onClick={() => player.remove(entry)}
+            aria-label={`remove ${song.title}`}
+          >
+            <XIcon />
+          </Button>
+        </Hint>
       )}
     </div>
   );

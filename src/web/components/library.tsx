@@ -16,14 +16,17 @@ import { api } from "@/lib/subsonic";
 import type { Album, Song } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { usePageVirtualizer, VIRTUALIZE_FROM } from "@/lib/virtual";
+import { ArtistCard } from "./artist-card";
 import { Cover } from "./cover";
 import { Equalizer } from "./equalizer";
+import { Hint } from "./hint";
 import { LikeButton } from "./like-button";
 import { Link } from "./link";
 import { ListFilterBar } from "./list-filter-bar";
 import { OfflineMark } from "./offline-mark";
 import { Rating } from "./rating";
 import { SelectionBar } from "./selection-bar";
+import { Truncated } from "./truncated";
 import { VirtualGrid } from "./virtual-grid";
 
 export function PageHeader({ title, meta, children }: { title: ReactNode; meta?: ReactNode; children?: ReactNode }) {
@@ -76,7 +79,7 @@ const AlbumCard = memo(function AlbumCard({ album, priority = false }: { album: 
     <div className="group/album relative">
       <Link href={`/album/${album.id}`} className="flex flex-col gap-px">
         <Cover id={album.coverArt} size={180} className="mb-1.5 group-hover/album:[&_img]:opacity-85" priority={priority} />
-        <span className="truncate text-[12.5px]">{album.name}</span>
+        <Truncated text={album.name} className="text-[12.5px]" />
         <span className="truncate text-[11.5px] text-muted-foreground">
           {album.artist}
           {album.year ? ` · ${album.year}` : ""}
@@ -84,14 +87,16 @@ const AlbumCard = memo(function AlbumCard({ album, priority = false }: { album: 
       </Link>
       {/* A square layer over the cover, so the button sits on the cover's corner whatever the card width. */}
       <div className="pointer-events-none absolute inset-x-0 top-0 flex aspect-square items-end justify-end p-1.5">
-        <Button
-          size="icon"
-          className="pointer-events-auto translate-y-1 opacity-0 transition group-hover/album:translate-y-0 group-hover/album:opacity-100 focus-visible:translate-y-0 focus-visible:opacity-100"
-          onClick={() => void playAlbum(album.id)}
-          aria-label={`play ${album.name}`}
-        >
-          <PlayIcon className="fill-current" />
-        </Button>
+        <Hint label={`play ${album.name}`}>
+          <Button
+            size="icon"
+            className="pointer-events-auto translate-y-1 opacity-0 transition group-hover/album:translate-y-0 group-hover/album:opacity-100 focus-visible:translate-y-0 focus-visible:opacity-100"
+            onClick={() => void playAlbum(album.id)}
+            aria-label={`play ${album.name}`}
+          >
+            <PlayIcon className="fill-current" />
+          </Button>
+        </Hint>
       </div>
     </div>
   );
@@ -222,11 +227,13 @@ const TrackRow = memo(function TrackRow({
       </TableCell>
       <TableCell className="py-0">
         <div className="flex min-w-0 flex-col">
-          <span className={cn("truncate", status && "font-medium")}>{song.title}</span>
+          <Truncated text={song.title} className={cn(status && "font-medium")} />
           {showArtist && song.artistId && (
-            <Link href={`/artist/${song.artistId}`} className={cn(SUBLINK, "text-xs")}>
-              {song.artist}
-            </Link>
+            <ArtistCard id={song.artistId} name={song.artist ?? ""}>
+              <Link href={`/artist/${song.artistId}`} className={cn(SUBLINK, "text-xs")}>
+                {song.artist}
+              </Link>
+            </ArtistCard>
           )}
         </div>
       </TableCell>
@@ -253,12 +260,16 @@ const TrackRow = memo(function TrackRow({
       </TableCell>
       <TableCell className="py-0">
         <div className="flex justify-end opacity-0 group-focus-within/row:opacity-100 group-hover/row:opacity-100">
-          <Button variant="ghost" size="icon-xs" onClick={() => player.playNext([song])} aria-label={`play ${song.title} next`}>
-            <ListStartIcon />
-          </Button>
-          <Button variant="ghost" size="icon-xs" onClick={() => player.addToQueue([song])} aria-label={`add ${song.title} to queue`}>
-            <ListEndIcon />
-          </Button>
+          <Hint label="play next" shortcut="list-play-next">
+            <Button variant="ghost" size="icon-xs" onClick={() => player.playNext([song])} aria-label={`play ${song.title} next`}>
+              <ListStartIcon />
+            </Button>
+          </Hint>
+          <Hint label="add to queue" shortcut="list-queue">
+            <Button variant="ghost" size="icon-xs" onClick={() => player.addToQueue([song])} aria-label={`add ${song.title} to queue`}>
+              <ListEndIcon />
+            </Button>
+          </Hint>
         </div>
       </TableCell>
     </TableRow>

@@ -40,6 +40,7 @@ import { LikeButton } from "./like-button";
 import { Link } from "./link";
 import { OfflineMark } from "./offline-mark";
 import { ToolButton } from "./tool-button";
+import { Truncated } from "./truncated";
 
 export type Panel = "queue" | "lyrics" | null;
 
@@ -75,20 +76,36 @@ function OutputDeviceFallback() {
   );
 }
 
+// Hover cards only matter on hover: they load after the first screen, with the same markup until then.
+const CoverDetails = lazy(() => import("./now-playing-details").then((module) => ({ default: module.CoverDetails })));
+const ArtistCard = lazy(() => import("./artist-card").then((module) => ({ default: module.ArtistCard })));
+
 function NowPlaying({ song }: { song: Song }) {
   return (
     <div className="flex min-w-0 items-center gap-3">
-      <Cover id={song.coverArt} size={42} className="size-[42px] shrink-0" priority />
+      <Suspense fallback={<Cover id={song.coverArt} size={42} className="size-[42px] shrink-0" priority />}>
+        <CoverDetails song={song} />
+      </Suspense>
       <div className="flex min-w-0 flex-col">
         {song.albumId && (
-          <Link href={`/album/${song.albumId}`} className="truncate font-medium underline-offset-3 hover:underline">
-            {song.title}
+          <Link href={`/album/${song.albumId}`} className="flex min-w-0 font-medium underline-offset-3 hover:underline">
+            <Truncated text={song.title} />
           </Link>
         )}
         {song.artistId && (
-          <Link href={`/artist/${song.artistId}`} className="truncate text-muted-foreground text-xs underline-offset-3 hover:underline">
-            {song.artist}
-          </Link>
+          <Suspense
+            fallback={
+              <Link href={`/artist/${song.artistId}`} className="truncate text-muted-foreground text-xs underline-offset-3 hover:underline">
+                {song.artist}
+              </Link>
+            }
+          >
+            <ArtistCard id={song.artistId} name={song.artist ?? ""}>
+              <Link href={`/artist/${song.artistId}`} className="truncate text-muted-foreground text-xs underline-offset-3 hover:underline">
+                {song.artist}
+              </Link>
+            </ArtistCard>
+          </Suspense>
         )}
       </div>
       <Hint label="like" shortcut="like">
@@ -191,7 +208,7 @@ export function PlayerBar({ panel, onPanel }: { panel: Panel; onPanel: (panel: P
             </Suspense>
           )}
           <AudioPlayerVolume className="w-32">
-            <Hint label="mute" shortcut="mute">
+            <Hint label={controller.muted ? "unmute" : `mute · volume ${Math.round(controller.volume * 100)}%`} shortcut="mute">
               <VolumeControlMute className="size-8">
                 {controller.muted || controller.volume === 0 ? (
                   <VolumeXIcon />

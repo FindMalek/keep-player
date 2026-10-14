@@ -155,6 +155,17 @@ function replayGainFactor(song: Song | undefined, album: boolean): number {
   return peak ? Math.min(factor, 1 / peak) : factor;
 }
 
+/** What ReplayGain does to the playing song, for the "now playing" card: which gain and how many dB, or null. */
+export function appliedGain(): { mode: "album" | "track"; db: number } | null {
+  const song = current();
+  const album = state.queue.context.album && state.queue.current?.from === "context";
+  const rg = song?.replayGain;
+  if (!rg) return null;
+  const db = album ? (rg.albumGain ?? rg.trackGain) : (rg.trackGain ?? rg.albumGain);
+  if (db === undefined) return null;
+  return { mode: album && rg.albumGain !== undefined ? "album" : "track", db: 20 * Math.log10(replayGainFactor(song, album)) };
+}
+
 /** Album gain only while an album plays in order from its context; queued songs in between use track gain. */
 const currentFactor = () => replayGainFactor(current(), state.queue.context.album && state.queue.current?.from === "context");
 
