@@ -9,6 +9,16 @@ export async function signIn(page: Page): Promise<void> {
 }
 
 export const test = base.extend<{ signedIn: Page }>({
+  // Every test shares the mock's one play queue, so the hand-off would offer each test the others' queues. Off unless
+  // a test turns it on (queue-sync.e2e.ts); other settings a test changes survive its reloads.
+  page: async ({ page }, use) => {
+    await page.addInitScript(() => {
+      const key = "keep-player:settings";
+      const settings = JSON.parse(localStorage.getItem(key) ?? "{}") as Record<string, unknown>;
+      if (!("queueSync" in settings)) localStorage.setItem(key, JSON.stringify({ ...settings, queueSync: false }));
+    });
+    await use(page);
+  },
   signedIn: async ({ page }, use) => {
     await signIn(page);
     await use(page);

@@ -4,6 +4,12 @@ export interface Notice {
   message: string;
   kind?: "info" | "error";
   action?: { label: string; onClick: () => void };
+  /** A second button ("keep mine"). */
+  cancel?: { label: string; onClick: () => void };
+  /** How long it stays, ms (sonner's default otherwise). */
+  duration?: number;
+  /** A toast with the same id replaces the one showing (a newer offer of the same kind). */
+  id?: string;
 }
 
 type Sonner = typeof import("sonner");
@@ -30,7 +36,7 @@ async function mount(): Promise<Sonner> {
   return sonner;
 }
 
-export function notify({ message, kind = "info", action }: Notice): void {
+export function notify({ message, kind = "info", action, cancel, duration, id }: Notice): void {
   ready ??= mount();
-  void ready.then(({ toast }) => (kind === "error" ? toast.error : toast)(message, { action }));
+  void ready.then(({ toast }) => (kind === "error" ? toast.error : toast)(message, { action, cancel, duration, id }));
 }

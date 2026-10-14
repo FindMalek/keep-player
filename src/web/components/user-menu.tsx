@@ -53,6 +53,8 @@ export function UserMenu({
   const theme = useTheme();
   const ratings = useSetting("ratings");
   const reduceMotion = useSetting("reduceMotion");
+  const queueSync = useSetting("queueSync");
+  const followOthers = useSetting("followOtherDevices");
   const miniWhenHidden = useSetting("miniPlayerWhenHidden");
   const user = useUser() ?? "";
   const admin = useQuery(apiQueries.session()).data?.admin;
@@ -83,6 +85,17 @@ export function UserMenu({
         <DropdownMenuCheckboxItem checked={reduceMotion} onCheckedChange={(checked) => setSetting("reduceMotion", checked === true)}>
           reduce motion
         </DropdownMenuCheckboxItem>
+        <DropdownMenuCheckboxItem checked={queueSync} onCheckedChange={(checked) => setSetting("queueSync", checked === true)}>
+          sync the queue with your other devices
+        </DropdownMenuCheckboxItem>
+        {queueSync && (
+          <DropdownMenuCheckboxItem
+            checked={followOthers}
+            onCheckedChange={(checked) => setSetting("followOtherDevices", checked === true)}
+          >
+            pick up their queue without asking
+          </DropdownMenuCheckboxItem>
+        )}
         {MINI_PLAYER_SUPPORTED && (
           <DropdownMenuCheckboxItem
             checked={miniWhenHidden}
