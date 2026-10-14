@@ -51,6 +51,7 @@ export function UserMenu({
 }) {
   const theme = useTheme();
   const ratings = useSetting("ratings");
+  const reduceMotion = useSetting("reduceMotion");
   const user = useUser() ?? "";
   const admin = useQuery(apiQueries.session()).data?.admin;
   return (
@@ -76,6 +77,9 @@ export function UserMenu({
         <DropdownMenuSeparator />
         <DropdownMenuCheckboxItem checked={ratings} onCheckedChange={(checked) => setSetting("ratings", checked === true)}>
           show ratings
+        </DropdownMenuCheckboxItem>
+        <DropdownMenuCheckboxItem checked={reduceMotion} onCheckedChange={(checked) => setSetting("reduceMotion", checked === true)}>
+          reduce motion
         </DropdownMenuCheckboxItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={onShortcuts}>

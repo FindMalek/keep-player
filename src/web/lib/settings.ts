@@ -7,10 +7,12 @@ import { useSyncExternalStore } from "react";
 export interface Settings {
   /** 1–5 star ratings (setRating) as a column in track lists, for smart playlists in other clients. */
   ratings: boolean;
+  /** No animations or view transitions, whatever the OS says. */
+  reduceMotion: boolean;
 }
 
 const KEY = "keep-player:settings";
-const DEFAULTS: Settings = { ratings: false };
+const DEFAULTS: Settings = { ratings: false, reduceMotion: false };
 
 function read(): Settings {
   try {

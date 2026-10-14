@@ -408,6 +408,23 @@ function onEnded(): void {
   else advance(Q.next(state.queue));
 }
 
+/** Apply a queue edit that added songs, and say so with an undo that takes exactly those back out. */
+function queued(next: Q.Queue, where: string): void {
+  const before = new Set(state.queue.upNext.map((entry) => entry.uid));
+  edit(next);
+  const added = next.upNext.filter((entry) => !before.has(entry.uid));
+  if (!added.length) return;
+  notify({
+    message: `added ${added.length === 1 ? (added[0] as Q.Entry).song.title : `${added.length} songs`} ${where}`,
+    action: {
+      label: "undo",
+      onClick: () => {
+        for (const entry of added) player.remove(entry);
+      },
+    },
+  });
+}
+
 let sleepTimer: ReturnType<typeof setTimeout> | undefined;
 const FADE_SECONDS = 10;
 
@@ -563,12 +580,12 @@ export const player = {
   /** To the top of your queue; starts playing if nothing is. */
   playNext(songs: Song[]): void {
     if (!current()) player.play(songs);
-    else edit(Q.playNext(state.queue, songs));
+    else queued(Q.playNext(state.queue, songs), "to play next");
   },
   /** To the end of your queue; starts playing if nothing is. */
   addToQueue(songs: Song[]): void {
     if (!current()) player.play(songs);
-    else edit(Q.addToQueue(state.queue, songs));
+    else queued(Q.addToQueue(state.queue, songs), "to the queue");
   },
   move(entry: Q.Entry, delta: -1 | 1): void {
     edit(Q.move(state.queue, entry, delta));

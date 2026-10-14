@@ -238,3 +238,66 @@
     opacity: 0.5;
   }
 }
+
+/*
+ * Motion (lib/motion.ts). Page changes and the side panels are same-document view transitions: a 150 ms cross-fade,
+ * the clicked album's cover flying into the album header, the panel sliding. Nothing over 200 ms, and the transition
+ * layer never takes clicks.
+ */
+::view-transition {
+  pointer-events: none;
+}
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 150ms;
+}
+::view-transition-group(album-cover) {
+  animation-duration: 200ms;
+  animation-timing-function: ease-out;
+}
+@keyframes panel-in {
+  from {
+    transform: translateX(24px);
+    opacity: 0;
+  }
+}
+@keyframes panel-out {
+  to {
+    transform: translateX(24px);
+    opacity: 0;
+  }
+}
+::view-transition-new(side-panel):only-child {
+  animation: 150ms ease-out both panel-in;
+}
+::view-transition-old(side-panel):only-child {
+  animation: 150ms ease-in both panel-out;
+}
+@keyframes like-pop {
+  40% {
+    transform: scale(1.25);
+  }
+}
+.animate-like {
+  animation: like-pop 200ms ease-out;
+}
+/* A hidden tab has nothing to look at. */
+:root[data-hidden] .animate-eq {
+  animation-play-state: paused;
+}
+/*
+ * The in-app "reduce motion" switch, on top of the OS setting (which Tailwind's motion-reduce: and the rule below
+ * cover). Unlayered, so it wins over Tailwind's layered utilities without !important.
+ */
+:root[data-motion="reduce"] *,
+:root[data-motion="reduce"] *::before,
+:root[data-motion="reduce"] *::after {
+  animation-duration: 0.01ms;
+  animation-iteration-count: 1;
+  transition-duration: 0.01ms;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-like {
+    animation: none;
+  }
+}

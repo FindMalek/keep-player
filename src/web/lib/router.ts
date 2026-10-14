@@ -1,14 +1,13 @@
 import { type MouseEvent, useSyncExternalStore } from "react";
 
+import { setMorph, transition } from "./motion";
+
 const NAVIGATE = "keep:navigate";
 
+// Back/forward and links both re-render through NAVIGATE, inside a view transition (lib/motion).
 function subscribe(onChange: () => void): () => void {
-  window.addEventListener("popstate", onChange);
   window.addEventListener(NAVIGATE, onChange);
-  return () => {
-    window.removeEventListener("popstate", onChange);
-    window.removeEventListener(NAVIGATE, onChange);
-  };
+  return () => window.removeEventListener(NAVIGATE, onChange);
 }
 
 const scroller = () => document.querySelector<HTMLElement>("[data-page-scroll]");
@@ -42,6 +41,8 @@ export function navigationType(): "push" | "pop" {
 window.history.scrollRestoration = "manual";
 window.addEventListener("popstate", (event) => {
   lastNavigation = "pop";
+  setMorph(null);
+  transition(() => window.dispatchEvent(new Event(NAVIGATE)));
   restoreScroll((event.state as { scroll?: number } | null)?.scroll ?? 0);
 });
 
@@ -49,7 +50,7 @@ function push(path: string): void {
   lastNavigation = "push";
   rememberScroll();
   window.history.pushState({ scroll: 0 }, "", path);
-  window.dispatchEvent(new Event(NAVIGATE));
+  transition(() => window.dispatchEvent(new Event(NAVIGATE)));
   scroller()?.scrollTo(0, 0);
 }
 
