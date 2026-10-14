@@ -169,6 +169,8 @@ function handle(endpoint: string, params: Params, request: Request): Response {
     case "ping":
     case "scrobble":
       return ok();
+    case "getScanStatus":
+      return ok({ scanStatus: { scanning: false, count: library.songs.length } });
     case "getLicense":
       return ok({ license: { valid: true } });
     case "getOpenSubsonicExtensions":

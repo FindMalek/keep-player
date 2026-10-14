@@ -5,6 +5,7 @@ import { PageSlot, usePageHost } from "@/components/page-host";
 import { type Panel, PlayerBar } from "@/components/player-bar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { PageScrollContext } from "@/lib/page-scroll";
 import { currentSong, player, usePlayer } from "@/lib/player";
 import { usePath } from "@/lib/router";
 import { useCheckingSession, useUser } from "@/lib/subsonic";
@@ -151,9 +152,11 @@ export function App() {
         <PlayerBar panel={panel} onPanel={setPanel} />
       </div>
       {createPortal(
-        <Suspense>
-          <Page path={path} />
-        </Suspense>,
+        <PageScrollContext.Provider value={host}>
+          <Suspense>
+            <Page path={path} />
+          </Suspense>
+        </PageScrollContext.Provider>,
         host,
       )}
       {(searching || searchLoaded) && (

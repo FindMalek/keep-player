@@ -4,19 +4,23 @@ import { Content, EmptyState, PageHeader, TrackList } from "@/components/library
 import { Link } from "@/components/link";
 import { Button } from "@/components/ui/button";
 import { Item, ItemContent, ItemMedia, ItemTitle } from "@/components/ui/item";
+import { VirtualGrid } from "@/components/virtual-grid";
 import { queries } from "@/lib/queries";
 import type { Song } from "@/lib/types";
 
 function FolderList({ folders }: { folders: { id: string; name: string }[] }) {
   return (
-    <div className="mb-5 grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-x-4 gap-y-0.5">
-      {folders.map((folder) => (
-        <Item
-          key={folder.id}
-          size="xs"
-          className="h-[26px] px-1.5 py-0 text-[13px] hover:bg-card"
-          render={<Link href={`/folders/${folder.id}`} />}
-        >
+    <VirtualGrid
+      className="mb-5"
+      items={folders}
+      getKey={(folder) => folder.id}
+      min={260}
+      gap={16}
+      rowGap={2}
+      estimateRow={() => 26}
+      virtualizeFrom={200}
+      renderItem={(folder) => (
+        <Item size="xs" className="h-[26px] px-1.5 py-0 text-[13px] hover:bg-card" render={<Link href={`/folders/${folder.id}`} />}>
           <ItemMedia variant="icon" className="text-muted-foreground">
             <FolderIcon />
           </ItemMedia>
@@ -24,8 +28,8 @@ function FolderList({ folders }: { folders: { id: string; name: string }[] }) {
             <ItemTitle className="truncate font-normal text-[13px]">{folder.name}</ItemTitle>
           </ItemContent>
         </Item>
-      ))}
-    </div>
+      )}
+    />
   );
 }
 
