@@ -4,6 +4,7 @@ import { api, currentUser, logout } from "../lib/subsonic";
 import type { Playlist } from "../lib/types";
 import { useQuery } from "../lib/use-query";
 import { Search } from "./icons";
+import { ThemeToggle } from "./theme-toggle";
 
 const LIBRARY = [
   ["/", "home"],
@@ -121,6 +122,7 @@ export function Sidebar({ path, onSearch }: { path: string; onSearch: () => void
 
       <div className="sidebar-foot">
         <span className="muted ellipsis">{currentUser()}</span>
+        <ThemeToggle />
         <button type="button" className="text-button" onClick={logout}>
           log out
         </button>

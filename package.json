@@ -9,14 +9,18 @@
     "typecheck": "tsc --noEmit",
     "lint": "biome check .",
     "format": "biome check --write .",
-    "test": "bun test src",
+    "test": "bun test src scripts",
     "e2e": "playwright test",
     "size": "bun scripts/bundle-size.ts",
-    "check": "bun run typecheck && bun run lint && bun run test && bun run size",
-    "build": "bun scripts/build.ts"
+    "check": "bun run typecheck && bun run lint && bun run colors && bun run test && bun run size",
+    "build": "bun scripts/build.ts",
+    "colors": "bun scripts/check-colors.ts"
   },
   "dependencies": {
     "@base-ui/react": "1.9.0",
+    "@fontsource-variable/ibm-plex-sans": "5.3.0",
+    "@fontsource-variable/jetbrains-mono": "5.3.0",
+    "@phosphor-icons/react": "2.1.10",
     "class-variance-authority": "0.7.1",
     "cn": "0.4.0",
     "react": "19.3.0",
