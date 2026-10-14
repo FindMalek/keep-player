@@ -1,12 +1,11 @@
+import { useQuery } from "@tanstack/react-query";
 import { XIcon } from "lucide-react";
 import { type ReactNode, useEffect, useMemo, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { clock } from "@/lib/format";
 import { currentSong, player, usePlayer, usePosition } from "@/lib/player";
-import { api } from "@/lib/subsonic";
-import type { StructuredLyrics } from "@/lib/types";
-import { useQuery } from "@/lib/use-query";
+import { queries } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 import { Cover } from "./cover";
 import { EmptyState } from "./library";
@@ -80,11 +79,9 @@ export function QueuePanel({ onClose }: { onClose: () => void }) {
 
 export function LyricsPanel({ onClose }: { onClose: () => void }) {
   const song = usePlayer(currentSong);
-  const { data, loading } = useQuery(song ? `lyrics:${song.id}` : null, () =>
-    api<{ lyricsList?: { structuredLyrics?: StructuredLyrics[] } }>("getLyricsBySongId", { id: song?.id }),
-  );
+  const { data, isPending: loading } = useQuery({ ...queries.lyrics(song?.id ?? ""), enabled: Boolean(song) });
   const lyrics = useMemo(() => {
-    const all = data?.lyricsList?.structuredLyrics ?? [];
+    const all = data ?? [];
     return all.find((entry) => entry.synced) ?? all[0];
   }, [data]);
 

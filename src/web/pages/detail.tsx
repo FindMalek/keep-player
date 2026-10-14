@@ -1,3 +1,4 @@
+import { useQuery } from "@tanstack/react-query";
 import { ExternalLinkIcon } from "lucide-react";
 import { Fragment, type ReactNode } from "react";
 import { Cover } from "@/components/cover";
@@ -8,9 +9,8 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbS
 import { Button } from "@/components/ui/button";
 import { length, plural, quality } from "@/lib/format";
 import { player } from "@/lib/player";
-import { api } from "@/lib/subsonic";
-import type { Album, Artist, ArtistInfo, Playlist, Song } from "@/lib/types";
-import { useQuery } from "@/lib/use-query";
+import { queries, queryClient } from "@/lib/queries";
+import type { Song } from "@/lib/types";
 
 function Hero({
   cover,
@@ -61,14 +61,13 @@ const Bio = ({ children }: { children: ReactNode }) => (
 );
 
 export function AlbumPage({ id }: { id: string }) {
-  const { data, error } = useQuery(`album:${id}`, () => api<{ album: Album }>("getAlbum", { id }));
+  const { data: album, error } = useQuery(queries.album(id));
   if (error)
     return (
       <Content>
         <EmptyState>album not found</EmptyState>
       </Content>
     );
-  const album = data?.album;
   if (!album) return null;
   const songs = album.song ?? [];
   const first = songs[0];
@@ -138,26 +137,21 @@ export function AlbumPage({ id }: { id: string }) {
 }
 
 export function ArtistPage({ id }: { id: string }) {
-  const { data, error } = useQuery(`artist:${id}`, () => api<{ artist: Artist }>("getArtist", { id }));
-  const info = useQuery(`artist-info:${id}`, () => api<{ artistInfo2: ArtistInfo }>("getArtistInfo2", { id }));
-  const name = data?.artist.name;
-  const top = useQuery(name ? `top:${name}` : null, () =>
-    api<{ topSongs: { song?: Song[] } }>("getTopSongs", { artist: name, count: 10 }).then((response) => response.topSongs.song ?? []),
-  );
+  const { data: artist, error } = useQuery(queries.artist(id));
+  const info = useQuery(queries.artistInfo(id));
+  const name = artist?.name;
+  const top = useQuery({ ...queries.topSongs(name ?? ""), enabled: Boolean(name) });
   if (error)
     return (
       <Content>
         <EmptyState>artist not found</EmptyState>
       </Content>
     );
-  const artist = data?.artist;
   if (!artist) return null;
   const albums = [...(artist.album ?? [])].sort((a, b) => (b.year ?? 0) - (a.year ?? 0));
-  const bio = info.data?.artistInfo2.biography?.replace(/<a [^>]*>.*?<\/a>\.?/g, "").trim();
+  const bio = info.data?.biography?.replace(/<a [^>]*>.*?<\/a>\.?/g, "").trim();
   const everything = async (): Promise<Song[]> =>
-    (await Promise.all(albums.map((album) => api<{ album: Album }>("getAlbum", { id: album.id })))).flatMap(
-      (response) => response.album.song ?? [],
-    );
+    (await Promise.all(albums.map((album) => queryClient.fetchQuery(queries.album(album.id))))).flatMap((album) => album.song ?? []);
 
   return (
     <>
@@ -185,11 +179,7 @@ export function ArtistPage({ id }: { id: string }) {
 }
 
 export function GenrePage({ name }: { name: string }) {
-  const { data } = useQuery(`genre:${name}`, () =>
-    api<{ albumList2: { album?: Album[] } }>("getAlbumList2", { type: "byGenre", genre: name, size: 200 }).then(
-      (response) => response.albumList2.album ?? [],
-    ),
-  );
+  const { data } = useQuery(queries.albumList("byGenre", 200, { genre: name }));
   return (
     <>
       <PageHeader title={name.toLowerCase()} meta={data ? plural(data.length, "album") : "genre"} />
@@ -201,14 +191,13 @@ export function GenrePage({ name }: { name: string }) {
 }
 
 export function PlaylistPage({ id }: { id: string }) {
-  const { data, error } = useQuery(`playlist:${id}`, () => api<{ playlist: Playlist }>("getPlaylist", { id }));
+  const { data: playlist, error } = useQuery(queries.playlist(id));
   if (error)
     return (
       <Content>
         <EmptyState>playlist not found</EmptyState>
       </Content>
     );
-  const playlist = data?.playlist;
   if (!playlist) return null;
   const songs = playlist.entry ?? [];
   const parts = playlist.name.split(" / ");

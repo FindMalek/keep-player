@@ -1,0 +1,165 @@
+import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
+import { type Query, QueryClient, queryOptions } from "@tanstack/react-query";
+import { del, get, set } from "idb-keyval";
+import { api, onAccountChange } from "./subsonic";
+import type { Album, Artist, ArtistInfo, Directory, Genre, Playlist, Song, StructuredLyrics } from "./types";
+
+const MINUTE = 60_000;
+const HOUR = 60 * MINUTE;
+/** How long a persisted cache is trusted at all; each query still revalidates per its staleTime. */
+export const CACHE_MAX_AGE = 7 * 24 * HOUR;
+/**
+ * Bump when cached shapes change. Accounts are kept apart by clearing the cache whenever the account changes (below),
+ * not by this: it's read once at startup, before login.
+ */
+export const CACHE_VERSION = "1";
+
+export const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: { staleTime: 5 * MINUTE, gcTime: CACHE_MAX_AGE, retry: 1, refetchOnWindowFocus: true, refetchOnReconnect: true },
+  },
+});
+
+/** The cache survives reloads in IndexedDB; on a cold start pages render from it and revalidate in the background. */
+export const persister = createAsyncStoragePersister({
+  storage: { getItem: get, setItem: set, removeItem: del },
+  key: "keep-player:cache",
+  throttleTime: 1000,
+});
+
+/** Search results change with every keystroke; not worth keeping across reloads. */
+export const shouldPersist = (query: Query) => query.state.status === "success" && query.queryKey[0] !== "search";
+
+export interface IndexEntry {
+  name: string;
+  artist: { id: string; name: string }[];
+}
+
+/**
+ * Every query the app makes, with its key and freshness. Detail pages rarely change (1 h), lists a bit more (5 min),
+ * playlists are edited from other clients (30 s), lyrics never change.
+ */
+export const queries = {
+  albumList: (type: string, size: number, extra: Record<string, string | number> = {}) =>
+    queryOptions({
+      queryKey: ["albumList", type, size, extra],
+      queryFn: () =>
+        api<{ albumList2: { album?: Album[] } }>("getAlbumList2", { type, size, ...extra }).then(
+          (response) => response.albumList2.album ?? [],
+        ),
+      // A random pick should stay put until asked to reshuffle.
+      staleTime: type === "random" ? Number.POSITIVE_INFINITY : 5 * MINUTE,
+    }),
+  album: (id: string) =>
+    queryOptions({
+      queryKey: ["album", id],
+      queryFn: () => api<{ album: Album }>("getAlbum", { id }).then((response) => response.album),
+      staleTime: HOUR,
+    }),
+  artist: (id: string) =>
+    queryOptions({
+      queryKey: ["artist", id],
+      queryFn: () => api<{ artist: Artist }>("getArtist", { id }).then((response) => response.artist),
+      staleTime: HOUR,
+    }),
+  artistInfo: (id: string) =>
+    queryOptions({
+      queryKey: ["artistInfo", id],
+      queryFn: () => api<{ artistInfo2: ArtistInfo }>("getArtistInfo2", { id }).then((response) => response.artistInfo2),
+      staleTime: HOUR,
+    }),
+  topSongs: (artist: string) =>
+    queryOptions({
+      queryKey: ["topSongs", artist],
+      queryFn: () =>
+        api<{ topSongs: { song?: Song[] } }>("getTopSongs", { artist, count: 10 }).then((response) => response.topSongs.song ?? []),
+      staleTime: HOUR,
+    }),
+  artists: () =>
+    queryOptions({
+      queryKey: ["artists"],
+      queryFn: () =>
+        api<{ artists: { index?: { name: string; artist: Artist[] }[] } }>("getArtists").then((response) => response.artists.index ?? []),
+      staleTime: HOUR,
+    }),
+  songs: (count: number) =>
+    queryOptions({
+      queryKey: ["songs", count],
+      queryFn: () =>
+        api<{ searchResult3: { song?: Song[] } }>("search3", { query: "", songCount: count, artistCount: 0, albumCount: 0 }).then(
+          (response) => response.searchResult3.song ?? [],
+        ),
+    }),
+  genres: () =>
+    queryOptions({
+      queryKey: ["genres"],
+      queryFn: () => api<{ genres: { genre?: Genre[] } }>("getGenres").then((response) => response.genres.genre ?? []),
+      staleTime: HOUR,
+    }),
+  playlists: () =>
+    queryOptions({
+      queryKey: ["playlists"],
+      queryFn: () => api<{ playlists: { playlist?: Playlist[] } }>("getPlaylists").then((response) => response.playlists.playlist ?? []),
+      staleTime: 30_000,
+    }),
+  playlist: (id: string) =>
+    queryOptions({
+      queryKey: ["playlist", id],
+      queryFn: () => api<{ playlist: Playlist }>("getPlaylist", { id }).then((response) => response.playlist),
+      staleTime: 30_000,
+    }),
+  folders: () =>
+    queryOptions({
+      queryKey: ["folders"],
+      queryFn: () => api<{ indexes: { index?: IndexEntry[] } }>("getIndexes").then((response) => response.indexes.index ?? []),
+      staleTime: HOUR,
+    }),
+  directory: (id: string) =>
+    queryOptions({
+      queryKey: ["directory", id],
+      queryFn: () => api<{ directory: Directory }>("getMusicDirectory", { id }).then((response) => response.directory),
+      staleTime: HOUR,
+    }),
+  lyrics: (songId: string) =>
+    queryOptions({
+      queryKey: ["lyrics", songId],
+      queryFn: () =>
+        api<{ lyricsList?: { structuredLyrics?: StructuredLyrics[] } }>("getLyricsBySongId", { id: songId }).then(
+          (response) => response.lyricsList?.structuredLyrics ?? [],
+        ),
+      staleTime: Number.POSITIVE_INFINITY,
+    }),
+  search: (query: string) =>
+    queryOptions({
+      queryKey: ["search", query],
+      queryFn: () =>
+        api<{ searchResult3: { artist?: Artist[]; album?: Album[]; song?: Song[] } }>("search3", {
+          query,
+          artistCount: 4,
+          albumCount: 6,
+          songCount: 8,
+        }).then((response) => response.searchResult3),
+      staleTime: MINUTE,
+    }),
+};
+
+/** Warm the data a link leads to, so the click shows a finished page. */
+export function prefetchPath(path: string): void {
+  const [, section, raw] = path.split("/");
+  const id = raw ? decodeURIComponent(raw) : "";
+  if (!id) return;
+  if (section === "album") void queryClient.prefetchQuery(queries.album(id));
+  if (section === "artist") {
+    void queryClient.prefetchQuery(queries.artist(id));
+    void queryClient.prefetchQuery(queries.artistInfo(id));
+  }
+  if (section === "playlist") void queryClient.prefetchQuery(queries.playlist(id));
+  if (section === "genre") void queryClient.prefetchQuery(queries.albumList("byGenre", 200, { genre: id }));
+  if (section === "folders") void queryClient.prefetchQuery(queries.directory(id));
+}
+
+// Logout or a different account: forget everything the previous one loaded, in memory and on disk.
+onAccountChange(async () => {
+  queryClient.clear();
+  await persister.removeClient();
+});

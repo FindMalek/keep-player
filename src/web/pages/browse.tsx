@@ -1,3 +1,4 @@
+import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { AlbumGrid, Content, EmptyState, PageHeader, Section, TrackList } from "@/components/library";
 import { Link } from "@/components/link";
@@ -6,14 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { plural } from "@/lib/format";
 import { player } from "@/lib/player";
-import { api } from "@/lib/subsonic";
-import type { Album, Artist, Genre, Song } from "@/lib/types";
-import { useQuery } from "@/lib/use-query";
-
-type AlbumList = { albumList2: { album?: Album[] } };
-
-const albums = (type: string, size: number, extra: Record<string, string | number> = {}) =>
-  api<AlbumList>("getAlbumList2", { type, size, ...extra }).then((response) => response.albumList2.album ?? []);
+import { queries } from "@/lib/queries";
 
 function LoadMore({ onClick }: { onClick: () => void }) {
   return (
@@ -24,10 +18,10 @@ function LoadMore({ onClick }: { onClick: () => void }) {
 }
 
 export function HomePage() {
-  const newest = useQuery("home:newest", () => albums("newest", 12));
-  const recent = useQuery("home:recent", () => albums("recent", 12));
-  const frequent = useQuery("home:frequent", () => albums("frequent", 12));
-  const random = useQuery("home:random", () => albums("random", 12));
+  const newest = useQuery(queries.albumList("newest", 12));
+  const recent = useQuery(queries.albumList("recent", 12));
+  const frequent = useQuery(queries.albumList("frequent", 12));
+  const random = useQuery(queries.albumList("random", 12));
   const nothing = [newest, recent, frequent].every((query) => query.data && query.data.length === 0);
 
   return (
@@ -55,7 +49,7 @@ export function HomePage() {
           <Section
             title="rediscover"
             action={
-              <Button variant="link" size="xs" className="h-auto p-0 font-mono text-muted-foreground" onClick={random.reload}>
+              <Button variant="link" size="xs" className="h-auto p-0 font-mono text-muted-foreground" onClick={() => void random.refetch()}>
                 shuffle
               </Button>
             }
@@ -80,7 +74,11 @@ const PAGE = 60;
 export function AlbumsPage() {
   const [sort, setSort] = useState<Sort>("newest");
   const [pages, setPages] = useState(1);
-  const { data } = useQuery(`albums:${sort}:${pages}`, () => albums(sort, PAGE * pages));
+  // Keep the list on screen while the next page loads, but not across a sort change.
+  const { data } = useQuery({
+    ...queries.albumList(sort, PAGE * pages),
+    placeholderData: (previous, previousQuery) => (previousQuery?.queryKey[1] === sort ? previous : undefined),
+  });
 
   return (
     <>
@@ -113,8 +111,8 @@ export function AlbumsPage() {
 }
 
 export function ArtistsPage() {
-  const { data } = useQuery("artists", () => api<{ artists: { index?: { name: string; artist: Artist[] }[] } }>("getArtists"));
-  const index = data?.artists.index ?? [];
+  const { data } = useQuery(queries.artists());
+  const index = data ?? [];
   const total = index.reduce((sum, group) => sum + group.artist.length, 0);
 
   return (
@@ -148,11 +146,7 @@ const SONG_PAGE = 200;
 
 export function SongsPage() {
   const [pages, setPages] = useState(1);
-  const { data } = useQuery(`songs:${pages}`, () =>
-    api<{ searchResult3: { song?: Song[] } }>("search3", { query: "", songCount: SONG_PAGE * pages, artistCount: 0, albumCount: 0 }).then(
-      (response) => response.searchResult3.song ?? [],
-    ),
-  );
+  const { data } = useQuery({ ...queries.songs(SONG_PAGE * pages), placeholderData: (previous) => previous });
   const songs = data ?? [];
 
   return (
@@ -171,8 +165,8 @@ export function SongsPage() {
 }
 
 export function GenresPage() {
-  const { data } = useQuery("genres", () => api<{ genres: { genre?: Genre[] } }>("getGenres"));
-  const genres = (data?.genres.genre ?? []).filter((genre) => genre.albumCount > 0).sort((a, b) => b.songCount - a.songCount);
+  const { data } = useQuery(queries.genres());
+  const genres = (data ?? []).filter((genre) => genre.albumCount > 0).sort((a, b) => b.songCount - a.songCount);
 
   return (
     <>

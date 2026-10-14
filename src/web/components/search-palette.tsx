@@ -1,8 +1,9 @@
+import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Command, CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { player } from "@/lib/player";
+import { queries } from "@/lib/queries";
 import { go } from "@/lib/router";
-import { api } from "@/lib/subsonic";
 import type { Album, Artist, Song } from "@/lib/types";
 import { Cover } from "./cover";
 
@@ -27,27 +28,14 @@ function Row({ cover, title, sub }: { cover?: string; title: string; sub: string
 /** ⌘K: search the whole library; ↑↓ to move, enter to open or play, esc to close. Results come from the server, unfiltered here. */
 export function SearchPalette({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const [text, setText] = useState("");
-  const [results, setResults] = useState<Results>({});
-
+  const [query, setQuery] = useState("");
+  // Wait for a pause in typing; cached queries (and the previous results meanwhile) keep it instant.
   useEffect(() => {
-    const query = text.trim();
-    if (!query) {
-      setResults({});
-      return;
-    }
-    let cancelled = false;
-    const id = setTimeout(() => {
-      api<{ searchResult3: Results }>("search3", { query, artistCount: 4, albumCount: 6, songCount: 8 })
-        .then((response) => {
-          if (!cancelled) setResults(response.searchResult3);
-        })
-        .catch(() => undefined);
-    }, 120);
-    return () => {
-      cancelled = true;
-      clearTimeout(id);
-    };
+    const id = setTimeout(() => setQuery(text.trim()), 120);
+    return () => clearTimeout(id);
   }, [text]);
+  const { data } = useQuery({ ...queries.search(query), enabled: query.length > 0, placeholderData: (previous) => previous });
+  const results: Results = query ? (data ?? {}) : {};
 
   const run = (action: () => void) => () => {
     action();
