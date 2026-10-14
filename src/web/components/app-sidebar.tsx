@@ -4,9 +4,7 @@ import {
   FolderIcon,
   HouseIcon,
   ListMusicIcon,
-  LogOutIcon,
   MonitorIcon,
-  MonitorSmartphoneIcon,
   MoonIcon,
   MusicIcon,
   SearchIcon,
@@ -16,17 +14,6 @@ import {
 } from "lucide-react";
 import { lazy, Suspense, useState } from "react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Kbd } from "@/components/ui/kbd";
 import {
   Sidebar,
@@ -42,8 +29,7 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
-import { api, logout, useUser } from "@/lib/subsonic";
-import { setTheme, type Theme, useTheme } from "@/lib/theme";
+import { api, useUser } from "@/lib/subsonic";
 import type { Playlist } from "@/lib/types";
 import { useQuery } from "@/lib/use-query";
 import { BrandMark } from "./brand";
@@ -61,7 +47,7 @@ const LIBRARY = [
   ["/folders", "folders", FolderIcon],
 ] as const;
 
-const THEMES = [
+const _THEMES = [
   ["system", MonitorIcon],
   ["dark", MoonIcon],
   ["light", SunIcon],
@@ -123,45 +109,25 @@ function SubTree({ node, path }: { node: FolderNode; path: string }) {
   );
 }
 
-function UserMenu({ onSessions }: { onSessions: () => void }) {
-  const theme = useTheme();
-  const user = useUser() ?? "";
+// The menu (Base UI menu + positioning) loads after first paint; the same button stands in until then.
+const UserMenu = lazy(() => import("./user-menu").then((module) => ({ default: module.UserMenu })));
+
+/** Stands in for the menu while it loads; a click here opens the menu as soon as it arrives. */
+function UserButton({ user, onClick }: { user: string; onClick: () => void }) {
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger render={<SidebarMenuButton size="sm" className="font-mono" tooltip={user} />}>
-        <span aria-hidden className="grid size-4 place-items-center bg-foreground text-[10px] text-background uppercase">
-          {user.slice(0, 1)}
-        </span>
-        <span>{user}</span>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent side="top" align="start" className="min-w-44">
-        <DropdownMenuGroup>
-          <DropdownMenuLabel className={LABEL}>theme</DropdownMenuLabel>
-          <DropdownMenuRadioGroup value={theme} onValueChange={(value) => setTheme(value as Theme)}>
-            {THEMES.map(([value, Icon]) => (
-              <DropdownMenuRadioItem key={value} value={value}>
-                <Icon />
-                {value}
-              </DropdownMenuRadioItem>
-            ))}
-          </DropdownMenuRadioGroup>
-        </DropdownMenuGroup>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={onSessions}>
-          <MonitorSmartphoneIcon />
-          sessions
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => void logout()}>
-          <LogOutIcon />
-          log out
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <SidebarMenuButton size="sm" className="font-mono" onClick={onClick}>
+      <span aria-hidden className="grid size-4 place-items-center bg-foreground text-[10px] text-background uppercase">
+        {user.slice(0, 1)}
+      </span>
+      <span>{user}</span>
+    </SidebarMenuButton>
   );
 }
 
 export function AppSidebar({ path, onSearch }: { path: string; onSearch: () => void }) {
+  const user = useUser() ?? "";
   const [sessionsOpen, setSessionsOpen] = useState(false);
+  const [menuWanted, setMenuWanted] = useState(false);
   const { data } = useQuery("playlists", () => api<{ playlists: { playlist?: Playlist[] } }>("getPlaylists"));
   const playlists = (data?.playlists.playlist ?? []).sort((a, b) => a.name.localeCompare(b.name));
 
@@ -224,7 +190,9 @@ export function AppSidebar({ path, onSearch }: { path: string; onSearch: () => v
       <SidebarFooter className="border-t">
         <SidebarMenu>
           <SidebarMenuItem>
-            <UserMenu onSessions={() => setSessionsOpen(true)} />
+            <Suspense fallback={<UserButton user={user} onClick={() => setMenuWanted(true)} />}>
+              <UserMenu defaultOpen={menuWanted} onSessions={() => setSessionsOpen(true)} />
+            </Suspense>
             {sessionsOpen && (
               <Suspense>
                 <SessionsDialog open={sessionsOpen} onOpenChange={setSessionsOpen} />

@@ -4,7 +4,9 @@ import { config } from "./server/config";
 import { font } from "./server/fonts";
 import { LoginLimiter } from "./server/rate-limit";
 import { SessionStore } from "./server/sessions";
-import index from "./web/index.html";
+
+// Dead-code eliminated per build: the executable only contains the static server, dev only the bundler route.
+const { webRoutes } = process.env.NODE_ENV === "production" ? await import("./server/static") : await import("./server/dev");
 
 const idleSeconds = config.sessionIdleDays * 86_400;
 const sessions = new SessionStore(join(config.dataDir, "sessions.db"), config.sessionSecret, idleSeconds * 1000);
@@ -26,7 +28,7 @@ const server = Bun.serve({
     "/auth/sessions/:id": { DELETE: api.revokeSession },
     "/rest/*": api.proxy,
     "/fonts/:name": font,
-    "/*": index,
+    ...webRoutes,
   },
 });
 

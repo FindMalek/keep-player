@@ -44,6 +44,17 @@ component overwrites them). App code composes them in `src/web/components/`. Ico
   Mock only the network (the mock Subsonic server), never our own modules.
 - The mock server lives in `test/mock/`. When the app calls a new Subsonic endpoint, add it there in the same PR.
 
+## How it ships
+
+`bun run build` bundles the web app into `dist/web` (minified, code-split, hashed names), precompresses every file
+(brotli + gzip), and compiles the server with those files embedded into one executable, `dist/keep-player`. In
+production the server serves them itself: hashed assets `immutable`, `index.html` `no-cache` with the CSP header. In
+development (`bun run dev`) Bun bundles on the fly with hot reload instead. e2e tests always run the executable.
+
+Pages are separate chunks (`src/web/routes.tsx`), preloaded when a link is hovered or focused and all fetched once the
+browser is idle. The first screen is budgeted (`bun run size`) and the home page must score ≥ 95 on Lighthouse
+(`e2e/lighthouse.e2e.ts`).
+
 ## Deploys
 
 Every push to `main` builds `ghcr.io/findmalek/keep-player:main` and, when the `DOKPLOY_WEBHOOK_URL` secret is set,
