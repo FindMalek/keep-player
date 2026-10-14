@@ -1,3 +1,4 @@
+import { useQuery } from "@tanstack/react-query";
 import {
   ChevronRightIcon,
   Disc3Icon,
@@ -29,9 +30,9 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
-import { api, useUser } from "@/lib/subsonic";
+import { queries } from "@/lib/queries";
+import { useUser } from "@/lib/subsonic";
 import type { Playlist } from "@/lib/types";
-import { useQuery } from "@/lib/use-query";
 import { BrandMark } from "./brand";
 import { Link } from "./link";
 
@@ -128,8 +129,8 @@ export function AppSidebar({ path, onSearch }: { path: string; onSearch: () => v
   const user = useUser() ?? "";
   const [sessionsOpen, setSessionsOpen] = useState(false);
   const [menuWanted, setMenuWanted] = useState(false);
-  const { data } = useQuery("playlists", () => api<{ playlists: { playlist?: Playlist[] } }>("getPlaylists"));
-  const playlists = (data?.playlists.playlist ?? []).sort((a, b) => a.name.localeCompare(b.name));
+  const { data } = useQuery(queries.playlists());
+  const playlists = [...(data ?? [])].sort((a, b) => a.name.localeCompare(b.name));
 
   return (
     <Sidebar collapsible="icon" className="bottom-(--bar-height) h-auto">

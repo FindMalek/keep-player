@@ -5,6 +5,8 @@ import { useSyncExternalStore } from "react";
  * every upstream call. Only the username is remembered here, to render the app shell before the first request.
  */
 const USER_KEY = "keep-player:user";
+/** "server/user" of the last session, so cached data from another account is never shown. */
+const ACCOUNT_KEY = "keep-player:account";
 /** Must match the server's CSRF check (src/server/api.ts). */
 const HEADERS = { "x-keep-player": "1" };
 
@@ -67,6 +69,33 @@ export function useCheckingSession(): boolean {
   return useSyncExternalStore(subscribe, () => checking);
 }
 
+const accountListeners = new Set<() => unknown>();
+
+/** Called when the signed-in account changes or signs out, so caches holding its data can be dropped. */
+export function onAccountChange(listener: () => unknown): void {
+  accountListeners.add(listener);
+}
+
+function currentAccount(): string {
+  try {
+    return localStorage.getItem(ACCOUNT_KEY) ?? "";
+  } catch {
+    return "";
+  }
+}
+
+/** Resolves once every listener is done (e.g. the on-disk cache is deleted), so logout can wait for it. */
+async function setAccount(next: string | null): Promise<void> {
+  const changed = currentAccount() !== (next ?? "");
+  try {
+    if (next) localStorage.setItem(ACCOUNT_KEY, next);
+    else localStorage.removeItem(ACCOUNT_KEY);
+  } catch {
+    // Without storage there is no persisted cache to protect either.
+  }
+  if (changed) await Promise.all([...accountListeners].map((listener) => listener()));
+}
+
 export async function login(name: string, password: string): Promise<void> {
   const response = await fetch("/auth/login", {
     method: "POST",
@@ -74,8 +103,9 @@ export async function login(name: string, password: string): Promise<void> {
     body: JSON.stringify({ user: name, password }),
   }).catch(() => null);
   if (!response) throw new Error("server unreachable");
-  const body = (await response.json().catch(() => ({}))) as { user?: string; error?: string };
+  const body = (await response.json().catch(() => ({}))) as { user?: string; server?: string; error?: string };
   if (!response.ok || !body.user) throw new Error(body.error ?? "login failed");
+  await setAccount(`${body.server ?? ""}/${body.user}`);
   setUser(body.user);
 }
 
@@ -87,6 +117,7 @@ export async function logout(): Promise<void> {
   } catch {
     // Nothing to clear.
   }
+  await setAccount(null);
   setUser(null);
   window.location.assign("/");
 }

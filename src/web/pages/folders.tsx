@@ -1,16 +1,11 @@
+import { useQuery } from "@tanstack/react-query";
 import { ArrowUpIcon, FolderIcon } from "lucide-react";
 import { Content, EmptyState, PageHeader, TrackList } from "@/components/library";
 import { Link } from "@/components/link";
 import { Button } from "@/components/ui/button";
 import { Item, ItemContent, ItemMedia, ItemTitle } from "@/components/ui/item";
-import { api } from "@/lib/subsonic";
-import type { Directory, Song } from "@/lib/types";
-import { useQuery } from "@/lib/use-query";
-
-interface IndexEntry {
-  name: string;
-  artist: { id: string; name: string }[];
-}
+import { queries } from "@/lib/queries";
+import type { Song } from "@/lib/types";
 
 function FolderList({ folders }: { folders: { id: string; name: string }[] }) {
   return (
@@ -36,11 +31,11 @@ function FolderList({ folders }: { folders: { id: string; name: string }[] }) {
 
 /** The library as it sits on disk: Artist / Album (Year) / tracks. */
 export function FoldersPage({ id }: { id: string | null }) {
-  const root = useQuery(id ? null : "folders:root", () => api<{ indexes: { index?: IndexEntry[] } }>("getIndexes"));
-  const directory = useQuery(id ? `folder:${id}` : null, () => api<{ directory: Directory }>("getMusicDirectory", { id: id ?? "" }));
+  const root = useQuery({ ...queries.folders(), enabled: !id });
+  const directory = useQuery({ ...queries.directory(id ?? ""), enabled: Boolean(id) });
 
   if (!id) {
-    const entries = (root.data?.indexes.index ?? []).flatMap((group) => group.artist);
+    const entries = (root.data ?? []).flatMap((group) => group.artist);
     return (
       <>
         <PageHeader title="folders" meta="/music" />
@@ -52,7 +47,7 @@ export function FoldersPage({ id }: { id: string | null }) {
     );
   }
 
-  const dir = directory.data?.directory;
+  const dir = directory.data;
   const folders = (dir?.child ?? []).filter((child) => child.isDir).map((child) => ({ id: child.id, name: child.title }));
   const songs: Song[] = (dir?.child ?? []).filter((child) => !child.isDir);
 
