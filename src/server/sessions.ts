@@ -70,7 +70,7 @@ export class SessionStore {
     const time = this.now();
     this.db
       .query(
-        "insert into sessions (hash, server, user, secret, created, seen, agent) values ($hash, $server, $user, $secret, $time, $time, $agent)",
+        "insert into sessions (hash, server, user, secret, created, seen, agent, admin) values ($hash, $server, $user, $secret, $time, $time, $agent, $admin)",
       )
       .run({
         hash: SessionStore.hash(cookie),

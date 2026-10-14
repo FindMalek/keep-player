@@ -85,5 +85,5 @@ test("Navidrome first, then LRCLIB search by normalized title and closest length
   lrclibUp = false;
   expect((await service.get(upstream, credentials, "later")).status).toBe("missing");
   lrclibUp = true;
-  expect(service.cached("later")).toBeNull();
+  expect(service.cached("default", "later")).toBeNull();
 });

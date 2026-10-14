@@ -100,24 +100,25 @@ export class LyricsService {
     private readonly now: () => number = Date.now,
   ) {}
 
-  cached(songId: string): (Lyrics & { lrclibId: number | null; fetched: number }) | null {
+  /** Song ids are only unique per server, so the cache key carries the upstream. */
+  cached(upstreamId: string, songId: string): (Lyrics & { lrclibId: number | null; fetched: number }) | null {
     const row = this.db
       .query<{ body: string; lrclib_id: number | null; fetched: number }, [string]>(
         "select body, lrclib_id, fetched from lyrics where song_id = ?",
       )
-      .get(songId);
+      .get(`${upstreamId}:${songId}`);
     return row ? { ...(JSON.parse(row.body) as Lyrics), lrclibId: row.lrclib_id, fetched: row.fetched } : null;
   }
 
-  private store(songId: string, lyrics: Lyrics, lrclibId: number | null): void {
+  private store(upstreamId: string, songId: string, lyrics: Lyrics, lrclibId: number | null): void {
     this.db
       .query("insert or replace into lyrics (song_id, status, source, lrclib_id, body, fetched) values (?, ?, ?, ?, ?, ?)")
-      .run(songId, lyrics.status, lyrics.source, lrclibId, JSON.stringify(lyrics), this.now());
+      .run(`${upstreamId}:${songId}`, lyrics.status, lyrics.source, lrclibId, JSON.stringify(lyrics), this.now());
   }
 
   /** Cached, or resolved now (Navidrome → LRCLIB exact → LRCLIB search) and cached, hits and misses alike. */
   async get(upstream: Upstream, credentials: Credentials, songId: string): Promise<Lyrics> {
-    const cached = this.cached(songId);
+    const cached = this.cached(upstream.id, songId);
     if (cached && (cached.status !== "missing" || this.now() - cached.fetched < RETRY_MISSING_MS)) {
       const { lrclibId: _id, fetched: _at, ...lyrics } = cached;
       return lyrics;
@@ -127,7 +128,7 @@ export class LyricsService {
     });
     const fromServer = fromNavidrome(own?.lyricsList?.structuredLyrics ?? []);
     if (fromServer) {
-      this.store(songId, fromServer, null);
+      this.store(upstream.id, songId, fromServer, null);
       return fromServer;
     }
     const song = (await subsonic<{ song: Song }>(upstream, credentials, "getSong", { id: songId }))?.song;
@@ -136,7 +137,7 @@ export class LyricsService {
     const found = await this.lookup(song).catch(() => undefined);
     if (found === undefined) return MISSING;
     const lyrics = found ? fromLrclib(found) : MISSING;
-    this.store(songId, lyrics, found?.id ?? null);
+    this.store(upstream.id, songId, lyrics, found?.id ?? null);
     return lyrics;
   }
 

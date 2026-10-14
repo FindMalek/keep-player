@@ -54,12 +54,15 @@ export class LyricsBackfill {
 
   private get offset(): number {
     return Number(
-      this.db.query<{ value: string }, [string]>("select value from meta where key = ?").get("lyrics-backfill-offset")?.value ?? 0,
+      this.db.query<{ value: string }, [string]>("select value from meta where key = ?").get(`lyrics-backfill-offset:${this.upstream.id}`)
+        ?.value ?? 0,
     );
   }
 
   private set offset(value: number) {
-    this.db.query("insert or replace into meta (key, value) values (?, ?)").run("lyrics-backfill-offset", String(value));
+    this.db
+      .query("insert or replace into meta (key, value) values (?, ?)")
+      .run(`lyrics-backfill-offset:${this.upstream.id}`, String(value));
   }
 
   start(): void {
@@ -96,14 +99,14 @@ export class LyricsBackfill {
         return REST_MS;
       }
       this.offset = this.offset + ids.length;
-      this.queue = ids.filter((id) => !this.lyrics.cached(id));
+      this.queue = ids.filter((id) => !this.lyrics.cached(this.upstream.id, id));
       if (!this.queue.length) return 0;
     }
     const id = this.queue.shift() as string;
-    const before = this.lyrics.cached(id);
+    const before = this.lyrics.cached(this.upstream.id, id);
     await this.lyrics.get(this.upstream, credentials, id);
     // Still not cached means LRCLIB or Navidrome didn't answer: slow down.
-    if (!before && !this.lyrics.cached(id)) {
+    if (!before && !this.lyrics.cached(this.upstream.id, id)) {
       this.queue.unshift(id);
       return this.failed();
     }

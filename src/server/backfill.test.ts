@@ -39,15 +39,15 @@ test("walks the library song by song, resumes from its saved position, and slows
   account = { user: "admin", token: "t", salt: "s" };
   await backfill.step();
   await backfill.step();
-  expect(lyrics.cached("s1")?.status).toBe("missing");
-  expect(lyrics.cached("s2")?.status).toBe("plain");
+  expect(lyrics.cached("default", "s1")?.status).toBe("missing");
+  expect(lyrics.cached("default", "s2")?.status).toBe("plain");
 
   lrclibDown = true;
   const wait = await backfill.step();
   expect(wait).toBeGreaterThan(600);
-  expect(lyrics.cached("s3")).toBeNull();
+  expect(lyrics.cached("default", "s3")).toBeNull();
   lrclibDown = false;
   await backfill.step();
-  expect(lyrics.cached("s3")?.status).toBe("missing");
-  expect(db.query<{ value: string }, []>("select value from meta where key = 'lyrics-backfill-offset'").get()?.value).toBe("3");
+  expect(lyrics.cached("default", "s3")?.status).toBe("missing");
+  expect(db.query<{ value: string }, []>("select value from meta where key = 'lyrics-backfill-offset:default'").get()?.value).toBe("3");
 });
