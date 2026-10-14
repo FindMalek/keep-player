@@ -372,9 +372,9 @@ function load(autoplay: boolean, startAt = 0): void {
 }
 
 /** Move the queue and start the new current song, or stop at the end. */
-function advance(queue: Q.Queue): void {
+function advance(queue: Q.Queue, startAt = 0): void {
   setQueue(queue);
-  if (queue.current) load(true);
+  if (queue.current) load(true, startAt);
   else {
     decks.pause();
     decks.preload(null, null, 1);
@@ -493,10 +493,10 @@ export const player = {
     applyOutputDevice();
     persist();
   },
-  /** Start a context (album, playlist, …) at `start`. Your up-next queue stays. */
-  play(songs: Song[], start = 0, options: { shuffle?: boolean; album?: boolean; source?: Q.QueueSource } = {}): void {
+  /** Start a context (album, playlist, …) at `start`, `startAt` seconds in (a lyrics hit). Your up-next queue stays. */
+  play(songs: Song[], start = 0, options: { shuffle?: boolean; album?: boolean; source?: Q.QueueSource; startAt?: number } = {}): void {
     if (!songs.length) return;
-    advance(Q.playContext(state.queue, songs, start, options));
+    advance(Q.playContext(state.queue, songs, start, options), options.startAt);
   },
   toggle(force?: boolean): void {
     if (!current()) return;

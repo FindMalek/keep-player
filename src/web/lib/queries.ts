@@ -2,7 +2,7 @@ import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persi
 import { infiniteQueryOptions, type Query, QueryClient, queryOptions } from "@tanstack/react-query";
 import { del, get, set } from "idb-keyval";
 import type { Lyrics } from "../../shared/lyrics";
-import type { IndexStatus } from "../../shared/search";
+import type { IndexStatus, LyricsSearch } from "../../shared/search";
 import { api, onAccountChange } from "./subsonic";
 import type { Album, Artist, ArtistInfo, Directory, Genre, Playlist, Song } from "./types";
 
@@ -31,7 +31,8 @@ export const persister = createAsyncStoragePersister({
 
 /** Search results change with every keystroke and offsets must be fresh: neither is kept across reloads. */
 export const shouldPersist = (query: Query) =>
-  query.state.status === "success" && !["search", "lyricsOffset", "session", "searchIndex"].includes(query.queryKey[0] as string);
+  query.state.status === "success" &&
+  !["search", "lyricsSearch", "lyricsOffset", "session", "searchIndex"].includes(query.queryKey[0] as string);
 
 /** Long lists load this many items at a time, the next page fetched when the reader is 80% down. */
 export const PAGE_SIZE = 200;
@@ -206,6 +207,16 @@ export const queries = {
       },
       staleTime: 0,
       refetchInterval: (query) => (query.state.data?.building ? 2000 : false),
+    }),
+  lyricsSearch: (query: string) =>
+    queryOptions({
+      queryKey: ["lyricsSearch", query],
+      queryFn: async ({ signal }): Promise<LyricsSearch> => {
+        const response = await fetch(`/api/search/lyrics?q=${encodeURIComponent(query)}`, { headers: { "x-keep-player": "1" }, signal });
+        if (!response.ok) throw new Error(`lyrics search: ${response.status}`);
+        return (await response.json()) as LyricsSearch;
+      },
+      staleTime: MINUTE,
     }),
   search: (query: string) =>
     queryOptions({

@@ -1,14 +1,18 @@
+import type { Database } from "bun:sqlite";
 import { createHash, randomBytes } from "node:crypto";
 import type { Server } from "bun";
+import type { LyricsSearch } from "../shared/search";
 import type { Upstream } from "./config";
 import { type CoverCache, snapCoverSize } from "./covers";
 import type { LyricsService } from "./lyrics";
+import { lyricsCoverage, queryLyrics } from "./lyrics-search";
 import type { LoginLimiter } from "./rate-limit";
 import type { IndexSync } from "./search-index";
-import type { SessionStore } from "./sessions";
+import type { Session, SessionStore } from "./sessions";
 import { subsonic, upstreamQuery } from "./subsonic";
 
 const COOKIE = "kp_session";
+const FOLDERS_TTL_MS = 10 * 60_000;
 /** Requests that change or read data must carry this header. Cross-site pages can't set it without a CORS preflight. */
 export const CSRF_HEADER = "x-keep-player";
 
@@ -102,14 +106,29 @@ export interface ApiOptions {
   lyrics: LyricsService;
   /** Search index sync per upstream id. */
   indexes: Map<string, IndexSync>;
+  /** library.db: lyrics cache and search index. */
+  library: Database;
   sessions: SessionStore;
   limiter: LoginLimiter;
   idleSeconds: number;
   trustProxy: boolean;
 }
 
-export function createApi({ upstreams, covers, lyrics, indexes, sessions, limiter, idleSeconds, trustProxy }: ApiOptions) {
+export function createApi({ upstreams, covers, lyrics, indexes, library, sessions, limiter, idleSeconds, trustProxy }: ApiOptions) {
   const upstreamFor = (id: string) => upstreams.find((upstream) => upstream.id === id);
+
+  // The music folders (libraries) each session may see, asked as that user so Navidrome decides. Ten minutes.
+  const folderCache = new Map<string, { folders: string[]; at: number }>();
+  async function foldersFor(session: Session, upstream: Upstream): Promise<string[]> {
+    const cached = folderCache.get(session.id);
+    if (cached && Date.now() - cached.at < FOLDERS_TTL_MS) return cached.folders;
+    const result = await subsonic<{ musicFolders: { musicFolder?: { id: number | string }[] } }>(upstream, session, "getMusicFolders");
+    // Unknown means nothing: never widen access because Navidrome didn't answer.
+    if (!result) return [];
+    const folders = (result.musicFolders.musicFolder ?? []).map((folder) => String(folder.id));
+    folderCache.set(session.id, { folders, at: Date.now() });
+    return folders;
+  }
 
   function clientIp(request: Request, server: Server<unknown>): string {
     if (trustProxy) {
@@ -287,5 +306,18 @@ export function createApi({ upstreams, covers, lyrics, indexes, sessions, limite
     return json(index.status());
   }
 
-  return { login, logout, current, listSessions, revokeSession, proxy, cover, songLyrics, lyricsOffset, searchIndex };
+  /** `/api/search/lyrics?q=`: songs by their words, in the folders this user may see, plus how much is indexed. */
+  async function searchLyrics(request: Request): Promise<Response> {
+    if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
+    const session = sessions.get(cookieValue(request));
+    if (!session) return json({ error: "signed out" }, 401);
+    const upstream = upstreamFor(session.server);
+    if (!upstream) return json({ error: "server removed from config" }, 401);
+    const query = (new URL(request.url).searchParams.get("q") ?? "").slice(0, 200);
+    const hits = query.trim() ? queryLyrics(library, upstream.id, query, 8, await foldersFor(session, upstream)) : [];
+    const body: LyricsSearch = { hits, ...lyricsCoverage(library, upstream.id) };
+    return json(body, 200, { "cache-control": "private, no-cache" });
+  }
+
+  return { login, logout, current, listSessions, revokeSession, proxy, cover, songLyrics, lyricsOffset, searchIndex, searchLyrics };
 }
