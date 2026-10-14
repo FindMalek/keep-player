@@ -70,6 +70,7 @@ export function AlbumPage({ id }: { id: string }) {
     );
   if (!album) return null;
   const songs = album.song ?? [];
+  const source = { kind: "album", name: album.name, href: `/album/${album.id}` };
   const first = songs[0];
   const genres = album.genres?.map((genre) => genre.name) ?? (album.genre ? [album.genre] : []);
 
@@ -79,8 +80,8 @@ export function AlbumPage({ id }: { id: string }) {
         cover={album.coverArt}
         kind={<Kind>album</Kind>}
         title={album.name}
-        onPlay={() => player.play(songs, 0, { album: true, shuffle: false })}
-        onShuffle={() => player.play(songs, 0, { shuffle: true })}
+        onPlay={() => player.play(songs, 0, { album: true, shuffle: false, source })}
+        onShuffle={() => player.play(songs, -1, { shuffle: true, source })}
         onQueue={() => player.addToQueue(songs)}
       >
         {album.artistId && (
@@ -120,6 +121,7 @@ export function AlbumPage({ id }: { id: string }) {
           showArtist={songs.some((song) => song.artist !== album.artist)}
           numbered="track"
           asAlbum
+          source={source}
         />
         {album.musicBrainzId && (
           <Button
@@ -149,6 +151,7 @@ export function ArtistPage({ id }: { id: string }) {
     );
   if (!artist) return null;
   const albums = [...(artist.album ?? [])].sort((a, b) => (b.year ?? 0) - (a.year ?? 0));
+  const source = { kind: "artist", name: artist.name, href: `/artist/${artist.id}` };
   const bio = info.data?.biography?.replace(/<a [^>]*>.*?<\/a>\.?/g, "").trim();
   const everything = async (): Promise<Song[]> =>
     (await Promise.all(albums.map((album) => queryClient.fetchQuery(queries.album(album.id))))).flatMap((album) => album.song ?? []);
@@ -159,8 +162,8 @@ export function ArtistPage({ id }: { id: string }) {
         cover={artist.coverArt}
         kind={<Kind>artist</Kind>}
         title={artist.name}
-        onPlay={() => void everything().then((songs) => player.play(songs, 0, { shuffle: false }))}
-        onShuffle={() => void everything().then((songs) => player.play(songs, 0, { shuffle: true }))}
+        onPlay={() => void everything().then((songs) => player.play(songs, 0, { shuffle: false, source }))}
+        onShuffle={() => void everything().then((songs) => player.play(songs, -1, { shuffle: true, source }))}
         onQueue={() => void everything().then(player.addToQueue)}
       >
         <span className="text-muted-foreground">{plural(albums.length, "album")}</span>
@@ -168,7 +171,7 @@ export function ArtistPage({ id }: { id: string }) {
       </Hero>
       {(top.data?.length ?? 0) > 0 && (
         <Section title="popular">
-          <TrackList songs={top.data ?? []} showArtist={false} />
+          <TrackList songs={top.data ?? []} showArtist={false} source={source} />
         </Section>
       )}
       <Section title="albums">
@@ -200,6 +203,7 @@ export function PlaylistPage({ id }: { id: string }) {
     );
   if (!playlist) return null;
   const songs = playlist.entry ?? [];
+  const source = { kind: "playlist", name: playlist.name.split(" / ").at(-1) ?? playlist.name, href: `/playlist/${playlist.id}` };
   const parts = playlist.name.split(" / ");
 
   return (
@@ -226,15 +230,15 @@ export function PlaylistPage({ id }: { id: string }) {
           )
         }
         title={parts.at(-1) ?? playlist.name}
-        onPlay={() => player.play(songs, 0, { shuffle: false })}
-        onShuffle={() => player.play(songs, 0, { shuffle: true })}
+        onPlay={() => player.play(songs, 0, { shuffle: false, source })}
+        onShuffle={() => player.play(songs, -1, { shuffle: true, source })}
         onQueue={() => player.addToQueue(songs)}
       >
         <span className="text-muted-foreground">{[plural(songs.length, "track"), length(playlist.duration)].join(" · ")}</span>
         {playlist.comment && <Bio>{playlist.comment}</Bio>}
       </Hero>
       <Content>
-        <TrackList songs={songs} />
+        <TrackList songs={songs} source={source} />
       </Content>
     </>
   );

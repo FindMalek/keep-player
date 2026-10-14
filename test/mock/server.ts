@@ -243,6 +243,25 @@ function handle(endpoint: string, params: Params, request: Request): Response {
     }
     case "getPlaylists":
       return ok({ playlists: { playlist: library.playlists.map(({ entry: _entry, ...playlist }) => playlist) } });
+    case "createPlaylist": {
+      const entry = params.getAll("songId").flatMap((songId) => songsById.get(songId) ?? []);
+      const playlist = {
+        id: `pl-${library.playlists.length}-${Date.now()}`,
+        name: params.get("name") ?? "untitled",
+        songCount: entry.length,
+        duration: entry.reduce((sum, song) => sum + (song.duration ?? 0), 0),
+        owner: USER,
+        changed: new Date().toISOString(),
+        entry,
+      };
+      library.playlists.push(playlist);
+      return ok({ playlist });
+    }
+    case "deletePlaylist": {
+      const at = library.playlists.findIndex((item) => item.id === id);
+      if (at >= 0) library.playlists.splice(at, 1);
+      return ok();
+    }
     case "getPlaylist": {
       const playlist = library.playlists.find((item) => item.id === id);
       return playlist ? ok({ playlist }) : fail(70, "playlist not found");

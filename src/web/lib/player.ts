@@ -1,46 +1,38 @@
+import { del, get, set as setStored } from "idb-keyval";
 import { useRef, useSyncExternalStore } from "react";
 import type { FrameSource } from "./audio/types";
-import { coverUrl, preloadCover, scrobble, streamUrl } from "./subsonic";
+import * as Q from "./queue";
+import { api, coverUrl, onAccountChange, preloadCover, scrobble, streamUrl } from "./subsonic";
 import type { Song } from "./types";
 
-export type Repeat = "off" | "all" | "one";
+export type { Entry, QueueSource, Repeat } from "./queue";
 
 export interface PlayerState {
-  queue: Song[];
-  index: number;
+  queue: Q.Queue;
   playing: boolean;
   buffering: boolean;
   duration: number;
   volume: number;
   muted: boolean;
-  shuffle: boolean;
-  repeat: Repeat;
   /** Audio output device id; null is the system default. */
   outputDevice: string | null;
-  /** "album" when the queue is one album in order, so ReplayGain uses album gain. */
-  context: "album" | "mixed";
   error: string | null;
 }
 
-const STORAGE_KEY = "keep-player:state";
+/** The queue lives in IndexedDB: a shuffled library is too big for localStorage, and writes don't block the page. */
+const STORAGE_KEY = "keep-player:player";
 const SCROBBLE_AFTER_SEC = 240;
 
 let state: PlayerState = {
-  queue: [],
-  index: -1,
+  queue: Q.EMPTY_QUEUE,
   playing: false,
   buffering: false,
   duration: 0,
   volume: 0.8,
   muted: false,
-  shuffle: false,
-  repeat: "off",
   outputDevice: null,
-  context: "mixed",
   error: null,
 };
-/** Order before shuffling, so turning shuffle off restores it. */
-let unshuffled: Song[] | null = null;
 const listeners = new Set<() => void>();
 
 let audio: HTMLAudioElement | null = null;
@@ -85,15 +77,8 @@ let persistQueued = false;
 
 function writeSnapshot(): void {
   persistQueued = false;
-  try {
-    const { queue, index, volume, muted, shuffle, repeat, outputDevice, context: ctx } = state;
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({ queue, index, position, volume, muted, shuffle, repeat, outputDevice, context: ctx }),
-    );
-  } catch {
-    // Storage full or blocked: resuming after reload is a convenience only.
-  }
+  const { queue, volume, muted, outputDevice } = state;
+  void setStored(STORAGE_KEY, { queue, position, volume, muted, outputDevice }).catch(() => undefined);
 }
 
 /** The snapshot holds the whole queue, so write it once when the browser is idle, not on every change. */
@@ -106,30 +91,53 @@ function persist(): void {
 
 window.addEventListener("pagehide", writeSnapshot);
 
-function restore(): void {
-  try {
-    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "null") as (Partial<PlayerState> & { position?: number }) | null;
-    if (saved?.queue?.length) {
-      const { position: savedPosition = 0, ...rest } = saved;
-      state = { ...state, ...rest, playing: false, buffering: false };
-      position = savedPosition;
-    }
-  } catch {
-    // Ignore a corrupt or missing snapshot.
-  }
+type Snapshot = Pick<PlayerState, "queue" | "volume" | "muted" | "outputDevice"> & { position: number };
+
+void get<Snapshot>(STORAGE_KEY)
+  .then((saved) => {
+    // Something already started playing while we were reading; keep that.
+    if (!saved?.queue || state.queue.current) return;
+    position = saved.position ?? 0;
+    set({
+      queue: { ...Q.EMPTY_QUEUE, ...saved.queue },
+      volume: saved.volume ?? state.volume,
+      muted: Boolean(saved.muted),
+      outputDevice: saved.outputDevice ?? null,
+      duration: saved.queue.current?.song.duration ?? 0,
+    });
+    for (const listener of positionListeners) listener();
+  })
+  .catch(() => undefined);
+try {
+  // Older versions kept the queue in localStorage.
+  localStorage.removeItem("keep-player:state");
+} catch {
+  // Nothing to clean up.
 }
-restore();
+
+// Another account (or logout): its queue isn't yours.
+onAccountChange(async () => {
+  player.clear();
+  await del(STORAGE_KEY).catch(() => undefined);
+});
 
 function current(): Song | undefined {
-  return state.queue[state.index];
+  return state.queue.current?.song;
+}
+
+function setQueue(queue: Q.Queue): void {
+  set({ queue });
+  persist();
 }
 
 /** dB → linear, clipped so the track's peak never exceeds full scale. */
 function replayGainFactor(song: Song | undefined): number {
   const rg = song?.replayGain;
   if (!rg) return 1;
-  const db = state.context === "album" ? (rg.albumGain ?? rg.trackGain) : (rg.trackGain ?? rg.albumGain);
-  const peak = state.context === "album" ? (rg.albumPeak ?? rg.trackPeak) : (rg.trackPeak ?? rg.albumPeak);
+  // Album gain only while an album plays in order from its context; anything else is track gain.
+  const album = state.queue.context.album && state.queue.current?.from === "context";
+  const db = album ? (rg.albumGain ?? rg.trackGain) : (rg.trackGain ?? rg.albumGain);
+  const peak = album ? (rg.albumPeak ?? rg.trackPeak) : (rg.trackPeak ?? rg.albumPeak);
   if (db === undefined) return 1;
   const factor = 10 ** (db / 20);
   return peak ? Math.min(factor, 1 / peak) : factor;
@@ -199,20 +207,21 @@ function applyOutputDevice(): void {
   void target?.setSinkId?.(id).catch(() => set({ outputDevice: null }));
 }
 
-function load(index: number, autoplay: boolean, startAt = 0): void {
-  const song = state.queue[index];
+/** Load the queue's current song into the element; plays it when `autoplay`. */
+function load(autoplay: boolean, startAt = 0): void {
+  const song = current();
   if (!song) return;
   const element = ensureAudio();
   scrobbled = false;
-  set({ index, duration: song.duration ?? 0, error: null, buffering: autoplay });
+  set({ duration: song.duration ?? 0, error: null, buffering: autoplay });
   setPosition(startAt);
   element.src = streamUrl(song.id);
   // Seeking before metadata is loaded is ignored by some browsers.
   if (startAt) element.addEventListener("loadedmetadata", () => (element.currentTime = startAt), { once: true });
   applyVolume();
   updateMediaSession();
-  // The player bar shows the next covers within minutes; have them cached by then.
-  for (const next of state.queue.slice(index + 1, index + 3)) preloadCover(next.coverArt, 42);
+  // The player bar shows the next cover within minutes; have it cached by then.
+  preloadCover(Q.peekNext(state.queue)?.coverArt, 42);
   persist();
   if (autoplay) {
     ensureGraph();
@@ -223,30 +232,20 @@ function load(index: number, autoplay: boolean, startAt = 0): void {
   }
 }
 
-function onEnded(): void {
-  if (state.repeat === "one") {
-    load(state.index, true);
-    return;
+/** Move the queue and start the new current song, or stop at the end. */
+function advance(queue: Q.Queue): void {
+  setQueue(queue);
+  if (queue.current) load(true);
+  else {
+    audio?.pause();
+    set({ playing: false });
+    setPosition(0);
   }
-  if (state.index < state.queue.length - 1) {
-    load(state.index + 1, true);
-    return;
-  }
-  if (state.repeat === "all" && state.queue.length) {
-    load(0, true);
-    return;
-  }
-  set({ playing: false });
-  setPosition(0);
 }
 
-function shuffled<T>(items: T[]): T[] {
-  const copy = [...items];
-  for (let i = copy.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [copy[i], copy[j]] = [copy[j] as T, copy[i] as T];
-  }
-  return copy;
+function onEnded(): void {
+  if (state.queue.repeat === "one") load(true);
+  else advance(Q.next(state.queue));
 }
 
 function updateMediaSession(): void {
@@ -289,24 +288,10 @@ export const player = {
     applyOutputDevice();
     persist();
   },
-  /** Replace the queue and start playing at `start`. */
-  play(songs: Song[], start = 0, options: { shuffle?: boolean; album?: boolean } = {}): void {
+  /** Start a context (album, playlist, …) at `start`. Your up-next queue stays. */
+  play(songs: Song[], start = 0, options: { shuffle?: boolean; album?: boolean; source?: Q.QueueSource } = {}): void {
     if (!songs.length) return;
-    let queue = songs;
-    let index = start;
-    unshuffled = null;
-    if (options.shuffle ?? state.shuffle) {
-      unshuffled = songs;
-      const first = songs[start];
-      queue = first ? [first, ...shuffled(songs.filter((_, i) => i !== start))] : shuffled(songs);
-      index = 0;
-    }
-    set({
-      queue,
-      shuffle: options.shuffle ?? state.shuffle,
-      context: options.album && !(options.shuffle ?? state.shuffle) ? "album" : "mixed",
-    });
-    load(index, true);
+    advance(Q.playContext(state.queue, songs, start, options));
   },
   toggle(force?: boolean): void {
     if (!current()) return;
@@ -314,7 +299,7 @@ export const player = {
     const shouldPlay = force ?? element.paused;
     if (shouldPlay) {
       if (!element.src) {
-        load(state.index, true, position);
+        load(true, position);
         return;
       }
       ensureGraph();
@@ -325,19 +310,18 @@ export const player = {
     }
   },
   next(): void {
-    if (state.index < state.queue.length - 1) load(state.index + 1, true);
-    else if (state.repeat === "all" && state.queue.length) load(0, true);
+    if (current()) advance(Q.next(state.queue));
   },
   /** Restart the track if more than 3 s in, otherwise go back one. */
   previous(): void {
-    if (position > 3 || state.index === 0) {
+    if (position > 3 || state.queue.history.length === 0) {
       player.seek(0);
       return;
     }
-    load(state.index - 1, true);
+    advance(Q.previous(state.queue));
   },
-  jumpTo(index: number): void {
-    load(index, true);
+  jumpTo(entry: Q.Entry): void {
+    advance(Q.jumpTo(state.queue, entry));
   },
   seek(seconds: number): void {
     if (!audio || !current()) return;
@@ -355,63 +339,45 @@ export const player = {
     persist();
   },
   toggleShuffle(): void {
-    const playingSong = current();
-    if (!state.shuffle) {
-      unshuffled = state.queue;
-      const rest = state.queue.filter((_, i) => i !== state.index);
-      set({ shuffle: true, context: "mixed", queue: playingSong ? [playingSong, ...shuffled(rest)] : shuffled(rest), index: 0 });
-    } else {
-      const original = unshuffled ?? state.queue;
-      set({
-        shuffle: false,
-        queue: original,
-        index: Math.max(
-          0,
-          original.findIndex((song) => song.id === playingSong?.id),
-        ),
-      });
-      unshuffled = null;
-    }
+    setQueue(Q.setShuffle(state.queue, !state.queue.shuffle));
     applyVolume();
-    persist();
   },
-  setRepeat(repeat: Repeat): void {
-    set({ repeat });
-    persist();
+  setRepeat(repeat: Q.Repeat): void {
+    setQueue({ ...state.queue, repeat });
   },
   cycleRepeat(): void {
-    set({ repeat: state.repeat === "off" ? "all" : state.repeat === "all" ? "one" : "off" });
-    persist();
+    const { repeat } = state.queue;
+    player.setRepeat(repeat === "off" ? "all" : repeat === "all" ? "one" : "off");
   },
+  /** To the top of your queue; starts playing if nothing is. */
   playNext(songs: Song[]): void {
-    if (!current()) {
-      player.play(songs);
-      return;
-    }
-    const queue = [...state.queue];
-    queue.splice(state.index + 1, 0, ...songs);
-    set({ queue, context: "mixed" });
-    persist();
+    if (!current()) player.play(songs);
+    else setQueue(Q.playNext(state.queue, songs));
   },
+  /** To the end of your queue; starts playing if nothing is. */
   addToQueue(songs: Song[]): void {
-    if (!current()) {
-      player.play(songs);
-      return;
-    }
-    set({ queue: [...state.queue, ...songs], context: "mixed" });
-    persist();
+    if (!current()) player.play(songs);
+    else setQueue(Q.addToQueue(state.queue, songs));
   },
-  remove(index: number): void {
-    if (index === state.index) return;
-    const queue = state.queue.filter((_, i) => i !== index);
-    set({ queue, index: index < state.index ? state.index - 1 : state.index });
-    persist();
+  remove(entry: Q.Entry): void {
+    setQueue(Q.remove(state.queue, entry));
+  },
+  clearUpNext(): void {
+    setQueue(Q.clearUpNext(state.queue));
+  },
+  clearContext(): void {
+    setQueue(Q.clearContext(state.queue));
+  },
+  /** Saves what's playing and everything still to come as a new playlist. */
+  async saveAsPlaylist(name: string): Promise<void> {
+    const { current: playing, upNext } = state.queue;
+    const songs = [...(playing ? [playing] : []), ...upNext, ...Q.contextUpcoming(state.queue)].map((entry) => entry.song.id);
+    await api("createPlaylist", { name, songId: songs });
   },
   clear(): void {
     audio?.pause();
     if (audio) audio.removeAttribute("src");
-    unshuffled = null;
-    set({ queue: [], index: -1, playing: false, duration: 0 });
+    set({ queue: { ...Q.EMPTY_QUEUE, shuffle: state.queue.shuffle, repeat: state.queue.repeat }, playing: false, duration: 0 });
     setPosition(0);
     persist();
   },
@@ -469,5 +435,5 @@ export function usePosition<T = number>(selector: (seconds: number) => T = (seco
 }
 
 export function currentSong(value: PlayerState): Song | undefined {
-  return value.queue[value.index];
+  return value.queue.current?.song;
 }

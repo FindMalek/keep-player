@@ -77,7 +77,11 @@ export function SearchPalette({ open, onOpenChange }: { open: boolean; onOpenCha
             {songs.length > 0 && (
               <CommandGroup heading="songs">
                 {songs.map((song, index) => (
-                  <CommandItem key={song.id} value={`so-${song.id}`} onSelect={run(() => player.play(songs, index))}>
+                  <CommandItem
+                    key={song.id}
+                    value={`so-${song.id}`}
+                    onSelect={run(() => player.play(songs, index, { source: { kind: "search", name: `“${query}”` } }))}
+                  >
                     <Row cover={song.coverArt} title={song.title} sub={`${song.artist ?? ""} · ${song.album ?? ""}`} />
                   </CommandItem>
                 ))}

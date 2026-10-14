@@ -98,8 +98,8 @@ function NowPlaying({ song }: { song: Song }) {
 export function PlayerBar({ panel, onPanel }: { panel: Panel; onPanel: (panel: Panel) => void }) {
   const controller = useEngineController();
   const song = usePlayer(currentSong);
-  const shuffle = usePlayer((state) => state.shuffle);
-  const repeat = usePlayer((state) => state.repeat);
+  const shuffle = usePlayer((state) => state.queue.shuffle);
+  const repeat = usePlayer((state) => state.queue.repeat);
   const buffering = usePlayer((state) => state.buffering);
   const error = usePlayer((state) => state.error);
   if (!song) return null;
