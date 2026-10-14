@@ -126,7 +126,7 @@ function UserButton({ user, onClick }: { user: string; onClick: () => void }) {
   );
 }
 
-export function AppSidebar({ path, onSearch }: { path: string; onSearch: () => void }) {
+export function AppSidebar({ path, onSearch, onShortcuts }: { path: string; onSearch: () => void; onShortcuts: () => void }) {
   const user = useUser() ?? "";
   const [sessionsOpen, setSessionsOpen] = useState(false);
   const [menuWanted, setMenuWanted] = useState(false);
@@ -194,7 +194,12 @@ export function AppSidebar({ path, onSearch }: { path: string; onSearch: () => v
         <SidebarMenu>
           <SidebarMenuItem>
             <Suspense fallback={<UserButton user={user} onClick={() => setMenuWanted(true)} />}>
-              <UserMenu defaultOpen={menuWanted} onSessions={() => setSessionsOpen(true)} onStorage={() => setStorageOpen(true)} />
+              <UserMenu
+                defaultOpen={menuWanted}
+                onSessions={() => setSessionsOpen(true)}
+                onStorage={() => setStorageOpen(true)}
+                onShortcuts={onShortcuts}
+              />
             </Suspense>
             {storageOpen && (
               <Suspense>
