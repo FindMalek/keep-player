@@ -5,9 +5,10 @@ import tailwind from "bun-plugin-tailwind";
  * Fails when the JS and CSS the first screen needs grow past the budget (gzipped KB). Lazy chunks (⌘K, later pages)
  * are reported but not budgeted. Tighten as the app gets faster, never loosen without saying why in the PR.
  */
-// React DOM alone is ~62 KB, TanStack Query + its IndexedDB persistence ~13 KB (#18); the rest is Base UI (sidebar
-// tooltips need floating-ui on the first screen) and the app. Lighthouse ≥ 95 (e2e/lighthouse.e2e.ts) is the real gate.
-const BUDGET_KB = { js: 175, css: 30 };
+// React DOM alone is ~62 KB, TanStack Query + its IndexedDB persistence ~13 KB (#18), the playback engine (queue model,
+// two-deck gapless, resilience) a few more; the rest is Base UI (sidebar tooltips need floating-ui on the first screen)
+// and the app. Lighthouse ≥ 95 (e2e/lighthouse.e2e.ts) is the real gate.
+const BUDGET_KB = { js: 180, css: 30 };
 
 const result = await Bun.build({
   entrypoints: ["src/web/index.html"],

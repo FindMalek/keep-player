@@ -2,6 +2,7 @@ import {
   ChevronDownIcon,
   ListMusicIcon,
   MicVocalIcon,
+  MoonIcon,
   PauseIcon,
   PlayIcon,
   Repeat1Icon,
@@ -14,7 +15,7 @@ import {
   Volume2Icon,
   VolumeXIcon,
 } from "lucide-react";
-import { type ComponentProps, lazy, Suspense } from "react";
+import { lazy, Suspense } from "react";
 import {
   AudioPlayer,
   AudioPlayerControls,
@@ -32,30 +33,14 @@ import { quality } from "@/lib/format";
 import { currentSong, player, usePlayer, usePosition } from "@/lib/player";
 import type { Song } from "@/lib/types";
 import { CAN_PICK_OUTPUT } from "@/lib/use-output-devices";
-import { cn } from "@/lib/utils";
 import { Cover } from "./cover";
 import { Hint } from "./hint";
 import { Link } from "./link";
+import { ToolButton } from "./tool-button";
 
 export type Panel = "queue" | "lyrics" | null;
 
 const ICON_BUTTON = "size-8 rounded-none text-muted-foreground hover:bg-transparent hover:text-foreground";
-
-/** Ghost icon button; `on` adds the small square under it that marks an active mode. */
-function ToolButton({ on, className, ...props }: ComponentProps<typeof Button> & { on?: boolean }) {
-  return (
-    <Button
-      variant="ghost"
-      size="icon"
-      className={cn(
-        "relative text-muted-foreground hover:text-foreground",
-        on && "text-foreground after:absolute after:bottom-0.5 after:left-1/2 after:size-1 after:-translate-x-1/2 after:bg-foreground",
-        className,
-      )}
-      {...props}
-    />
-  );
-}
 
 /** audiocn's time readout reads the live position; this re-renders it once a second instead of every frame. */
 function Elapsed() {
@@ -65,6 +50,18 @@ function Elapsed() {
 
 // The device menu (select + permission flow) loads after first paint; the same icon stands in until then.
 const OutputDevice = lazy(() => import("./output-device").then((module) => ({ default: module.OutputDevice })));
+
+// The sleep menu (a dropdown) also loads after first paint.
+const SleepMenu = lazy(() => import("./sleep-menu").then((module) => ({ default: module.SleepMenu })));
+
+function SleepFallback() {
+  const on = usePlayer((state) => state.sleep !== null);
+  return (
+    <ToolButton on={on} aria-label="sleep timer" disabled>
+      <MoonIcon />
+    </ToolButton>
+  );
+}
 
 function OutputDeviceFallback() {
   return (
@@ -151,9 +148,20 @@ export function PlayerBar({ panel, onPanel }: { panel: Panel; onPanel: (panel: P
         </div>
 
         <div className="flex min-w-0 items-center justify-end gap-1">
-          <span className="mr-2 truncate font-mono text-[11px] text-muted-foreground">
-            {buffering ? "loading…" : (error ?? quality(song.suffix, song.bitRate))}
-          </span>
+          {error ? (
+            <span className="mr-2 flex min-w-0 items-center gap-1.5 font-mono text-[11px] text-destructive">
+              <span className="truncate" title={error}>
+                {error}
+              </span>
+              <Button variant="link" size="xs" className="h-auto p-0 font-mono text-[11px]" onClick={player.retry}>
+                retry
+              </Button>
+            </span>
+          ) : (
+            <span className="mr-2 truncate font-mono text-[11px] text-muted-foreground">
+              {buffering ? "loading…" : quality(song.suffix, song.bitRate)}
+            </span>
+          )}
           <Hint label="lyrics" keys={["l"]}>
             <ToolButton on={panel === "lyrics"} onClick={() => onPanel(panel === "lyrics" ? null : "lyrics")} aria-label="lyrics">
               <MicVocalIcon />
@@ -164,6 +172,9 @@ export function PlayerBar({ panel, onPanel }: { panel: Panel; onPanel: (panel: P
               <ListMusicIcon />
             </ToolButton>
           </Hint>
+          <Suspense fallback={<SleepFallback />}>
+            <SleepMenu />
+          </Suspense>
           {CAN_PICK_OUTPUT && (
             <Suspense fallback={<OutputDeviceFallback />}>
               <OutputDevice />

@@ -5,6 +5,7 @@ import { PageSlot, usePageHost } from "@/components/page-host";
 import { type Panel, PlayerBar } from "@/components/player-bar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { notify } from "@/lib/notify";
 import { PageScrollContext } from "@/lib/page-scroll";
 import { currentSong, player, usePlayer } from "@/lib/player";
 import { usePath } from "@/lib/router";
@@ -91,6 +92,10 @@ export function App() {
         ArrowLeft: () => (event.shiftKey ? player.previous() : player.seek(player.getPosition() - 5)),
         m: player.toggleMute,
         s: player.toggleShuffle,
+        S: () => {
+          player.toggleStopAfterCurrent();
+          notify({ message: player.getState().sleep ? "will stop after this song" : "will keep playing" });
+        },
         r: player.cycleRepeat,
         q: () => setPanel((value) => (value === "queue" ? null : "queue")),
         l: () => setPanel((value) => (value === "lyrics" ? null : "lyrics")),
