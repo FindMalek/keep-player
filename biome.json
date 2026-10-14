@@ -32,27 +32,5 @@
     "parser": {
       "tailwindDirectives": true
     }
-  },
-  "overrides": [
-    {
-      "includes": [
-        "src/web/components/library.tsx",
-        "src/web/components/search-palette.tsx",
-        "src/web/components/side-panels.tsx",
-        "src/web/lib/use-query.ts",
-        "src/web/pages/browse.tsx"
-      ],
-      "linter": {
-        "rules": {
-          "a11y": "off",
-          "suspicious": {
-            "noArrayIndexKey": "off"
-          },
-          "correctness": {
-            "useExhaustiveDependencies": "off"
-          }
-        }
-      }
-    }
-  ]
+  }
 }

@@ -20,9 +20,11 @@ export default defineConfig({
       reuseExistingServer: !process.env.CI,
     },
     {
-      command: "bun src/server.ts",
+      // The real artifact: the compiled executable with the bundled, minified, code-split app.
+      command: "bun scripts/build.ts && ./dist/keep-player",
       url: `http://127.0.0.1:${APP}/healthz`,
-      env: { PORT: String(APP), NAVIDROME_URL: `http://127.0.0.1:${MOCK}`, NODE_ENV: "production" },
+      env: { PORT: String(APP), NAVIDROME_URL: `http://127.0.0.1:${MOCK}` },
+      timeout: 120_000,
       reuseExistingServer: !process.env.CI,
     },
   ],

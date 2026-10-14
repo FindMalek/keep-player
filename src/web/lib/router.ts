@@ -23,7 +23,7 @@ export function navigate(event: MouseEvent<HTMLAnchorElement>): void {
   if (!href || href === window.location.pathname) return;
   window.history.pushState(null, "", href);
   window.dispatchEvent(new Event(NAVIGATE));
-  document.querySelector(".page")?.scrollTo(0, 0);
+  document.querySelector("[data-page-scroll]")?.scrollTo(0, 0);
 }
 
 /** Programmatic navigation (search results, keyboard actions). */
@@ -31,7 +31,7 @@ export function go(path: string): void {
   if (path === window.location.pathname + window.location.search) return;
   window.history.pushState(null, "", path);
   window.dispatchEvent(new Event(NAVIGATE));
-  document.querySelector(".page")?.scrollTo(0, 0);
+  document.querySelector("[data-page-scroll]")?.scrollTo(0, 0);
 }
 
 export function useSearchParam(name: string): string {

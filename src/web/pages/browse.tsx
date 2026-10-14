@@ -1,16 +1,27 @@
 import { useState } from "react";
-import { AlbumGrid, Empty, PageHeader, Section, TrackList } from "../components/library";
-import { plural } from "../lib/format";
-import { player } from "../lib/player";
-import { navigate } from "../lib/router";
-import { api } from "../lib/subsonic";
-import type { Album, Artist, Genre, Song } from "../lib/types";
-import { useQuery } from "../lib/use-query";
+import { AlbumGrid, Content, EmptyState, PageHeader, Section, TrackList } from "@/components/library";
+import { Link } from "@/components/link";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { plural } from "@/lib/format";
+import { player } from "@/lib/player";
+import { api } from "@/lib/subsonic";
+import type { Album, Artist, Genre, Song } from "@/lib/types";
+import { useQuery } from "@/lib/use-query";
 
 type AlbumList = { albumList2: { album?: Album[] } };
 
 const albums = (type: string, size: number, extra: Record<string, string | number> = {}) =>
   api<AlbumList>("getAlbumList2", { type, size, ...extra }).then((response) => response.albumList2.album ?? []);
+
+function LoadMore({ onClick }: { onClick: () => void }) {
+  return (
+    <Button variant="outline" className="mx-auto mt-4 flex" onClick={onClick}>
+      load more
+    </Button>
+  );
+}
 
 export function HomePage() {
   const newest = useQuery("home:newest", () => albums("newest", 12));
@@ -23,7 +34,9 @@ export function HomePage() {
     <>
       <PageHeader title="home" />
       {nothing ? (
-        <Empty>your library is empty · drop albums in the music inbox and they appear here within 5 minutes</Empty>
+        <Content>
+          <EmptyState>your library is empty · add albums to your navidrome library and they show up here after the next scan</EmptyState>
+        </Content>
       ) : (
         <>
           <Section title="recently added">
@@ -42,9 +55,9 @@ export function HomePage() {
           <Section
             title="rediscover"
             action={
-              <button type="button" className="text-button" onClick={random.reload}>
+              <Button variant="link" size="xs" className="h-auto p-0 font-mono text-muted-foreground" onClick={random.reload}>
                 shuffle
-              </button>
+              </Button>
             }
           >
             <AlbumGrid albums={random.data ?? []} />
@@ -61,41 +74,40 @@ const SORTS = [
   ["alphabeticalByArtist", "artist"],
   ["frequent", "most played"],
 ] as const;
+type Sort = (typeof SORTS)[number][0];
 const PAGE = 60;
 
 export function AlbumsPage() {
-  const [sort, setSort] = useState<(typeof SORTS)[number][0]>("newest");
+  const [sort, setSort] = useState<Sort>("newest");
   const [pages, setPages] = useState(1);
   const { data } = useQuery(`albums:${sort}:${pages}`, () => albums(sort, PAGE * pages));
 
   return (
     <>
       <PageHeader title="albums" meta={data ? plural(data.length, "album") : undefined}>
-        <div className="tabs" role="group" aria-label="sort">
+        <ToggleGroup
+          variant="outline"
+          size="sm"
+          aria-label="sort"
+          value={[sort]}
+          onValueChange={(value: string[]) => {
+            const next = value[0] as Sort | undefined;
+            if (!next) return;
+            setSort(next);
+            setPages(1);
+          }}
+        >
           {SORTS.map(([value, label]) => (
-            <button
-              key={value}
-              type="button"
-              className="tab"
-              aria-pressed={sort === value}
-              onClick={() => {
-                setSort(value);
-                setPages(1);
-              }}
-            >
+            <ToggleGroupItem key={value} value={value} className="font-mono font-normal">
               {label}
-            </button>
+            </ToggleGroupItem>
           ))}
-        </div>
+        </ToggleGroup>
       </PageHeader>
-      <div className="content">
+      <Content>
         <AlbumGrid albums={data ?? []} />
-        {data?.length === PAGE * pages && (
-          <button type="button" className="button more" onClick={() => setPages(pages + 1)}>
-            load more
-          </button>
-        )}
-      </div>
+        {data?.length === PAGE * pages && <LoadMore onClick={() => setPages(pages + 1)} />}
+      </Content>
     </>
   );
 }
@@ -108,24 +120,26 @@ export function ArtistsPage() {
   return (
     <>
       <PageHeader title="artists" meta={data ? plural(total, "artist") : undefined} />
-      <div className="content">
-        {index.length === 0 && data && <Empty>no artists</Empty>}
+      <Content>
+        {index.length === 0 && data && <EmptyState>no artists</EmptyState>}
         {index.map((group) => (
-          <section key={group.name} className="letter-group">
-            <h2 className="letter">{group.name}</h2>
-            <ul className="artist-list">
+          <section key={group.name} className="grid grid-cols-[48px_minmax(0,1fr)] border-muted border-b py-2">
+            <h2 className="font-mono text-[15px] text-faint">{group.name}</h2>
+            <ul className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-x-6 gap-y-0.5">
               {group.artist.map((artist) => (
                 <li key={artist.id}>
-                  <a href={`/artist/${artist.id}`} onClick={navigate}>
-                    <span className="ellipsis">{artist.name}</span>
-                    <span className="num muted small">{plural(artist.albumCount ?? 0, "album")}</span>
-                  </a>
+                  <Link href={`/artist/${artist.id}`} className="flex h-[26px] items-center justify-between gap-3 px-1.5 hover:bg-card">
+                    <span className="truncate">{artist.name}</span>
+                    <span className="shrink-0 font-mono text-muted-foreground text-xs tabular-nums">
+                      {plural(artist.albumCount ?? 0, "album")}
+                    </span>
+                  </Link>
                 </li>
               ))}
             </ul>
           </section>
         ))}
-      </div>
+      </Content>
     </>
   );
 }
@@ -144,18 +158,14 @@ export function SongsPage() {
   return (
     <>
       <PageHeader title="songs" meta={data ? plural(songs.length, "song") : undefined}>
-        <button type="button" className="button" onClick={() => player.play(songs, 0, { shuffle: true })} disabled={!songs.length}>
+        <Button variant="outline" onClick={() => player.play(songs, 0, { shuffle: true })} disabled={!songs.length}>
           shuffle all
-        </button>
+        </Button>
       </PageHeader>
-      <div className="content">
+      <Content>
         <TrackList songs={songs} />
-        {songs.length === SONG_PAGE * pages && (
-          <button type="button" className="button more" onClick={() => setPages(pages + 1)}>
-            load more
-          </button>
-        )}
-      </div>
+        {songs.length === SONG_PAGE * pages && <LoadMore onClick={() => setPages(pages + 1)} />}
+      </Content>
     </>
   );
 }
@@ -167,19 +177,23 @@ export function GenresPage() {
   return (
     <>
       <PageHeader title="genres" meta={data ? plural(genres.length, "genre") : undefined} />
-      <div className="content">
-        {genres.length === 0 && data && <Empty>no genres yet · beets adds them on import</Empty>}
-        <ul className="tag-cloud">
+      <Content>
+        {genres.length === 0 && data && <EmptyState>no genres yet · they come from your files' tags</EmptyState>}
+        <ul className="flex flex-wrap gap-2">
           {genres.map((genre) => (
             <li key={genre.value}>
-              <a href={`/genre/${encodeURIComponent(genre.value)}`} onClick={navigate} className="tag">
+              <Badge
+                variant="outline"
+                className="h-7 gap-2.5 px-2.5 font-mono font-normal"
+                render={<Link href={`/genre/${encodeURIComponent(genre.value)}`} />}
+              >
                 {genre.value.toLowerCase()}
-                <span className="muted num">{genre.albumCount}</span>
-              </a>
+                <span className="text-muted-foreground tabular-nums">{genre.albumCount}</span>
+              </Badge>
             </li>
           ))}
         </ul>
-      </div>
+      </Content>
     </>
   );
 }

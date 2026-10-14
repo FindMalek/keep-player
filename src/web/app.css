@@ -133,6 +133,29 @@
     @apply bg-background text-foreground;
   }
   html {
-    @apply font-sans;
+    @apply font-sans antialiased;
+  }
+  body {
+    @apply text-[13px] leading-[1.4];
+  }
+}
+
+/* Wide screens get a little bigger, like the dashboard. */
+@media (min-width: 1800px) {
+  html {
+    zoom: 1.1;
+  }
+}
+
+/* The playing track's three-bar equalizer (animate-eq on each bar, delays staggered). */
+@theme {
+  --animate-eq: eq 900ms ease-in-out infinite alternate;
+  @keyframes eq {
+    from {
+      height: 3px;
+    }
+    to {
+      height: 11px;
+    }
   }
 }

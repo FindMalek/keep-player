@@ -33,7 +33,7 @@ bunx shadcn add @audiocn/waveform  # audiocn component, hooks -> src/web/hooks/,
 ```
 
 Those three folders are vendored: Biome skips them, and changes there should be small and on purpose (re-adding a
-component overwrites them). App code composes them in `src/web/components/`. Tailwind v4 runs through
+component overwrites them). App code composes them in `src/web/components/`. Icons are `lucide-react` (the shadcn default). Tailwind v4 runs through
 `bun-plugin-tailwind` (`bunfig.toml` for dev, `scripts/build.ts` for the production executable).
 
 ## Rules

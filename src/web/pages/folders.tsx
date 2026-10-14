@@ -1,13 +1,37 @@
-import { Folder } from "../components/icons";
-import { Empty, PageHeader, TrackList } from "../components/library";
-import { navigate } from "../lib/router";
-import { api } from "../lib/subsonic";
-import type { Directory, Song } from "../lib/types";
-import { useQuery } from "../lib/use-query";
+import { ArrowUpIcon, FolderIcon } from "lucide-react";
+import { Content, EmptyState, PageHeader, TrackList } from "@/components/library";
+import { Link } from "@/components/link";
+import { Button } from "@/components/ui/button";
+import { Item, ItemContent, ItemMedia, ItemTitle } from "@/components/ui/item";
+import { api } from "@/lib/subsonic";
+import type { Directory, Song } from "@/lib/types";
+import { useQuery } from "@/lib/use-query";
 
 interface IndexEntry {
   name: string;
   artist: { id: string; name: string }[];
+}
+
+function FolderList({ folders }: { folders: { id: string; name: string }[] }) {
+  return (
+    <div className="mb-5 grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-x-4 gap-y-0.5">
+      {folders.map((folder) => (
+        <Item
+          key={folder.id}
+          size="xs"
+          className="h-[26px] px-1.5 py-0 text-[13px] hover:bg-card"
+          render={<Link href={`/folders/${folder.id}`} />}
+        >
+          <ItemMedia variant="icon" className="text-muted-foreground">
+            <FolderIcon />
+          </ItemMedia>
+          <ItemContent>
+            <ItemTitle className="truncate font-normal text-[13px]">{folder.name}</ItemTitle>
+          </ItemContent>
+        </Item>
+      ))}
+    </div>
+  );
 }
 
 /** The library as it sits on disk: Artist / Album (Year) / tracks. */
@@ -20,52 +44,32 @@ export function FoldersPage({ id }: { id: string | null }) {
     return (
       <>
         <PageHeader title="folders" meta="/music" />
-        <div className="content">
-          {root.data && entries.length === 0 && <Empty>empty</Empty>}
-          <ul className="folder-list">
-            {entries.map((entry) => (
-              <li key={entry.id}>
-                <a href={`/folders/${entry.id}`} onClick={navigate}>
-                  <Folder />
-                  {entry.name}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </div>
+        <Content>
+          {root.data && entries.length === 0 && <EmptyState>empty</EmptyState>}
+          <FolderList folders={entries} />
+        </Content>
       </>
     );
   }
 
   const dir = directory.data?.directory;
-  const folders = (dir?.child ?? []).filter((child) => child.isDir);
+  const folders = (dir?.child ?? []).filter((child) => child.isDir).map((child) => ({ id: child.id, name: child.title }));
   const songs: Song[] = (dir?.child ?? []).filter((child) => !child.isDir);
 
   return (
     <>
       <PageHeader title={dir?.name ?? "…"} meta="folder">
         {dir?.parent && (
-          <a className="button" href={`/folders/${dir.parent}`} onClick={navigate}>
-            up
-          </a>
+          <Button variant="outline" render={<Link href={`/folders/${dir.parent}`} />}>
+            <ArrowUpIcon /> up
+          </Button>
         )}
       </PageHeader>
-      <div className="content">
-        {folders.length > 0 && (
-          <ul className="folder-list">
-            {folders.map((folder) => (
-              <li key={folder.id}>
-                <a href={`/folders/${folder.id}`} onClick={navigate}>
-                  <Folder />
-                  {folder.title}
-                </a>
-              </li>
-            ))}
-          </ul>
-        )}
+      <Content>
+        {folders.length > 0 && <FolderList folders={folders} />}
         {songs.length > 0 && <TrackList songs={songs} showAlbum={false} numbered="track" asAlbum />}
-        {dir && folders.length === 0 && songs.length === 0 && <Empty>empty folder</Empty>}
-      </div>
+        {dir && folders.length === 0 && songs.length === 0 && <EmptyState>empty folder</EmptyState>}
+      </Content>
     </>
   );
 }

@@ -1,5 +1,10 @@
 import { type FormEvent, useState } from "react";
-import { login } from "../lib/subsonic";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { login } from "@/lib/subsonic";
+import { BrandMark } from "./brand";
 
 export function Login({ onDone }: { onDone: () => void }) {
   const [user, setUser] = useState("");
@@ -22,32 +27,51 @@ export function Login({ onDone }: { onDone: () => void }) {
   }
 
   return (
-    <main className="login">
-      <form className="login-box" onSubmit={submit}>
-        <div className="brand">
-          <span className="brand-mark" aria-hidden="true" />
-          keep music
-        </div>
-        <p className="muted small">sign in with your navidrome account</p>
-        <label>
-          <span>username</span>
-          <input autoComplete="username" value={user} onChange={(event) => setUser(event.target.value)} required autoFocus />
-        </label>
-        <label>
-          <span>password</span>
-          <input
-            type="password"
-            autoComplete="current-password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            required
-          />
-        </label>
-        {error && <p className="level-crit small">{error}</p>}
-        <button type="submit" className="button primary" disabled={busy}>
-          {busy ? "signing in…" : "sign in"}
-        </button>
-      </form>
+    <main className="fixed inset-0 grid place-items-center p-4">
+      <Card className="w-full max-w-80">
+        <CardHeader>
+          <CardTitle>
+            <BrandMark />
+          </CardTitle>
+          <CardDescription>sign in with your navidrome account</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={submit}>
+            <FieldGroup>
+              <Field>
+                <FieldLabel htmlFor="user" className="font-mono text-muted-foreground">
+                  username
+                </FieldLabel>
+                <Input
+                  id="user"
+                  autoComplete="username"
+                  value={user}
+                  onChange={(event) => setUser(event.target.value)}
+                  required
+                  autoFocus
+                />
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="password" className="font-mono text-muted-foreground">
+                  password
+                </FieldLabel>
+                <Input
+                  id="password"
+                  type="password"
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  required
+                />
+              </Field>
+              {error && <FieldError>{error}</FieldError>}
+              <Button type="submit" size="lg" disabled={busy}>
+                {busy ? "signing in…" : "sign in"}
+              </Button>
+            </FieldGroup>
+          </form>
+        </CardContent>
+      </Card>
     </main>
   );
 }

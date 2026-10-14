@@ -6,6 +6,7 @@ const result = await Bun.build({
   compile: { outfile: "dist/keep-player" },
   target: "bun",
   minify: true,
+  splitting: true,
   plugins: [tailwind],
   define: { "process.env.NODE_ENV": '"production"' },
 });
