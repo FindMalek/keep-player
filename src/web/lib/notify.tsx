@@ -1,0 +1,36 @@
+import { useTheme } from "./theme";
+
+export interface Notice {
+  message: string;
+  kind?: "info" | "error";
+  action?: { label: string; onClick: () => void };
+}
+
+type Sonner = typeof import("sonner");
+let ready: Promise<Sonner> | null = null;
+
+function ThemedToaster({ Toaster }: { Toaster: typeof import("@/components/ui/sonner").Toaster }) {
+  const theme = useTheme();
+  const resolved = theme === "system" ? (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light") : theme;
+  return <Toaster theme={resolved} position="bottom-center" offset={80} />;
+}
+
+/** Toasts load on first use (sonner stays out of the first screen) in their own small React root. */
+async function mount(): Promise<Sonner> {
+  const [{ createRoot }, { Toaster }, sonner] = await Promise.all([
+    import("react-dom/client"),
+    import("@/components/ui/sonner"),
+    import("sonner"),
+  ]);
+  const host = document.createElement("div");
+  document.body.append(host);
+  createRoot(host).render(<ThemedToaster Toaster={Toaster} />);
+  // Give the toaster a frame to subscribe before the first toast.
+  await new Promise((resolve) => requestAnimationFrame(resolve));
+  return sonner;
+}
+
+export function notify({ message, kind = "info", action }: Notice): void {
+  ready ??= mount();
+  void ready.then(({ toast }) => (kind === "error" ? toast.error : toast)(message, { action }));
+}

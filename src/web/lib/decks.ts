@@ -195,6 +195,32 @@ export class Decks {
     } else idle.element.removeAttribute("src");
   }
 
+  /** Load the playing song again from `startAt` (stall recovery: a fresh request after the old one died). */
+  reload(url: string, startAt: number): void {
+    const deck = this.playing;
+    deck.element.src = url;
+    deck.element.addEventListener("loadedmetadata", () => (deck.element.currentTime = startAt), { once: true });
+    void this.play().catch(() => this.events.error());
+  }
+
+  /** Why the playing deck failed, if it did. */
+  get errorCode(): number | null {
+    return this.playing.element.error?.code ?? null;
+  }
+
+  /** Ramp the master volume to `volume` over `seconds` (sleep timer fade). */
+  fade(volume: number, seconds: number): Promise<void> {
+    if (!this.master || !this.context) {
+      this.setVolume(volume);
+      return Promise.resolve();
+    }
+    const time = this.context.currentTime;
+    this.master.gain.cancelScheduledValues(time);
+    this.master.gain.setValueAtTime(this.master.gain.value, time);
+    this.master.gain.linearRampToValueAtTime(volume, time + seconds);
+    return new Promise((resolve) => setTimeout(resolve, seconds * 1000));
+  }
+
   async play(): Promise<void> {
     this.ensureGraph();
     await this.playing.element.play();

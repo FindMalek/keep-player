@@ -2,6 +2,7 @@ import { del, get, set as setStored } from "idb-keyval";
 import { useRef, useSyncExternalStore } from "react";
 import type { FrameSource } from "./audio/types";
 import { Decks } from "./decks";
+import { notify } from "./notify";
 import * as Q from "./queue";
 import { api, coverUrl, onAccountChange, preloadCover, scrobble, streamUrl } from "./subsonic";
 import type { Song } from "./types";
@@ -17,8 +18,13 @@ export interface PlayerState {
   muted: boolean;
   /** Audio output device id; null is the system default. */
   outputDevice: string | null;
+  /** Why the current song can't play, in plain words; null when fine. */
   error: string | null;
+  sleep: Sleep;
 }
+
+/** Sleep timer: stop at a time (after a 10 s fade), at the end of this song, or at the end of the album. */
+export type Sleep = { kind: "time"; until: number } | { kind: "track" } | { kind: "album" } | null;
 
 /** The queue lives in IndexedDB: a shuffled library is too big for localStorage, and writes don't block the page. */
 const STORAGE_KEY = "keep-player:player";
@@ -33,6 +39,7 @@ let state: PlayerState = {
   muted: false,
   outputDevice: null,
   error: null,
+  sleep: null,
 };
 const listeners = new Set<() => void>();
 
@@ -152,16 +159,24 @@ const currentFactor = () => replayGainFactor(current(), state.queue.context.albu
 const decks = new Decks({
   playing: () => {
     set({ playing: true, buffering: false, error: null });
+    stalls = 0;
+    clearTimeout(stallTimer);
     startTicker();
+    updatePositionState();
   },
   pause: () => {
     setPosition(decks.element.currentTime);
     set({ playing: false });
     persist();
+    updatePositionState();
   },
-  waiting: () => set({ buffering: true }),
+  waiting: () => {
+    set({ buffering: true });
+    watchStall();
+  },
   canPlay: () => {
     set({ buffering: false });
+    clearTimeout(stallTimer);
     preloadNext();
   },
   duration: (seconds) => set({ duration: seconds || (current()?.duration ?? 0) }),
@@ -173,15 +188,88 @@ const decks = new Decks({
       scrobbled = true;
       scrobble(song.id, true);
     }
+    // A crash or a closed tab resumes within 5 s of where it was.
+    if (performance.now() - lastSave > 5000) {
+      lastSave = performance.now();
+      persist();
+    }
   },
-  seeked: (seconds) => setPosition(seconds),
+  seeked: (seconds) => {
+    setPosition(seconds);
+    updatePositionState();
+  },
   ended: onEnded,
   handover: () => {
     // The next song is already playing: move the queue to match, then line up the one after it.
     if (state.queue.repeat !== "one") setQueue(Q.next(state.queue));
     started(current());
   },
-  error: () => set({ playing: false, buffering: false, error: "couldn't play this track" }),
+  error: () => {
+    const code = decks.errorCode;
+    // Network trouble is worth retrying; a file the browser can't decode or the server can't find is not.
+    if (code === MediaError.MEDIA_ERR_NETWORK) {
+      recover();
+      return;
+    }
+    const reason =
+      code === MediaError.MEDIA_ERR_DECODE ? "the file can't be decoded" : "the file is missing or in a format this browser can't play";
+    skipBroken(reason);
+  },
+});
+
+/*
+ * Resilience. A stall (buffering for 4 s) or a network error reloads the song at the same position, waiting 1, 2, 4,
+ * then 8 s between tries; after that the song is skipped with an undo, so the music never just stops.
+ */
+const RETRY_DELAYS = [1000, 2000, 4000, 8000];
+let stalls = 0;
+let stallTimer: ReturnType<typeof setTimeout> | undefined;
+let lastSave = 0;
+
+function watchStall(): void {
+  clearTimeout(stallTimer);
+  stallTimer = setTimeout(() => state.buffering && recover(), 4000);
+}
+
+function recover(): void {
+  const song = current();
+  if (!song) return;
+  clearTimeout(stallTimer);
+  const delay = RETRY_DELAYS[stalls];
+  if (delay === undefined) {
+    skipBroken("it kept stalling");
+    return;
+  }
+  stalls += 1;
+  set({ buffering: true, error: null });
+  const at = position;
+  stallTimer = setTimeout(() => {
+    if (current() !== song) return;
+    decks.reload(streamUrl(song.id), at);
+    watchStall();
+  }, delay);
+}
+
+function skipBroken(reason: string): void {
+  const song = current();
+  stalls = 0;
+  clearTimeout(stallTimer);
+  set({ playing: false, buffering: false, error: reason });
+  if (!song) return;
+  notify({
+    kind: "error",
+    message: `skipped ${song.title}: ${reason}`,
+    action: { label: "undo", onClick: () => player.previous(true) },
+  });
+  if (Q.peekNext(state.queue)) advance(Q.next(state.queue));
+}
+
+// Back online or back in the tab: pick up a song that stalled meanwhile, at the same spot.
+window.addEventListener("online", () => {
+  if (state.error || state.buffering) {
+    stalls = 0;
+    recover();
+  }
 });
 
 function applyVolume(): void {
@@ -196,6 +284,7 @@ function applyOutputDevice(): void {
 /** The song that plays when this one ends (the same one on repeat-one), and its gain. */
 function upcoming(): { song: Song; factor: number } | null {
   const { queue } = state;
+  if (stopsAfterThis()) return null;
   if (queue.repeat === "one") {
     const song = current();
     return song ? { song, factor: currentFactor() } : null;
@@ -204,6 +293,14 @@ function upcoming(): { song: Song; factor: number } | null {
   if (!song) return null;
   const fromContext = queue.upNext.length === 0;
   return { song, factor: replayGainFactor(song, fromContext && queue.context.album) };
+}
+
+/** True when the sleep timer ends playback with the current song (end of track, or the album's last track). */
+function stopsAfterThis(): boolean {
+  const { sleep } = state;
+  if (sleep?.kind === "track") return true;
+  if (sleep?.kind === "album") return Q.peekNext(state.queue)?.albumId !== current()?.albumId;
+  return false;
 }
 
 /** Keep the idle deck holding whatever plays next; called whenever the queue changes. */
@@ -255,28 +352,82 @@ function advance(queue: Q.Queue): void {
 }
 
 function onEnded(): void {
+  if (stopsAfterThis()) {
+    set({ sleep: null, playing: false });
+    // Ready on the next song, paused, so play continues from there.
+    if (Q.peekNext(state.queue)) {
+      setQueue(Q.next(state.queue));
+      load(false);
+    }
+    return;
+  }
   if (state.queue.repeat === "one") load(true);
   else advance(Q.next(state.queue));
+}
+
+let sleepTimer: ReturnType<typeof setTimeout> | undefined;
+const FADE_SECONDS = 10;
+
+/** Timed sleep: fade out over the last 10 s, pause, then put the volume back for next time. */
+function armSleep(): void {
+  clearTimeout(sleepTimer);
+  const { sleep } = state;
+  if (sleep?.kind !== "time") return;
+  sleepTimer = setTimeout(
+    async () => {
+      if (state.playing) await decks.fade(0, FADE_SECONDS);
+      if (state.sleep?.kind !== "time") return applyVolume();
+      decks.pause();
+      set({ sleep: null });
+      applyVolume();
+    },
+    Math.max(0, sleep.until - Date.now() - FADE_SECONDS * 1000),
+  );
 }
 
 function updateMediaSession(): void {
   const song = current();
   if (!("mediaSession" in navigator) || !song) return;
-  const art = coverUrl(song.coverArt, 512);
   navigator.mediaSession.metadata = new MediaMetadata({
     title: song.title,
     artist: song.artist ?? "",
     album: song.album ?? "",
-    artwork: art ? [{ src: art, sizes: "512x512" }] : [],
+    artwork: [128, 256, 512].flatMap((size) => {
+      const src = coverUrl(song.coverArt, size);
+      return src ? [{ src, sizes: `${size}x${size}`, type: "image/webp" }] : [];
+    }),
   });
+  updatePositionState();
+}
+
+/** Lets the OS scrubber (macOS Now Playing, lock screens) show and move the playhead. */
+function updatePositionState(): void {
+  if (!("mediaSession" in navigator) || !state.duration) return;
+  try {
+    navigator.mediaSession.setPositionState({ duration: state.duration, position: Math.min(position, state.duration), playbackRate: 1 });
+  } catch {
+    // Some browsers reject a position past the reported duration for a moment after seeking.
+  }
 }
 
 if ("mediaSession" in navigator) {
-  navigator.mediaSession.setActionHandler("play", () => player.toggle(true));
-  navigator.mediaSession.setActionHandler("pause", () => player.toggle(false));
-  navigator.mediaSession.setActionHandler("nexttrack", () => player.next());
-  navigator.mediaSession.setActionHandler("previoustrack", () => player.previous());
-  navigator.mediaSession.setActionHandler("seekto", (details) => details.seekTime !== undefined && player.seek(details.seekTime));
+  const handlers: [MediaSessionAction, MediaSessionActionHandler][] = [
+    ["play", () => player.toggle(true)],
+    ["pause", () => player.toggle(false)],
+    ["stop", () => player.toggle(false)],
+    ["nexttrack", () => player.next()],
+    ["previoustrack", () => player.previous()],
+    ["seekbackward", (details) => player.seek(position - (details.seekOffset ?? 10))],
+    ["seekforward", (details) => player.seek(position + (details.seekOffset ?? 10))],
+    ["seekto", (details) => details.seekTime !== undefined && player.seek(details.seekTime)],
+  ];
+  for (const [action, handler] of handlers) {
+    try {
+      navigator.mediaSession.setActionHandler(action, handler);
+    } catch {
+      // Not every browser knows every action.
+    }
+  }
 }
 
 export const player = {
@@ -286,6 +437,25 @@ export const player = {
   /** End of the buffered range around the playhead, in seconds. */
   getBuffered: (): number => decks.buffered(),
   element: (): HTMLAudioElement => decks.element,
+  /** Sleep timer: minutes from now, "track" (stop after this song), "album", or null to cancel. */
+  setSleep(option: number | "track" | "album" | null): void {
+    const sleep: Sleep =
+      option === null ? null : typeof option === "number" ? { kind: "time", until: Date.now() + option * 60_000 } : { kind: option };
+    set({ sleep });
+    armSleep();
+    applyVolume();
+    preloadNext();
+  },
+  /** ⇧S: stop when this song ends; again to cancel. */
+  toggleStopAfterCurrent(): void {
+    player.setSleep(state.sleep?.kind === "track" ? null : "track");
+  },
+  /** Try the current song again after an error, from where it stopped. */
+  retry(): void {
+    stalls = 0;
+    set({ error: null });
+    load(true, position);
+  },
   setOutputDevice(id: string | null): void {
     set({ outputDevice: id });
     applyOutputDevice();
@@ -308,9 +478,9 @@ export const player = {
   next(): void {
     if (current()) advance(Q.next(state.queue));
   },
-  /** Restart the track if more than 3 s in, otherwise go back one. */
-  previous(): void {
-    if (position > 3 || state.queue.history.length === 0) {
+  /** Restart the track if more than 3 s in, otherwise go back one (`force`: always go back, e.g. undoing a skip). */
+  previous(force = false): void {
+    if ((!force && position > 3) || state.queue.history.length === 0) {
       player.seek(0);
       return;
     }
@@ -324,6 +494,7 @@ export const player = {
     const target = Math.max(0, Math.min(seconds, state.duration || seconds));
     decks.seek(target);
     setPosition(target);
+    updatePositionState();
   },
   setVolume(volume: number): void {
     set({ volume: Math.max(0, Math.min(1, volume)), muted: false });
