@@ -3,7 +3,7 @@ import { expect, test } from "./fixtures";
 test("credentials never reach the browser: no token in storage, cookies or media URLs", async ({ page, signedIn }) => {
   const mediaUrls: string[] = [];
   page.on("request", (request) => {
-    if (/\/rest\/(stream|getCoverArt)/.test(request.url())) mediaUrls.push(request.url());
+    if (/\/rest\/stream|\/cover\//.test(request.url())) mediaUrls.push(request.url());
   });
   await signedIn.goto("/album/al-3");
   await page.getByRole("button", { name: "play", exact: true }).first().click();

@@ -78,7 +78,7 @@ function OutputDeviceFallback() {
 function NowPlaying({ song }: { song: Song }) {
   return (
     <div className="flex min-w-0 items-center gap-3">
-      <Cover id={song.coverArt} size={42} className="size-[42px] shrink-0" />
+      <Cover id={song.coverArt} size={42} className="size-[42px] shrink-0" priority />
       <div className="flex min-w-0 flex-col">
         {song.albumId && (
           <Link href={`/album/${song.albumId}`} className="truncate font-medium underline-offset-3 hover:underline">

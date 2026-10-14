@@ -47,6 +47,8 @@ export const config = {
   upstreams: parseUpstreams(process.env.NAVIDROME_SERVERS, process.env.NAVIDROME_URL),
   sessionSecret: sessionSecret(),
   sessionIdleDays: Number(process.env.SESSION_IDLE_DAYS ?? 30),
+  /** Disk space for resized covers (`$DATA_DIR/covers`), least recently used deleted first. */
+  coverCacheMb: Number(process.env.COVER_CACHE_MB ?? 1024),
   /** Behind a reverse proxy, client IPs come from X-Real-IP / X-Forwarded-For (used for login rate limits). */
   trustProxy: ["1", "true", "yes"].includes((process.env.TRUST_PROXY ?? "").toLowerCase()),
 };

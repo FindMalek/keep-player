@@ -31,7 +31,7 @@ function Hero({
 }) {
   return (
     <header className="flex items-end gap-5 border-b px-5 pt-[18px] pb-4">
-      <Cover id={cover} size={160} className="w-[152px] shrink-0" />
+      <Cover id={cover} size={160} className="w-[152px] shrink-0" priority />
       <div className="flex min-w-0 flex-col gap-1.5">
         <div className="self-start">{kind}</div>
         <h1 className="font-medium text-[26px] leading-[1.1] tracking-tight [overflow-wrap:anywhere]">{title}</h1>

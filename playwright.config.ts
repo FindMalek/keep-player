@@ -11,13 +11,16 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [["github"], ["html", { open: "never" }]] : "list",
   use: { baseURL: `http://127.0.0.1:${APP}`, trace: "retain-on-failure" },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 } } }],
+  projects: [
+    { name: "chromium", testIgnore: /lighthouse/, use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 } } },
+    // Alone and last: a busy CPU from parallel tests would skew the score.
+    { name: "lighthouse", testMatch: /lighthouse/, dependencies: ["chromium"] },
+  ],
   webServer: [
     {
       command: "bun test/mock/server.ts",
       url: `http://127.0.0.1:${MOCK}/rest/ping`,
       env: { MOCK_PORT: String(MOCK) },
-      reuseExistingServer: !process.env.CI,
     },
     {
       // The real artifact: the compiled executable with the bundled, minified, code-split app.
@@ -25,7 +28,6 @@ export default defineConfig({
       url: `http://127.0.0.1:${APP}/healthz`,
       env: { PORT: String(APP), NAVIDROME_URL: `http://127.0.0.1:${MOCK}`, DATA_DIR: "test-results/data" },
       timeout: 120_000,
-      reuseExistingServer: !process.env.CI,
     },
   ],
 });
