@@ -36,6 +36,7 @@ const SplitView = lazy(() => import("@/components/split-view").then((module) => 
 const QueuePanel = lazy(() => import("@/components/side-panels").then((module) => ({ default: module.QueuePanel })));
 const LyricsPanel = lazy(() => import("@/components/side-panels").then((module) => ({ default: module.LyricsPanel })));
 
+const NowPlayingFull = lazy(() => import("@/components/now-playing-full").then((module) => ({ default: module.NowPlayingFull })));
 const CheatSheet = lazy(() => import("@/components/cheat-sheet").then((module) => ({ default: module.CheatSheet })));
 
 // Only loaded on the first ⌘K (cmdk + dialog stay out of the first paint), then kept mounted.
@@ -76,6 +77,7 @@ export function App() {
   const [panel, setPanel] = useState<Panel>(null);
   const [searching, setSearching] = useState(false);
   const [cheatSheet, setCheatSheet] = useState(false);
+  const [fullScreen, setFullScreen] = useState(false);
   const [searchLoaded, setSearchLoaded] = useState(false);
   if (searching && !searchLoaded) setSearchLoaded(true);
   const path = usePath();
@@ -96,6 +98,7 @@ export function App() {
       openSearch: () => setSearching(true),
       toggleSearch: () => setSearching((value) => !value),
       openCheatSheet: () => setCheatSheet(true),
+      toggleFullScreen: () => setFullScreen((value) => !value),
     }),
   );
 
@@ -159,6 +162,11 @@ export function App() {
       </div>
       <ChordHint />
       <NowPlayingAnnouncer />
+      {fullScreen && (
+        <Suspense>
+          <NowPlayingFull open={fullScreen} onOpenChange={setFullScreen} />
+        </Suspense>
+      )}
       {cheatSheet && (
         <Suspense>
           <CheatSheet open={cheatSheet} onOpenChange={setCheatSheet} />

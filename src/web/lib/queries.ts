@@ -28,8 +28,9 @@ export const persister = createAsyncStoragePersister({
   throttleTime: 1000,
 });
 
-/** Search results change with every keystroke; not worth keeping across reloads. */
-export const shouldPersist = (query: Query) => query.state.status === "success" && query.queryKey[0] !== "search";
+/** Search results change with every keystroke and offsets must be fresh: neither is kept across reloads. */
+export const shouldPersist = (query: Query) =>
+  query.state.status === "success" && !["search", "lyricsOffset"].includes(query.queryKey[0] as string);
 
 /** Long lists load this many items at a time, the next page fetched when the reader is 80% down. */
 export const PAGE_SIZE = 200;
@@ -171,6 +172,16 @@ export const queries = {
       },
       // Found lyrics never change; "missing" is worth asking again in a day (LRCLIB keeps growing).
       staleTime: (query) => (query.state.data?.status === "missing" ? 86_400_000 : Number.POSITIVE_INFINITY),
+    }),
+  /** Your timing nudge for a song's lyrics: tiny, always fresh (it may have changed in another browser), never persisted. */
+  lyricsOffset: (songId: string) =>
+    queryOptions({
+      queryKey: ["lyricsOffset", songId],
+      queryFn: async (): Promise<number> => {
+        const response = await fetch(`/api/lyrics/${encodeURIComponent(songId)}/offset`, { headers: { "x-keep-player": "1" } });
+        return response.ok ? ((await response.json()) as { offset: number }).offset : 0;
+      },
+      staleTime: 0,
     }),
   search: (query: string) =>
     queryOptions({

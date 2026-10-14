@@ -256,5 +256,18 @@ export function createApi({ upstreams, covers, lyrics, sessions, limiter, idleSe
     return json(result, 200, { "cache-control": "private, no-cache" });
   }
 
-  return { login, logout, current, listSessions, revokeSession, proxy, cover, songLyrics };
+  /** `/api/lyrics/:songId/offset`: this user's timing nudge (ms), GET and PUT `{ offset }`; it follows them everywhere. */
+  async function lyricsOffset(request: Request & { params: { songId: string } }): Promise<Response> {
+    if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
+    const session = sessions.get(cookieValue(request));
+    if (!session) return json({ error: "signed out" }, 401);
+    if (request.method === "GET") return json({ offset: lyrics.offset(`${session.server}:${session.user}`, request.params.songId) });
+    const body = (await request.json().catch(() => null)) as { offset?: unknown } | null;
+    if (typeof body?.offset !== "number" || !Number.isFinite(body.offset) || Math.abs(body.offset) > 60_000)
+      return json({ error: "offset in ms" }, 400);
+    lyrics.setOffset(`${session.server}:${session.user}`, request.params.songId, body.offset);
+    return json({ ok: true });
+  }
+
+  return { login, logout, current, listSessions, revokeSession, proxy, cover, songLyrics, lyricsOffset };
 }

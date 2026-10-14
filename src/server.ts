@@ -53,6 +53,7 @@ const server = Bun.serve({
     "/rest/*": api.proxy,
     "/cover/:id/:size": api.cover,
     "/api/lyrics/:songId": { GET: api.songLyrics },
+    "/api/lyrics/:songId/offset": { GET: api.lyricsOffset, PUT: api.lyricsOffset },
     "/fonts/:name": font,
     ...webRoutes,
   },

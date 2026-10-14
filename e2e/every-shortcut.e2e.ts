@@ -18,6 +18,7 @@ const SHORTCUTS = appShortcuts({
   openSearch: noop,
   toggleSearch: noop,
   openCheatSheet: noop,
+  toggleFullScreen: noop,
 });
 
 /** "shift+arrowright" → "Shift+ArrowRight", "mod+k" → "ControlOrMeta+k", chords → one press per step. */
@@ -150,6 +151,12 @@ const CHECKS: Record<string, Check> = {
   lyrics: async (page, press) => {
     await press();
     await expect(page.getByRole("complementary", { name: "lyrics" })).toBeVisible();
+  },
+  "full-screen": async (page, press, titles) => {
+    await press();
+    await expect(page.getByRole("dialog", { name: titles[0] as string })).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog")).toHaveCount(0);
   },
   close: async (page, press) => {
     await page.locator("body").press("q");

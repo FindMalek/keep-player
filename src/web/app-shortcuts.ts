@@ -15,6 +15,7 @@ export interface AppActions {
   openSearch: () => void;
   toggleSearch: () => void;
   openCheatSheet: () => void;
+  toggleFullScreen: () => void;
 }
 
 /** The default map. Everything it calls is passed in, so a unit test can check it for conflicts without a browser. */
@@ -56,6 +57,7 @@ export function appShortcuts(actions: AppActions): Shortcut[] {
     }),
     global("queue", ["q"], "queue", "panels", () => actions.togglePanel("queue")),
     global("lyrics", ["y"], "lyrics", "panels", () => actions.togglePanel("lyrics")),
+    global("full-screen", ["shift+f"], "full-screen now playing", "panels", () => actions.toggleFullScreen()),
     global("close", ["escape"], "close the top panel", "panels", () => actions.closeTopLayer()),
     global("search", ["mod+k", "/"], "search", "navigation", (event) =>
       event.code === "Slash" ? actions.openSearch() : actions.toggleSearch(),
