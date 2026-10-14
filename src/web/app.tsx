@@ -6,6 +6,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { ChordHint } from "@/components/chord-hint";
 import { PageSlot, usePageHost } from "@/components/page-host";
 import { type Panel, PlayerBar } from "@/components/player-bar";
+import { RouteBoundary } from "@/components/route-boundary";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { loadLikes, toggleLiked } from "@/lib/likes";
 import { openListFilter } from "@/lib/list-filter";
@@ -14,6 +15,7 @@ import { transition } from "@/lib/motion";
 import { notify } from "@/lib/notify";
 import { PageScrollContext } from "@/lib/page-scroll";
 import { currentSong, player, usePlayer } from "@/lib/player";
+import { useReachability } from "@/lib/reachability";
 import { go, usePath } from "@/lib/router";
 import { useSetting } from "@/lib/settings";
 import { installShortcuts, useShortcuts } from "@/lib/shortcuts";
@@ -49,6 +51,7 @@ const CheatSheet = lazy(() => import("@/components/cheat-sheet").then((module) =
 // Only loaded on the first ⌘K (cmdk + dialog stay out of the first paint), then kept mounted.
 const SearchPalette = lazy(() => import("@/components/search-palette").then((module) => ({ default: module.SearchPalette })));
 
+const OfflineBanner = lazy(() => import("@/components/offline-banner").then((module) => ({ default: module.OfflineBanner })));
 const TopProgressLine = lazy(() => import("@/components/top-progress").then((module) => ({ default: module.TopProgressLine })));
 
 /**
@@ -106,6 +109,7 @@ installShortcuts();
 export function App() {
   const user = useUser();
   const checkingSession = useCheckingSession();
+  const { unreachable } = useReachability();
   const [panel, setPanelNow] = useState<Panel>(null);
   // Panels slide in and out as a view transition (app.css), the page reflows under a cross-fade.
   const setPanel = (update: Panel | ((value: Panel) => Panel)) => transition(() => setPanelNow(update));
@@ -183,6 +187,11 @@ export function App() {
   return (
     <>
       <TopProgress />
+      {unreachable && (
+        <Suspense>
+          <OfflineBanner />
+        </Suspense>
+      )}
       <div className="flex h-svh flex-col" style={{ "--bar-height": hasTrack ? "4rem" : "0px" } as CSSProperties}>
         {/* First tab stop: straight to the page, past the sidebar. */}
         <a
@@ -228,9 +237,11 @@ export function App() {
       )}
       {createPortal(
         <PageScrollContext.Provider value={host}>
-          <Suspense>
-            <Page path={path} />
-          </Suspense>
+          <RouteBoundary key={path} path={path}>
+            <Suspense>
+              <Page path={path} />
+            </Suspense>
+          </RouteBoundary>
         </PageScrollContext.Provider>,
         host,
       )}

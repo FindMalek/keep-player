@@ -186,7 +186,7 @@ export function AppSidebar({ path, onSearch, onShortcuts }: { path: string; onSe
               <SidebarMenuItem>
                 {playlists.length === 0 ? (
                   <span className="flex h-7 items-center gap-2 px-2 text-faint text-xs">
-                    <ListMusicIcon /> none yet
+                    <ListMusicIcon /> none yet · save your queue as one
                   </span>
                 ) : (
                   <SidebarMenuSub className="mx-0 border-0 px-0">

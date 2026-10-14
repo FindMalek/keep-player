@@ -3,6 +3,7 @@ import { ListPlusIcon, XIcon } from "lucide-react";
 import { type FormEvent, memo, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { clock } from "@/lib/format";
@@ -292,8 +293,38 @@ export function QueuePanel({ onClose }: { onClose: () => void }) {
             );
           })}
         </ol>
+        {upcoming === 0 && filter === null && <NothingNext />}
       </div>
     </PanelFrame>
+  );
+}
+
+/** The end of the queue: a mix from the whole library keeps it going. */
+function NothingNext() {
+  const [loading, setLoading] = useState(false);
+  return (
+    <Empty className="p-6">
+      <EmptyHeader>
+        <EmptyTitle className="font-mono text-xs">nothing up next</EmptyTitle>
+        <EmptyDescription className="font-mono text-[11px]">music stops after this song</EmptyDescription>
+      </EmptyHeader>
+      <EmptyContent>
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={loading}
+          onClick={() => {
+            setLoading(true);
+            void queryClient
+              .fetchQuery({ ...queries.randomSongs(50), staleTime: 0 })
+              .then((songs) => player.addToQueue(songs))
+              .finally(() => setLoading(false));
+          }}
+        >
+          keep going with a random mix
+        </Button>
+      </EmptyContent>
+    </Empty>
   );
 }
 

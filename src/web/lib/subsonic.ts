@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from "react";
 import { snapCoverSize } from "../../shared/cover-sizes";
+import { markUnreachable, noteResponse } from "./reachability";
 
 /*
  * The browser never holds credentials: the server keeps them in a session behind an httpOnly cookie and adds them to
@@ -137,7 +138,12 @@ function query(params: Params): string {
 
 /** One Subsonic call through the server's session proxy; throws ApiError, and signs out when the session is gone. */
 export async function api<T>(endpoint: string, params: Params = {}): Promise<T> {
-  const response = await fetch(`/rest/${endpoint}?${query(params)}`, { headers: HEADERS });
+  const response = noteResponse(
+    await fetch(`/rest/${endpoint}?${query(params)}`, { headers: HEADERS }).catch((error: unknown) => {
+      markUnreachable();
+      throw error;
+    }),
+  );
   if (response.status === 401) {
     setUser(null);
     throw new ApiError(401, "signed out");

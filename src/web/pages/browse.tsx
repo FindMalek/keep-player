@@ -5,8 +5,10 @@ import { AlbumGrid, AlbumGridSkeleton, Content, EmptyState, PageHeader, Section,
 import { Link } from "@/components/link";
 import { ListFilterBar } from "@/components/list-filter-bar";
 import { ArtistRowsSkeleton, Delayed, TrackListSkeleton } from "@/components/skeletons";
+import { Alert, AlertAction, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Toggle } from "@/components/ui/toggle";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -26,10 +28,24 @@ function AlbumRow({
   priority = 0,
 }: {
   title: string;
-  query: { data?: Album[]; isPending: boolean };
+  query: { data?: Album[]; isPending: boolean; isError: boolean; refetch: () => unknown };
   action?: ReactNode;
   priority?: number;
 }) {
+  // A failing row says so in place, with a retry; the other rows carry on.
+  if (query.isError && !query.data)
+    return (
+      <Section title={title}>
+        <Alert variant="destructive">
+          <AlertTitle className="font-mono">couldn't load {title}</AlertTitle>
+          <AlertAction>
+            <Button size="xs" variant="outline" onClick={() => void query.refetch()}>
+              retry
+            </Button>
+          </AlertAction>
+        </Alert>
+      </Section>
+    );
   if (!query.isPending && !query.data?.length) return null;
   return (
     <Section title={title} action={action}>
@@ -50,7 +66,23 @@ export function HomePage() {
       <PageHeader title="home" />
       {nothing ? (
         <Content>
-          <EmptyState>your library is empty · add albums to your navidrome library and they show up here after the next scan</EmptyState>
+          <Empty>
+            <EmptyHeader>
+              <EmptyTitle className="font-mono">your library is empty</EmptyTitle>
+              <EmptyDescription className="font-mono text-xs">
+                add music to your navidrome folders; it shows up here after the next scan
+              </EmptyDescription>
+            </EmptyHeader>
+            <EmptyContent>
+              <Button
+                size="sm"
+                variant="outline"
+                render={<a href="https://github.com/FindMalek/keep-player#run-it" target="_blank" rel="noreferrer" />}
+              >
+                how to add music
+              </Button>
+            </EmptyContent>
+          </Empty>
         </Content>
       ) : (
         <>
