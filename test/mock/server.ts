@@ -170,7 +170,11 @@ function handle(endpoint: string, params: Params, request: Request): Response {
     case "scrobble":
       return ok();
     case "getScanStatus":
-      return ok({ scanStatus: { scanning: false, count: library.songs.length } });
+      return ok({ scanStatus: { scanning: false, count: library.songs.length, lastScan: "2026-10-01T00:00:00Z" } });
+    case "getMusicFolders":
+      return ok({ musicFolders: { musicFolder: [{ id: 1, name: "music" }] } });
+    case "getUser":
+      return ok({ user: { username: params.get("username"), adminRole: params.get("username") === USER, folder: [1] } });
     case "getLicense":
       return ok({ license: { valid: true } });
     case "getOpenSubsonicExtensions":

@@ -7,6 +7,7 @@ import { openLibraryDb } from "./server/db";
 import { font } from "./server/fonts";
 import { LyricsService } from "./server/lyrics";
 import { LoginLimiter } from "./server/rate-limit";
+import { IndexSync } from "./server/search-index";
 import { SessionStore } from "./server/sessions";
 
 // Dead-code eliminated per build: the executable only contains the static server, dev only the bundler route.
@@ -18,11 +19,19 @@ setInterval(() => sessions.purgeIdle(), 3_600_000).unref();
 
 const library = openLibraryDb(join(config.dataDir, "library.db"));
 const lyrics = new LyricsService(library, config.lrclibUrl);
+const indexes = new Map(
+  config.upstreams.map((upstream) => [
+    upstream.id,
+    new IndexSync(library, upstream, serviceAccount(sessions, upstream, { user: config.indexUser, password: config.indexPassword })),
+  ]),
+);
+for (const index of indexes.values()) index.start();
 const covers = new CoverCache(join(config.dataDir, "covers"), config.coverCacheMb * 1024 * 1024);
 const api = createApi({
   upstreams: config.upstreams,
   covers,
   lyrics,
+  indexes,
   sessions,
   limiter: new LoginLimiter(),
   idleSeconds,
@@ -54,6 +63,7 @@ const server = Bun.serve({
     "/cover/:id/:size": api.cover,
     "/api/lyrics/:songId": { GET: api.songLyrics },
     "/api/lyrics/:songId/offset": { GET: api.lyricsOffset, PUT: api.lyricsOffset },
+    "/api/index": { GET: api.searchIndex, POST: api.searchIndex },
     "/fonts/:name": font,
     ...webRoutes,
   },

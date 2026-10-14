@@ -12,6 +12,8 @@ export interface Session {
   created: number;
   seen: number;
   agent: string;
+  /** A Navidrome admin when they signed in: may see and rebuild the search index. */
+  admin: boolean;
 }
 
 const MINUTE = 60_000;
@@ -108,6 +110,7 @@ export class SessionStore {
       created: row.created,
       seen: row.seen,
       agent: row.agent,
+      admin: row.admin === 1,
     };
   }
 
@@ -115,7 +118,7 @@ export class SessionStore {
     this.db.query("delete from sessions where hash = ?").run(SessionStore.hash(cookie));
   }
 
-  list(server: string, user: string): Omit<Session, "token" | "salt">[] {
+  list(server: string, user: string): Omit<Session, "token" | "salt" | "admin">[] {
     return this.db
       .query<RowData, [string, string]>("select * from sessions where server = ? and user = ? order by seen desc")
       .all(server, user)
@@ -159,4 +162,5 @@ interface RowData {
   created: number;
   seen: number;
   agent: string;
+  admin: number;
 }
