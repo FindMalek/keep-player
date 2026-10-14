@@ -7,7 +7,7 @@ import { LyricsPanel, QueuePanel } from "@/components/side-panels";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { player, usePlayer } from "@/lib/player";
+import { currentSong, player, usePlayer } from "@/lib/player";
 import { usePath } from "@/lib/router";
 import { loadCredentials } from "@/lib/subsonic";
 import { AlbumsPage, ArtistsPage, GenresPage, HomePage, SongsPage } from "@/pages/browse";
@@ -55,8 +55,9 @@ export function App() {
   const [searchLoaded, setSearchLoaded] = useState(false);
   if (searching && !searchLoaded) setSearchLoaded(true);
   const path = usePath();
-  const state = usePlayer();
-  const hasTrack = state.index >= 0 && state.queue.length > 0;
+  const hasTrack = usePlayer((state) => state.index >= 0 && state.queue.length > 0);
+  const nowPlaying = usePlayer(currentSong);
+  const playing = usePlayer((state) => state.playing);
   const showPanel = panel !== null && hasTrack;
   const layout = useDefaultLayout({ id: "keep-player:layout", panelIds: showPanel ? ["page", "side"] : ["page"], storage: localStorage });
 
@@ -70,8 +71,8 @@ export function App() {
       if (isTyping(event.target) || event.metaKey || event.ctrlKey || event.altKey) return;
       const actions: Record<string, () => void> = {
         " ": () => player.toggle(),
-        ArrowRight: () => (event.shiftKey ? player.next() : player.seek(state.position + 5)),
-        ArrowLeft: () => (event.shiftKey ? player.previous() : player.seek(state.position - 5)),
+        ArrowRight: () => (event.shiftKey ? player.next() : player.seek(player.getPosition() + 5)),
+        ArrowLeft: () => (event.shiftKey ? player.previous() : player.seek(player.getPosition() - 5)),
         m: player.toggleMute,
         s: player.toggleShuffle,
         r: player.cycleRepeat,
@@ -87,12 +88,11 @@ export function App() {
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [state.position]);
+  }, []);
 
   useEffect(() => {
-    const song = state.queue[state.index];
-    document.title = song && state.playing ? `${song.title} · ${song.artist ?? ""}` : "keep music";
-  }, [state.queue, state.index, state.playing]);
+    document.title = nowPlaying && playing ? `${nowPlaying.title} · ${nowPlaying.artist ?? ""}` : "keep music";
+  }, [nowPlaying, playing]);
 
   if (!signedIn) return <Login onDone={() => setSignedIn(true)} />;
 

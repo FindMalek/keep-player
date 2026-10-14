@@ -1,5 +1,5 @@
-import { ListMusicIcon, PlayIcon, PlusIcon } from "lucide-react";
-import type { ReactNode } from "react";
+import { ListEndIcon, ListStartIcon, PlayIcon } from "lucide-react";
+import { memo, type ReactNode, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Empty, EmptyDescription } from "@/components/ui/empty";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -97,14 +97,82 @@ interface TrackListProps {
 const LABEL = "font-mono font-normal text-[10.5px] text-faint";
 const SUBLINK = "truncate text-muted-foreground hover:text-foreground hover:underline underline-offset-3";
 
+interface TrackRowProps {
+  song: Song;
+  index: number;
+  number: number;
+  /** "playing" / "paused" for the current song, null for every other row (so only that row re-renders). */
+  status: "playing" | "paused" | null;
+  showAlbum: boolean;
+  showArtist: boolean;
+  onPlay: (index: number) => void;
+}
+
+const TrackRow = memo(function TrackRow({ song, index, number, status, showAlbum, showArtist, onPlay }: TrackRowProps) {
+  return (
+    <TableRow
+      tabIndex={0}
+      data-playing={status ? true : undefined}
+      className="group/row h-[34px] border-muted outline-none hover:bg-card focus-visible:bg-card focus-visible:shadow-[inset_2px_0_0_var(--foreground)]"
+      onDoubleClick={() => onPlay(index)}
+      onKeyDown={(event) => event.key === "Enter" && event.target === event.currentTarget && onPlay(index)}
+    >
+      <TableCell className="relative py-0 font-mono text-muted-foreground tabular-nums">
+        <span className="group-hover/row:invisible">{status ? <Equalizer playing={status === "playing"} /> : number}</span>
+        <Button
+          variant="ghost"
+          size="icon-xs"
+          className="invisible absolute top-1/2 left-1 -translate-y-1/2 focus-visible:visible group-hover/row:visible"
+          onClick={() => onPlay(index)}
+          aria-label={`play ${song.title}`}
+        >
+          <PlayIcon className="fill-current" />
+        </Button>
+      </TableCell>
+      <TableCell className="py-0">
+        <div className="flex min-w-0 flex-col">
+          <span className={cn("truncate", status && "font-medium")}>{song.title}</span>
+          {showArtist && song.artistId && (
+            <Link href={`/artist/${song.artistId}`} className={cn(SUBLINK, "text-xs")}>
+              {song.artist}
+            </Link>
+          )}
+        </div>
+      </TableCell>
+      {showAlbum && (
+        <TableCell className="truncate py-0 max-lg:hidden">
+          {song.albumId && (
+            <Link href={`/album/${song.albumId}`} className={SUBLINK}>
+              {song.album}
+            </Link>
+          )}
+        </TableCell>
+      )}
+      <TableCell className="py-0 text-right font-mono text-muted-foreground tabular-nums">{clock(song.duration)}</TableCell>
+      <TableCell className="py-0">
+        <div className="flex justify-end opacity-0 group-focus-within/row:opacity-100 group-hover/row:opacity-100">
+          <Button variant="ghost" size="icon-xs" onClick={() => player.playNext([song])} aria-label={`play ${song.title} next`}>
+            <ListStartIcon />
+          </Button>
+          <Button variant="ghost" size="icon-xs" onClick={() => player.addToQueue([song])} aria-label={`add ${song.title} to queue`}>
+            <ListEndIcon />
+          </Button>
+        </div>
+      </TableCell>
+    </TableRow>
+  );
+});
+// Survives minification, so the render-count e2e test can find rows in React's fiber tree.
+TrackRow.displayName = "TrackRow";
+
 export function TrackList({ songs, showAlbum = true, showArtist = true, numbered = "index", asAlbum = false }: TrackListProps) {
-  const state = usePlayer();
-  const playingId = currentSong(state)?.id;
+  const playingId = usePlayer((state) => currentSong(state)?.id);
+  const playing = usePlayer((state) => state.playing);
+  const onPlay = useCallback((index: number) => player.play(songs, index, { album: asAlbum }), [songs, asAlbum]);
   if (!songs.length) return <EmptyState>no tracks</EmptyState>;
 
   const multiDisc = new Set(songs.map((song) => song.discNumber ?? 1)).size > 1;
   let lastDisc: number | undefined;
-  const play = (index: number) => player.play(songs, index, { album: asAlbum });
 
   return (
     <Table className="table-fixed text-[13px]" aria-label="tracks">
@@ -137,68 +205,19 @@ export function TrackList({ songs, showAlbum = true, showArtist = true, numbered
               </TableRow>,
             );
           lastDisc = disc;
-          const playing = song.id === playingId;
           rows.push(
-            <TableRow
+            <TrackRow
               // A song can appear twice in a playlist, so position is part of the key.
               // biome-ignore lint/suspicious/noArrayIndexKey: see above
               key={`${song.id}-${index}`}
-              tabIndex={0}
-              data-playing={playing || undefined}
-              className="group/row h-[34px] border-muted outline-none focus-visible:bg-card focus-visible:shadow-[inset_2px_0_0_var(--foreground)] hover:bg-card"
-              onDoubleClick={() => play(index)}
-              onKeyDown={(event) => event.key === "Enter" && event.target === event.currentTarget && play(index)}
-            >
-              <TableCell className="relative py-0 font-mono text-muted-foreground tabular-nums">
-                <span className="group-hover/row:invisible">
-                  {playing ? <Equalizer playing={state.playing} /> : numbered === "track" ? (song.track ?? index + 1) : index + 1}
-                </span>
-                <Button
-                  variant="ghost"
-                  size="icon-xs"
-                  className="invisible absolute top-1/2 left-1 -translate-y-1/2 group-hover/row:visible focus-visible:visible"
-                  onClick={() => play(index)}
-                  aria-label={`play ${song.title}`}
-                >
-                  <PlayIcon className="fill-current" />
-                </Button>
-              </TableCell>
-              <TableCell className="py-0">
-                <div className="flex min-w-0 flex-col">
-                  <span className={cn("truncate", playing && "font-medium")}>{song.title}</span>
-                  {showArtist && song.artistId && (
-                    <Link href={`/artist/${song.artistId}`} className={cn(SUBLINK, "text-xs")}>
-                      {song.artist}
-                    </Link>
-                  )}
-                </div>
-              </TableCell>
-              {showAlbum && (
-                <TableCell className="truncate py-0 max-lg:hidden">
-                  {song.albumId && (
-                    <Link href={`/album/${song.albumId}`} className={SUBLINK}>
-                      {song.album}
-                    </Link>
-                  )}
-                </TableCell>
-              )}
-              <TableCell className="py-0 text-right font-mono text-muted-foreground tabular-nums">{clock(song.duration)}</TableCell>
-              <TableCell className="py-0">
-                <div className="flex justify-end opacity-0 group-focus-within/row:opacity-100 group-hover/row:opacity-100">
-                  <Button variant="ghost" size="icon-xs" onClick={() => player.playNext([song])} aria-label={`play ${song.title} next`}>
-                    <ListMusicIcon />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon-xs"
-                    onClick={() => player.addToQueue([song])}
-                    aria-label={`add ${song.title} to queue`}
-                  >
-                    <PlusIcon />
-                  </Button>
-                </div>
-              </TableCell>
-            </TableRow>,
+              song={song}
+              index={index}
+              number={numbered === "track" ? (song.track ?? index + 1) : index + 1}
+              status={song.id === playingId ? (playing ? "playing" : "paused") : null}
+              showAlbum={showAlbum}
+              showArtist={showArtist}
+              onPlay={onPlay}
+            />,
           );
           return rows;
         })}

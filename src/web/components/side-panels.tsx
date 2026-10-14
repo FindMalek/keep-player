@@ -3,7 +3,7 @@ import { type ReactNode, useEffect, useMemo, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { clock } from "@/lib/format";
-import { currentSong, player, usePlayer } from "@/lib/player";
+import { currentSong, player, usePlayer, usePosition } from "@/lib/player";
 import { api } from "@/lib/subsonic";
 import type { StructuredLyrics } from "@/lib/types";
 import { useQuery } from "@/lib/use-query";
@@ -29,21 +29,22 @@ function PanelFrame({ title, meta, onClose, children }: { title: string; meta?: 
 }
 
 export function QueuePanel({ onClose }: { onClose: () => void }) {
-  const state = usePlayer();
-  const upcoming = state.queue.length - state.index - 1;
+  const queue = usePlayer((state) => state.queue);
+  const current = usePlayer((state) => state.index);
+  const upcoming = queue.length - current - 1;
 
   return (
     <PanelFrame title="queue" meta={`${upcoming} up next`} onClose={onClose}>
       <ol>
-        {state.queue.map((song, index) => (
+        {queue.map((song, index) => (
           // The queue can hold the same song twice.
           // biome-ignore lint/suspicious/noArrayIndexKey: see above
-          <li key={`${song.id}-${index}`} className={cn("group/queue flex items-center", index < state.index && "opacity-45")}>
+          <li key={`${song.id}-${index}`} className={cn("group/queue flex items-center", index < current && "opacity-45")}>
             <button
               type="button"
               className={cn(
                 "grid min-w-0 flex-1 grid-cols-[32px_minmax(0,1fr)_auto] items-center gap-2 px-1.5 py-1 text-left hover:bg-card",
-                index === state.index && "bg-border hover:bg-border",
+                index === current && "bg-border hover:bg-border",
               )}
               onClick={() => player.jumpTo(index)}
             >
@@ -54,7 +55,7 @@ export function QueuePanel({ onClose }: { onClose: () => void }) {
               </span>
               <span className="font-mono text-muted-foreground text-xs tabular-nums">{clock(song.duration)}</span>
             </button>
-            {index !== state.index && (
+            {index !== current && (
               <Button
                 variant="ghost"
                 size="icon-sm"
@@ -68,7 +69,7 @@ export function QueuePanel({ onClose }: { onClose: () => void }) {
           </li>
         ))}
       </ol>
-      {state.queue.length > 0 && (
+      {queue.length > 0 && (
         <Button variant="link" size="xs" className="mt-3.5 ml-2 px-0 font-mono text-muted-foreground" onClick={player.clear}>
           clear queue
         </Button>
@@ -78,8 +79,7 @@ export function QueuePanel({ onClose }: { onClose: () => void }) {
 }
 
 export function LyricsPanel({ onClose }: { onClose: () => void }) {
-  const state = usePlayer();
-  const song = currentSong(state);
+  const song = usePlayer(currentSong);
   const { data, loading } = useQuery(song ? `lyrics:${song.id}` : null, () =>
     api<{ lyricsList?: { structuredLyrics?: StructuredLyrics[] } }>("getLyricsBySongId", { id: song?.id }),
   );
@@ -88,8 +88,8 @@ export function LyricsPanel({ onClose }: { onClose: () => void }) {
     return all.find((entry) => entry.synced) ?? all[0];
   }, [data]);
 
-  const positionMs = state.position * 1000;
-  const active = lyrics?.synced ? lyrics.line.findLastIndex((line) => (line.start ?? 0) <= positionMs) : -1;
+  // Re-renders only when the active line changes, not every frame.
+  const active = usePosition((seconds) => (lyrics?.synced ? lyrics.line.findLastIndex((line) => (line.start ?? 0) <= seconds * 1000) : -1));
   const activeRef = useRef<HTMLButtonElement>(null);
   // biome-ignore lint/correctness/useExhaustiveDependencies: scroll only when the active line changes
   useEffect(() => {

@@ -15,7 +15,8 @@ import { type ComponentProps, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { clock, quality } from "@/lib/format";
-import { currentSong, player, usePlayer } from "@/lib/player";
+import { currentSong, player, usePlayer, usePosition } from "@/lib/player";
+import type { Song } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Cover } from "./cover";
 import { Link } from "./link";
@@ -38,8 +39,10 @@ function ToolButton({ on, className, ...props }: ComponentProps<typeof Button> &
   );
 }
 
-/** Seek bar that follows playback but holds the dragged value until release. */
-function Seek({ position, duration }: { position: number; duration: number }) {
+/** Seek bar that follows the position ticker but holds the dragged value until release. */
+function Seek() {
+  const duration = usePlayer((state) => state.duration);
+  const position = usePosition();
   const [dragging, setDragging] = useState<number | null>(null);
   return (
     <Slider
@@ -57,9 +60,77 @@ function Seek({ position, duration }: { position: number; duration: number }) {
   );
 }
 
+/** Re-renders once a second, not every frame. */
+function Elapsed() {
+  return <span className="text-right">{clock(usePosition(Math.floor))}</span>;
+}
+
+function Transport() {
+  const playing = usePlayer((state) => state.playing);
+  const shuffle = usePlayer((state) => state.shuffle);
+  const repeat = usePlayer((state) => state.repeat);
+  const duration = usePlayer((state) => state.duration);
+  return (
+    <div className="flex flex-col gap-0.5">
+      <div className="flex items-center justify-center gap-2.5">
+        <ToolButton on={shuffle} onClick={player.toggleShuffle} aria-label="shuffle" aria-pressed={shuffle}>
+          <ShuffleIcon />
+        </ToolButton>
+        <ToolButton onClick={player.previous} aria-label="previous">
+          <SkipBackIcon className="fill-current" />
+        </ToolButton>
+        <Button size="icon" onClick={() => player.toggle()} aria-label={playing ? "pause" : "play"}>
+          {playing ? <PauseIcon className="fill-current" /> : <PlayIcon className="fill-current" />}
+        </Button>
+        <ToolButton onClick={player.next} aria-label="next">
+          <SkipForwardIcon className="fill-current" />
+        </ToolButton>
+        <ToolButton on={repeat !== "off"} onClick={player.cycleRepeat} aria-label={`repeat ${repeat}`}>
+          {repeat === "one" ? <Repeat1Icon /> : <RepeatIcon />}
+        </ToolButton>
+      </div>
+      <div className="grid grid-cols-[44px_minmax(0,1fr)_44px] items-center gap-2.5 font-mono text-[11px] text-muted-foreground tabular-nums">
+        <Elapsed />
+        <Seek />
+        <span>{clock(duration)}</span>
+      </div>
+    </div>
+  );
+}
+
+function Extras({ song, panel, onPanel }: { song: Song; panel: Panel; onPanel: (panel: Panel) => void }) {
+  const buffering = usePlayer((state) => state.buffering);
+  const error = usePlayer((state) => state.error);
+  const muted = usePlayer((state) => state.muted);
+  const volume = usePlayer((state) => state.volume);
+  return (
+    <div className="flex min-w-0 items-center justify-end gap-1">
+      <span className="mr-2 truncate font-mono text-[11px] text-muted-foreground">
+        {buffering ? "loading…" : (error ?? quality(song.suffix, song.bitRate))}
+      </span>
+      <ToolButton on={panel === "lyrics"} onClick={() => onPanel(panel === "lyrics" ? null : "lyrics")} aria-label="lyrics">
+        <MicVocalIcon />
+      </ToolButton>
+      <ToolButton on={panel === "queue"} onClick={() => onPanel(panel === "queue" ? null : "queue")} aria-label="queue">
+        <ListMusicIcon />
+      </ToolButton>
+      <ToolButton onClick={player.toggleMute} aria-label={muted ? "unmute" : "mute"}>
+        {muted || volume === 0 ? <VolumeXIcon /> : <Volume2Icon />}
+      </ToolButton>
+      <Slider
+        aria-label="volume"
+        className="w-24"
+        max={1}
+        step={0.01}
+        value={[muted ? 0 : volume]}
+        onValueChange={(value) => player.setVolume(Array.isArray(value) ? (value[0] ?? 0) : value)}
+      />
+    </div>
+  );
+}
+
 export function PlayerBar({ panel, onPanel }: { panel: Panel; onPanel: (panel: Panel) => void }) {
-  const state = usePlayer();
-  const song = currentSong(state);
+  const song = usePlayer(currentSong);
   if (!song) return null;
 
   return (
@@ -79,54 +150,8 @@ export function PlayerBar({ panel, onPanel }: { panel: Panel; onPanel: (panel: P
           )}
         </div>
       </div>
-
-      <div className="flex flex-col gap-0.5">
-        <div className="flex items-center justify-center gap-2.5">
-          <ToolButton on={state.shuffle} onClick={player.toggleShuffle} aria-label="shuffle" aria-pressed={state.shuffle}>
-            <ShuffleIcon />
-          </ToolButton>
-          <ToolButton onClick={player.previous} aria-label="previous">
-            <SkipBackIcon className="fill-current" />
-          </ToolButton>
-          <Button size="icon" onClick={() => player.toggle()} aria-label={state.playing ? "pause" : "play"}>
-            {state.playing ? <PauseIcon className="fill-current" /> : <PlayIcon className="fill-current" />}
-          </Button>
-          <ToolButton onClick={player.next} aria-label="next">
-            <SkipForwardIcon className="fill-current" />
-          </ToolButton>
-          <ToolButton on={state.repeat !== "off"} onClick={player.cycleRepeat} aria-label={`repeat ${state.repeat}`}>
-            {state.repeat === "one" ? <Repeat1Icon /> : <RepeatIcon />}
-          </ToolButton>
-        </div>
-        <div className="grid grid-cols-[44px_minmax(0,1fr)_44px] items-center gap-2.5 font-mono text-[11px] text-muted-foreground tabular-nums">
-          <span className="text-right">{clock(state.position)}</span>
-          <Seek position={state.position} duration={state.duration} />
-          <span>{clock(state.duration)}</span>
-        </div>
-      </div>
-
-      <div className="flex min-w-0 items-center justify-end gap-1">
-        <span className="mr-2 truncate font-mono text-[11px] text-muted-foreground">
-          {state.buffering ? "loading…" : (state.error ?? quality(song.suffix, song.bitRate))}
-        </span>
-        <ToolButton on={panel === "lyrics"} onClick={() => onPanel(panel === "lyrics" ? null : "lyrics")} aria-label="lyrics">
-          <MicVocalIcon />
-        </ToolButton>
-        <ToolButton on={panel === "queue"} onClick={() => onPanel(panel === "queue" ? null : "queue")} aria-label="queue">
-          <ListMusicIcon />
-        </ToolButton>
-        <ToolButton onClick={player.toggleMute} aria-label={state.muted ? "unmute" : "mute"}>
-          {state.muted || state.volume === 0 ? <VolumeXIcon /> : <Volume2Icon />}
-        </ToolButton>
-        <Slider
-          aria-label="volume"
-          className="w-24"
-          max={1}
-          step={0.01}
-          value={[state.muted ? 0 : state.volume]}
-          onValueChange={(value) => player.setVolume(Array.isArray(value) ? (value[0] ?? 0) : value)}
-        />
-      </div>
+      <Transport />
+      <Extras song={song} panel={panel} onPanel={onPanel} />
     </footer>
   );
 }

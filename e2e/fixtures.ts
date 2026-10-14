@@ -16,3 +16,46 @@ export const test = base.extend<{ signedIn: Page }>({
 });
 
 export { expect };
+
+/**
+ * Headless Chromium has no audio output, so a playing <audio> never advances `currentTime`. This makes media time move in
+ * real time while playing (and honors seeks), which is all the app reads from the element.
+ */
+export function fakeMediaClock(): void {
+  const descriptor = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, "currentTime");
+  if (!descriptor?.get || !descriptor.set) return;
+  const { get, set } = descriptor;
+  const clock = new WeakMap<HTMLMediaElement, { base: number; since: number | null; watched?: boolean }>();
+  const state = (media: HTMLMediaElement) => {
+    const value = clock.get(media) ?? { base: 0, since: null };
+    clock.set(media, value);
+    return value;
+  };
+  const now = (media: HTMLMediaElement) => {
+    const value = state(media);
+    return value.base + (value.since === null ? 0 : (performance.now() - value.since) / 1000);
+  };
+  Object.defineProperty(HTMLMediaElement.prototype, "currentTime", {
+    configurable: true,
+    get(this: HTMLMediaElement) {
+      return Math.max(get.call(this), now(this));
+    },
+    set(this: HTMLMediaElement, seconds: number) {
+      const value = state(this);
+      value.base = seconds;
+      if (value.since !== null) value.since = performance.now();
+      set.call(this, seconds);
+    },
+  });
+  // The app's <audio> isn't in the document, so watch each element directly once it starts playing.
+  const play = HTMLMediaElement.prototype.play;
+  HTMLMediaElement.prototype.play = function (this: HTMLMediaElement) {
+    const value = state(this);
+    if (!value.watched) {
+      value.watched = true;
+      this.addEventListener("playing", () => Object.assign(state(this), { since: performance.now() }));
+      this.addEventListener("pause", () => Object.assign(state(this), { base: now(this), since: null }));
+    }
+    return play.call(this);
+  };
+}
