@@ -49,7 +49,11 @@ export function fakeMediaClock(): void {
   });
   // The app's <audio> isn't in the document, so watch each element directly once it starts playing.
   const play = HTMLMediaElement.prototype.play;
+  // Every element that ever played, so tests can count how many are playing at once.
+  const elements = new Set<HTMLMediaElement>();
+  (window as unknown as { __playingMedia: () => number }).__playingMedia = () => [...elements].filter((media) => !media.paused).length;
   HTMLMediaElement.prototype.play = function (this: HTMLMediaElement) {
+    elements.add(this);
     const value = state(this);
     if (!value.watched) {
       value.watched = true;

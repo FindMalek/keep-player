@@ -1,6 +1,7 @@
 import { del, get, set as setStored } from "idb-keyval";
 import { useRef, useSyncExternalStore } from "react";
 import type { FrameSource } from "./audio/types";
+import { Decks } from "./decks";
 import * as Q from "./queue";
 import { api, coverUrl, onAccountChange, preloadCover, scrobble, streamUrl } from "./subsonic";
 import type { Song } from "./types";
@@ -35,9 +36,6 @@ let state: PlayerState = {
 };
 const listeners = new Set<() => void>();
 
-let audio: HTMLAudioElement | null = null;
-let gain: GainNode | null = null;
-let context: AudioContext | null = null;
 let scrobbled = false;
 
 function set(patch: Partial<PlayerState>): void {
@@ -62,8 +60,9 @@ function setPosition(seconds: number): void {
 /** Follow the audio clock every frame while visible; hidden tabs fall back to `timeupdate` (about 4/s, throttled). */
 function tick(): void {
   frame = 0;
-  if (!audio || audio.paused || document.hidden) return;
-  setPosition(audio.currentTime);
+  if (decks.element.paused || document.hidden) return;
+  setPosition(decks.element.currentTime);
+  decks.tick();
   frame = requestAnimationFrame(tick);
 }
 
@@ -130,12 +129,16 @@ function setQueue(queue: Q.Queue): void {
   persist();
 }
 
-/** dB → linear, clipped so the track's peak never exceeds full scale. */
-function replayGainFactor(song: Song | undefined): number {
+/** Queue edits that keep the current song (play next, remove, shuffle, …): the preloaded "next" may have changed. */
+function edit(queue: Q.Queue): void {
+  setQueue(queue);
+  preloadNext();
+}
+
+/** dB → linear, clipped so the track's peak never exceeds full scale. `album`: use album gain (an album in order). */
+function replayGainFactor(song: Song | undefined, album: boolean): number {
   const rg = song?.replayGain;
   if (!rg) return 1;
-  // Album gain only while an album plays in order from its context; anything else is track gain.
-  const album = state.queue.context.album && state.queue.current?.from === "context";
   const db = album ? (rg.albumGain ?? rg.trackGain) : (rg.trackGain ?? rg.albumGain);
   const peak = album ? (rg.albumPeak ?? rg.trackPeak) : (rg.trackPeak ?? rg.albumPeak);
   if (db === undefined) return 1;
@@ -143,93 +146,100 @@ function replayGainFactor(song: Song | undefined): number {
   return peak ? Math.min(factor, 1 / peak) : factor;
 }
 
-function applyVolume(): void {
-  if (!audio) return;
-  audio.volume = state.muted ? 0 : state.volume;
-  if (gain) gain.gain.value = replayGainFactor(current());
-}
+/** Album gain only while an album plays in order from its context; queued songs in between use track gain. */
+const currentFactor = () => replayGainFactor(current(), state.queue.context.album && state.queue.current?.from === "context");
 
-function ensureAudio(): HTMLAudioElement {
-  if (audio) return audio;
-  audio = new Audio();
-  audio.preload = "auto";
-  audio.addEventListener("timeupdate", () => {
-    if (!audio) return;
-    if (document.hidden) setPosition(audio.currentTime);
+const decks = new Decks({
+  playing: () => {
+    set({ playing: true, buffering: false, error: null });
+    startTicker();
+  },
+  pause: () => {
+    setPosition(decks.element.currentTime);
+    set({ playing: false });
+    persist();
+  },
+  waiting: () => set({ buffering: true }),
+  canPlay: () => {
+    set({ buffering: false });
+    preloadNext();
+  },
+  duration: (seconds) => set({ duration: seconds || (current()?.duration ?? 0) }),
+  time: (seconds) => {
+    if (document.hidden) setPosition(seconds);
     const song = current();
-    if (
-      song &&
-      !scrobbled &&
-      (audio.currentTime >= SCROBBLE_AFTER_SEC || (audio.duration > 0 && audio.currentTime >= audio.duration / 2))
-    ) {
+    const duration = decks.element.duration;
+    if (song && !scrobbled && (seconds >= SCROBBLE_AFTER_SEC || (duration > 0 && seconds >= duration / 2))) {
       scrobbled = true;
       scrobble(song.id, true);
     }
-  });
-  audio.addEventListener("durationchange", () => set({ duration: audio && Number.isFinite(audio.duration) ? audio.duration : 0 }));
-  audio.addEventListener("playing", () => {
-    set({ playing: true, buffering: false, error: null });
-    startTicker();
-  });
-  audio.addEventListener("seeked", () => audio && setPosition(audio.currentTime));
-  audio.addEventListener("pause", () => {
-    if (audio) setPosition(audio.currentTime);
-    set({ playing: false });
-    persist();
-  });
-  audio.addEventListener("waiting", () => set({ buffering: true }));
-  audio.addEventListener("canplay", () => set({ buffering: false }));
-  audio.addEventListener("ended", onEnded);
-  audio.addEventListener("error", () => set({ playing: false, buffering: false, error: "couldn't play this track" }));
-  applyOutputDevice();
-  return audio;
+  },
+  seeked: (seconds) => setPosition(seconds),
+  ended: onEnded,
+  handover: () => {
+    // The next song is already playing: move the queue to match, then line up the one after it.
+    if (state.queue.repeat !== "one") setQueue(Q.next(state.queue));
+    started(current());
+  },
+  error: () => set({ playing: false, buffering: false, error: "couldn't play this track" }),
+});
+
+function applyVolume(): void {
+  decks.setVolume(state.muted ? 0 : state.volume);
+  decks.setFactor(currentFactor());
 }
 
-/** Web Audio is created on the first user gesture (browsers block it before that). */
-function ensureGraph(): void {
-  if (context || !audio) return;
-  try {
-    context = new AudioContext();
-    const source = context.createMediaElementSource(audio);
-    gain = context.createGain();
-    source.connect(gain).connect(context.destination);
-    applyOutputDevice();
-  } catch {
-    context = null;
-    gain = null;
-  }
-}
-
-/** Audio goes through Web Audio once the graph exists, so the device is set on the context, not the element. */
 function applyOutputDevice(): void {
-  const id = state.outputDevice ?? "";
-  const target = (context ?? audio) as { setSinkId?: (id: string) => Promise<void> } | null;
-  void target?.setSinkId?.(id).catch(() => set({ outputDevice: null }));
+  void decks.setSink(state.outputDevice ?? "").catch(() => set({ outputDevice: null }));
 }
 
-/** Load the queue's current song into the element; plays it when `autoplay`. */
+/** The song that plays when this one ends (the same one on repeat-one), and its gain. */
+function upcoming(): { song: Song; factor: number } | null {
+  const { queue } = state;
+  if (queue.repeat === "one") {
+    const song = current();
+    return song ? { song, factor: currentFactor() } : null;
+  }
+  const song = Q.peekNext(queue);
+  if (!song) return null;
+  const fromContext = queue.upNext.length === 0;
+  return { song, factor: replayGainFactor(song, fromContext && queue.context.album) };
+}
+
+/** Keep the idle deck holding whatever plays next; called whenever the queue changes. */
+function preloadNext(): void {
+  if (!current()) return;
+  const next = upcoming();
+  decks.preload(next?.song.id ?? null, next ? streamUrl(next.song.id) : null, next?.factor ?? 1);
+  // The player bar shows the next cover within minutes; have it cached by then.
+  preloadCover(next?.song.coverArt, 42);
+}
+
+/** Bookkeeping when a song starts (loaded or handed over gaplessly). */
+function started(song: Song | undefined): void {
+  scrobbled = false;
+  setPosition(0);
+  set({ duration: song?.duration ?? 0, error: null });
+  applyVolume();
+  updateMediaSession();
+  persist();
+  if (song) scrobble(song.id, false);
+  preloadNext();
+}
+
+/** Load the queue's current song; plays it when `autoplay`. A song already preloaded starts instantly. */
 function load(autoplay: boolean, startAt = 0): void {
   const song = current();
   if (!song) return;
-  const element = ensureAudio();
-  scrobbled = false;
-  set({ duration: song.duration ?? 0, error: null, buffering: autoplay });
-  setPosition(startAt);
-  element.src = streamUrl(song.id);
-  // Seeking before metadata is loaded is ignored by some browsers.
-  if (startAt) element.addEventListener("loadedmetadata", () => (element.currentTime = startAt), { once: true });
-  applyVolume();
-  updateMediaSession();
-  // The player bar shows the next cover within minutes; have it cached by then.
-  preloadCover(Q.peekNext(state.queue)?.coverArt, 42);
-  persist();
-  if (autoplay) {
-    ensureGraph();
-    void context?.resume();
-    applyVolume();
-    void element.play().catch(() => set({ playing: false, buffering: false }));
-    scrobble(song.id, false);
+  decks.load(song.id, streamUrl(song.id), currentFactor(), startAt, false);
+  set({ buffering: autoplay });
+  started(autoplay ? song : undefined);
+  if (!autoplay) {
+    set({ duration: song.duration ?? 0 });
+    updateMediaSession();
   }
+  setPosition(startAt);
+  if (autoplay) void decks.play().catch(() => set({ playing: false, buffering: false }));
 }
 
 /** Move the queue and start the new current song, or stop at the end. */
@@ -237,7 +247,8 @@ function advance(queue: Q.Queue): void {
   setQueue(queue);
   if (queue.current) load(true);
   else {
-    audio?.pause();
+    decks.pause();
+    decks.preload(null, null, 1);
     set({ playing: false });
     setPosition(0);
   }
@@ -273,16 +284,8 @@ export const player = {
   getState: (): PlayerState => state,
   getPosition: (): number => position,
   /** End of the buffered range around the playhead, in seconds. */
-  getBuffered(): number {
-    if (!audio) return 0;
-    for (let i = 0; i < audio.buffered.length; i += 1)
-      if (audio.buffered.start(i) <= audio.currentTime + 0.5) {
-        const end = audio.buffered.end(i);
-        if (end >= audio.currentTime) return end;
-      }
-    return 0;
-  },
-  element: (): HTMLAudioElement | null => audio,
+  getBuffered: (): number => decks.buffered(),
+  element: (): HTMLAudioElement => decks.element,
   setOutputDevice(id: string | null): void {
     set({ outputDevice: id });
     applyOutputDevice();
@@ -295,19 +298,12 @@ export const player = {
   },
   toggle(force?: boolean): void {
     if (!current()) return;
-    const element = ensureAudio();
+    const element = decks.element;
     const shouldPlay = force ?? element.paused;
-    if (shouldPlay) {
-      if (!element.src) {
-        load(true, position);
-        return;
-      }
-      ensureGraph();
-      void context?.resume();
-      void element.play().catch(() => set({ playing: false }));
-    } else {
-      element.pause();
-    }
+    if (!shouldPlay) decks.pause();
+    // A restored queue has nothing loaded yet: load it where it was left.
+    else if (!element.src) load(true, position);
+    else void decks.play().catch(() => set({ playing: false }));
   },
   next(): void {
     if (current()) advance(Q.next(state.queue));
@@ -324,9 +320,10 @@ export const player = {
     advance(Q.jumpTo(state.queue, entry));
   },
   seek(seconds: number): void {
-    if (!audio || !current()) return;
-    audio.currentTime = Math.max(0, Math.min(seconds, state.duration || seconds));
-    setPosition(audio.currentTime);
+    if (!current() || !decks.element.src) return;
+    const target = Math.max(0, Math.min(seconds, state.duration || seconds));
+    decks.seek(target);
+    setPosition(target);
   },
   setVolume(volume: number): void {
     set({ volume: Math.max(0, Math.min(1, volume)), muted: false });
@@ -339,11 +336,11 @@ export const player = {
     persist();
   },
   toggleShuffle(): void {
-    setQueue(Q.setShuffle(state.queue, !state.queue.shuffle));
+    edit(Q.setShuffle(state.queue, !state.queue.shuffle));
     applyVolume();
   },
   setRepeat(repeat: Q.Repeat): void {
-    setQueue({ ...state.queue, repeat });
+    edit({ ...state.queue, repeat });
   },
   cycleRepeat(): void {
     const { repeat } = state.queue;
@@ -352,21 +349,21 @@ export const player = {
   /** To the top of your queue; starts playing if nothing is. */
   playNext(songs: Song[]): void {
     if (!current()) player.play(songs);
-    else setQueue(Q.playNext(state.queue, songs));
+    else edit(Q.playNext(state.queue, songs));
   },
   /** To the end of your queue; starts playing if nothing is. */
   addToQueue(songs: Song[]): void {
     if (!current()) player.play(songs);
-    else setQueue(Q.addToQueue(state.queue, songs));
+    else edit(Q.addToQueue(state.queue, songs));
   },
   remove(entry: Q.Entry): void {
-    setQueue(Q.remove(state.queue, entry));
+    edit(Q.remove(state.queue, entry));
   },
   clearUpNext(): void {
-    setQueue(Q.clearUpNext(state.queue));
+    edit(Q.clearUpNext(state.queue));
   },
   clearContext(): void {
-    setQueue(Q.clearContext(state.queue));
+    edit(Q.clearContext(state.queue));
   },
   /** Saves what's playing and everything still to come as a new playlist. */
   async saveAsPlaylist(name: string): Promise<void> {
@@ -375,8 +372,7 @@ export const player = {
     await api("createPlaylist", { name, songId: songs });
   },
   clear(): void {
-    audio?.pause();
-    if (audio) audio.removeAttribute("src");
+    decks.stop();
     set({ queue: { ...Q.EMPTY_QUEUE, shuffle: state.queue.shuffle, repeat: state.queue.repeat }, playing: false, duration: 0 });
     setPosition(0);
     persist();
