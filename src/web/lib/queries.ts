@@ -31,7 +31,7 @@ export const persister = createAsyncStoragePersister({
 /** Search results change with every keystroke and offsets must be fresh: neither is kept across reloads. */
 export const shouldPersist = (query: Query) =>
   query.state.status === "success" &&
-  !["search", "lyricsSearch", "lyricsOffset", "session", "searchIndex"].includes(query.queryKey[0] as string);
+  !["search", "lyricsSearch", "lyricsOffset", "session", "searchIndex", "history"].includes(query.queryKey[0] as string);
 
 /** Long lists load this many items at a time, the next page fetched when the reader is 80% down. */
 export const PAGE_SIZE = 200;

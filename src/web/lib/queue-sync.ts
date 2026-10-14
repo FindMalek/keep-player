@@ -1,3 +1,4 @@
+import { deviceName } from "./elsewhere";
 import { clock } from "./format";
 import { notify } from "./notify";
 import { player } from "./player";
@@ -106,11 +107,6 @@ async function readRemote(): Promise<Remote | null> {
   };
 }
 
-/** "Arpeggi", or "another browser" for our own app elsewhere. */
-function device(changedBy: string): string {
-  return changedBy.startsWith("keep-player@") ? "another browser" : changedBy || "another device";
-}
-
 let lastPull = 0;
 
 /** Look at the server's queue and offer it (or take it, with "always follow" and nothing playing here). */
@@ -131,7 +127,7 @@ export async function pullQueue(force = false): Promise<void> {
     return;
   }
   notify({
-    message: `continue from ${device(remote.changedBy)} · ${song.title} at ${clock(remote.position / 1000)}`,
+    message: `continue from ${deviceName(remote.changedBy)} · ${song.title} at ${clock(remote.position / 1000)}`,
     duration: 20_000,
     // Only the newest queue is worth offering.
     id: "queue-handoff",

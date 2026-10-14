@@ -15,6 +15,7 @@ const albumsById = new Map(library.albums.map((album) => [album.id, album]));
 const songsById = new Map(library.songs.map((song) => [song.id, song]));
 const starred = new Map<string, string>();
 const ratings = new Map<string, number>();
+const nowPlaying = new Map<string, { song: Song; at: number }>();
 let playQueue: { entry: Song[]; current?: string; position?: number; changed?: string; changedBy?: string } | null = null;
 
 type Params = URLSearchParams;
@@ -169,8 +170,13 @@ function handle(endpoint: string, params: Params, request: Request): Response {
   const id = params.get("id") ?? "";
   switch (endpoint) {
     case "ping":
-    case "scrobble":
       return ok();
+    case "scrobble": {
+      // A "now playing" scrobble (submission=false) shows the song on getNowPlaying for that client.
+      const song = songsById.get(id);
+      if (song && params.get("submission") === "false") nowPlaying.set(params.get("c") ?? "", { song, at: Date.now() });
+      return ok();
+    }
     case "getScanStatus":
       return ok({ scanStatus: { scanning: false, count: library.songs.length, lastScan: "2026-10-01T00:00:00Z" } });
     case "getMusicFolders":
@@ -356,7 +362,17 @@ function handle(endpoint: string, params: Params, request: Request): Response {
       });
     }
     case "getNowPlaying":
-      return ok({ nowPlaying: {} });
+      return ok({
+        nowPlaying: {
+          entry: [...nowPlaying].map(([client, { song, at }]) => ({
+            ...song,
+            username: USER,
+            playerName: client,
+            playerId: client.length,
+            minutesAgo: Math.floor((Date.now() - at) / 60_000),
+          })),
+        },
+      });
     case "getCoverArt":
       return cover(id, Number(params.get("size") ?? 300));
     case "stream":

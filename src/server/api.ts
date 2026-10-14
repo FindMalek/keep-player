@@ -4,6 +4,7 @@ import type { Server } from "bun";
 import type { LyricsSearch } from "../shared/search";
 import type { Upstream } from "./config";
 import { type CoverCache, snapCoverSize } from "./covers";
+import { type NewPlay, readPlays, recordPlay } from "./history";
 import type { LyricsService } from "./lyrics";
 import { lyricsCoverage, queryLyrics } from "./lyrics-search";
 import type { LoginLimiter } from "./rate-limit";
@@ -365,7 +366,33 @@ export function createApi({ upstreams, covers, lyrics, indexes, library, session
     return json(search(library, upstream.id, query, { folders, liked }, limit), 200, { "cache-control": "private, no-cache" });
   }
 
+  /** `/api/history`: GET your plays (newest first, `?before=` to page back), POST one that just ended. */
+  async function history(request: Request): Promise<Response> {
+    if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
+    const session = sessions.get(cookieValue(request));
+    if (!session) return json({ error: "signed out" }, 401);
+    const account = `${session.server}:${session.user}`;
+    if (request.method === "GET") {
+      const params = new URL(request.url).searchParams;
+      const before = Number(params.get("before")) || Date.now() + 1;
+      const limit = Math.min(500, Math.max(1, Number(params.get("limit")) || 200));
+      return json({ plays: readPlays(library, account, before, limit) }, 200, { "cache-control": "private, no-cache" });
+    }
+    const body = (await request.json().catch(() => null)) as Partial<NewPlay> | null;
+    const valid =
+      body &&
+      typeof body.song?.id === "string" &&
+      typeof body.started === "number" &&
+      typeof body.listened === "number" &&
+      body.listened >= 0 &&
+      body.listened < 86_400;
+    if (!valid) return json({ error: "song, started, listened" }, 400);
+    recordPlay(library, account, request.headers.get(CLIENT_HEADER) ?? "", { ...(body as NewPlay), finished: Boolean(body.finished) });
+    return json({ ok: true });
+  }
+
   return {
+    history,
     login,
     logout,
     current,

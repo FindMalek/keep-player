@@ -76,6 +76,7 @@ export function appShortcuts(actions: AppActions): Shortcut[] {
     global("go-artists", ["g r"], "go to artists", "navigation", () => go("/artists")),
     global("go-songs", ["g s"], "go to songs", "navigation", () => go("/songs")),
     global("go-genres", ["g g"], "go to genres", "navigation", () => go("/genres")),
+    global("go-history", ["g p"], "go to history", "navigation", () => go("/history")),
     global("go-liked", ["g l"], "go to liked songs", "navigation", () => go("/liked")),
     global("go-folders", ["g f"], "go to folders", "navigation", () => go("/folders")),
     global("go-queue", ["g q"], "open the queue", "navigation", () => actions.togglePanel("queue")),

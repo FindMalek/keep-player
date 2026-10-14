@@ -4,6 +4,7 @@ import {
   Disc3Icon,
   FolderIcon,
   HeartIcon,
+  HistoryIcon,
   HouseIcon,
   ListMusicIcon,
   MonitorIcon,
@@ -31,6 +32,7 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
+import { useElsewhere } from "@/lib/elsewhere";
 import { queries } from "@/lib/queries";
 import { useUser } from "@/lib/subsonic";
 import type { Playlist } from "@/lib/types";
@@ -39,6 +41,7 @@ import { Link } from "./link";
 
 // Rarely opened; keeps the dialog code out of the first load.
 const StorageDialog = lazy(() => import("./storage-dialog").then((module) => ({ default: module.StorageDialog })));
+const ElsewhereBadge = lazy(() => import("./elsewhere-badge").then((module) => ({ default: module.ElsewhereBadge })));
 const IndexDialog = lazy(() => import("./index-dialog").then((module) => ({ default: module.IndexDialog })));
 const SessionsDialog = lazy(() => import("./sessions-dialog").then((module) => ({ default: module.SessionsDialog })));
 
@@ -48,6 +51,7 @@ const LIBRARY = [
   ["/artists", "artists", UsersIcon],
   ["/songs", "songs", MusicIcon],
   ["/liked", "liked songs", HeartIcon],
+  ["/history", "history", HistoryIcon],
   ["/genres", "genres", TagIcon],
   ["/folders", "folders", FolderIcon],
 ] as const;
@@ -135,6 +139,7 @@ export function AppSidebar({ path, onSearch, onShortcuts }: { path: string; onSe
   const user = useUser() ?? "";
   const [sessionsOpen, setSessionsOpen] = useState(false);
   const [indexOpen, setIndexOpen] = useState(false);
+  const elsewhere = useElsewhere();
   const [menuWanted, setMenuWanted] = useState(false);
   const [storageOpen, setStorageOpen] = useState(false);
   const { data } = useQuery(queries.playlists());
@@ -199,6 +204,11 @@ export function AppSidebar({ path, onSearch, onShortcuts }: { path: string; onSe
         </SidebarContent>
 
         <SidebarFooter className="border-t">
+          {elsewhere[0] && (
+            <Suspense>
+              <ElsewhereBadge playing={elsewhere[0]} />
+            </Suspense>
+          )}
           <SidebarMenu>
             <SidebarMenuItem>
               <Suspense fallback={<UserButton user={user} onClick={() => setMenuWanted(true)} />}>

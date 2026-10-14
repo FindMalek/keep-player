@@ -1,4 +1,5 @@
 import { Database } from "bun:sqlite";
+import { createHistoryTables } from "./history";
 
 /**
  * The server's library database (`$DATA_DIR/library.db`): the lyrics cache and per-user lyric offsets now, the search
@@ -21,5 +22,6 @@ export function openLibraryDb(path: string): Database {
     offset_ms integer not null,
     primary key (user, song_id)
   )`);
+  createHistoryTables(db);
   return db;
 }
