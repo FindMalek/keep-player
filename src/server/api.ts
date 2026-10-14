@@ -391,8 +391,35 @@ export function createApi({ upstreams, covers, lyrics, indexes, library, session
     return json({ ok: true });
   }
 
+  /** `/api/playlists/:id/hidden`: the songs you hid in a playlist (GET), hide or show one (PUT `{ songId, hidden }`). */
+  async function playlistHidden(request: Request & { params: { id: string } }): Promise<Response> {
+    if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
+    const session = sessions.get(cookieValue(request));
+    if (!session) return json({ error: "signed out" }, 401);
+    const account = `${session.server}:${session.user}`;
+    const playlist = request.params.id;
+    if (request.method === "PUT") {
+      const body = (await request.json().catch(() => null)) as { songId?: unknown; hidden?: unknown } | null;
+      if (typeof body?.songId !== "string" || typeof body.hidden !== "boolean") return json({ error: "songId, hidden" }, 400);
+      if (body.hidden)
+        library
+          .query("insert or ignore into playlist_hidden (account, playlist_id, song_id) values (?, ?, ?)")
+          .run(account, playlist, body.songId);
+      else
+        library
+          .query("delete from playlist_hidden where account = ? and playlist_id = ? and song_id = ?")
+          .run(account, playlist, body.songId);
+    }
+    const songs = library
+      .query<{ song_id: string }, [string, string]>("select song_id from playlist_hidden where account = ? and playlist_id = ?")
+      .all(account, playlist)
+      .map((row) => row.song_id);
+    return json({ songs }, 200, { "cache-control": "private, no-cache" });
+  }
+
   return {
     history,
+    playlistHidden,
     login,
     logout,
     current,

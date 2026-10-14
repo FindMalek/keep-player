@@ -18,6 +18,7 @@ import { transition } from "@/lib/motion";
 import { notify } from "@/lib/notify";
 import { PageScrollContext } from "@/lib/page-scroll";
 import { currentSong, player, usePlayer } from "@/lib/player";
+import { openPlaylistDialog, usePlaylistDialog } from "@/lib/playlist-dialogs";
 import { useReachability } from "@/lib/reachability";
 import { go, usePath } from "@/lib/router";
 import { useSetting } from "@/lib/settings";
@@ -56,6 +57,7 @@ const CheatSheet = lazy(() => import("@/components/cheat-sheet").then((module) =
 // Only loaded on the first ⌘K (cmdk + dialog stay out of the first paint), then kept mounted.
 const SearchPalette = lazy(() => import("@/components/search-palette").then((module) => ({ default: module.SearchPalette })));
 
+const PlaylistDialogs = lazy(() => import("@/components/playlist-dialogs").then((module) => ({ default: module.PlaylistDialogs })));
 const MiniPlayerPortal = lazy(() => import("@/components/mini-player").then((module) => ({ default: module.MiniPlayerPortal })));
 const OfflineBanner = lazy(() => import("@/components/offline-banner").then((module) => ({ default: module.OfflineBanner })));
 const TopProgressLine = lazy(() => import("@/components/top-progress").then((module) => ({ default: module.TopProgressLine })));
@@ -134,6 +136,7 @@ export function App() {
   const setPanel = (update: Panel | ((value: Panel) => Panel)) => transition(() => setPanelNow(update));
   const reduceMotion = useSetting("reduceMotion");
   const miniWindow = useMiniWindow();
+  const playlistDialog = usePlaylistDialog();
   const autoMini = useSetting("miniPlayerWhenHidden");
   useEffect(() => setAutoMiniPlayer(autoMini), [autoMini]);
   useEffect(() => {
@@ -165,6 +168,7 @@ export function App() {
       toggleFullScreen: () => setFullScreen((value) => !value),
       findInList: openListFilter,
       openMiniPlayer: () => void openMiniPlayer(),
+      newPlaylist: () => openPlaylistDialog({ kind: "new" }),
       likeCurrent: () => {
         const song = currentSong(player.getState());
         if (song) void toggleLiked("song", song.id, song.title);
@@ -221,6 +225,14 @@ export function App() {
   return (
     <>
       <TopProgress />
+      {playlistDialog && (
+        <Suspense>
+          <PlaylistDialogs
+            key={playlistDialog.kind === "new" ? `new:${playlistDialog.folder ?? ""}` : `folder:${playlistDialog.path}`}
+            dialog={playlistDialog}
+          />
+        </Suspense>
+      )}
       {miniWindow && (
         <Suspense>
           <MiniPlayerPortal target={miniWindow} />
