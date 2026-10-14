@@ -1,6 +1,7 @@
 import {
   ChevronDownIcon,
   ListMusicIcon,
+  LoaderCircleIcon,
   MicVocalIcon,
   MoonIcon,
   PauseIcon,
@@ -15,7 +16,7 @@ import {
   Volume2Icon,
   VolumeXIcon,
 } from "lucide-react";
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import {
   AudioPlayer,
   AudioPlayerControls,
@@ -34,6 +35,7 @@ import { useCachedIds } from "@/lib/offline";
 import { currentSong, player, usePlayer, usePosition } from "@/lib/player";
 import type { Song } from "@/lib/types";
 import { CAN_PICK_OUTPUT } from "@/lib/use-output-devices";
+import { cn } from "@/lib/utils";
 import { Cover } from "./cover";
 import { Hint } from "./hint";
 import { LikeButton } from "./like-button";
@@ -121,6 +123,13 @@ export function PlayerBar({ panel, onPanel }: { panel: Panel; onPanel: (panel: P
   const shuffle = usePlayer((state) => state.queue.shuffle);
   const repeat = usePlayer((state) => state.queue.repeat);
   const buffering = usePlayer((state) => state.buffering);
+  // A spinner only when buffering drags on; short waits just pulse the seek track.
+  const [slow, setSlow] = useState(false);
+  useEffect(() => {
+    if (!buffering) return setSlow(false);
+    const id = setTimeout(() => setSlow(true), 1000);
+    return () => clearTimeout(id);
+  }, [buffering]);
   const error = usePlayer((state) => state.error);
   const cached = useCachedIds();
   const songId = usePlayer((state) => currentSong(state)?.id ?? "");
@@ -152,7 +161,15 @@ export function PlayerBar({ panel, onPanel }: { panel: Panel; onPanel: (panel: P
             </Hint>
             <Hint label={controller.playing ? "pause" : "play"} shortcut="play-pause">
               <AudioPlayerPlay className="size-8 rounded-none" aria-label={controller.playing ? "pause" : "play"}>
-                {({ playing }) => (playing ? <PauseIcon className="fill-current" /> : <PlayIcon className="fill-current" />)}
+                {({ playing }) =>
+                  slow ? (
+                    <LoaderCircleIcon className="animate-spin motion-reduce:animate-none" />
+                  ) : playing ? (
+                    <PauseIcon className="fill-current" />
+                  ) : (
+                    <PlayIcon className="fill-current" />
+                  )
+                }
               </AudioPlayerPlay>
             </Hint>
             <Hint label="next" shortcut="next">
@@ -168,7 +185,7 @@ export function PlayerBar({ panel, onPanel }: { panel: Panel; onPanel: (panel: P
           </AudioPlayerControls>
           <div className="flex items-center gap-2.5">
             <Elapsed />
-            <AudioPlayerSeek aria-label="seek" />
+            <AudioPlayerSeek aria-label="seek" className={cn(buffering && "animate-pulse motion-reduce:animate-none")} />
             <AudioPlayerTime type="duration" className="w-11 text-left text-[11px]" />
           </div>
         </div>

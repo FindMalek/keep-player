@@ -4,8 +4,10 @@ import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } fro
 import { AlbumGrid, AlbumGridSkeleton, Content, EmptyState, PageHeader, Section, TrackList } from "@/components/library";
 import { Link } from "@/components/link";
 import { ListFilterBar } from "@/components/list-filter-bar";
+import { ArtistRowsSkeleton, Delayed, TrackListSkeleton } from "@/components/skeletons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Toggle } from "@/components/ui/toggle";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { plural } from "@/lib/format";
@@ -96,7 +98,8 @@ function useAllPages<T>(query: {
 export function AlbumsPage() {
   const [sort, setSort] = useState<Sort>("newest");
   const [likedOnly, setLikedOnly] = useState(false);
-  const { items: all, loadMore } = useAllPages(useInfiniteQuery(queries.albumPages(sort)));
+  const pages = useInfiniteQuery(queries.albumPages(sort));
+  const { items: all, loadMore } = useAllPages(pages);
   const starred = useQuery({ ...queries.starred(), enabled: likedOnly });
   const albums = likedOnly ? (starred.data?.album ?? []) : all;
   const totals = useQuery(queries.totals());
@@ -124,7 +127,13 @@ export function AlbumsPage() {
       </PageHeader>
       <Content>
         {likedOnly && starred.data && !albums.length && <EmptyState>no liked albums yet: the heart on an album page adds one</EmptyState>}
-        <AlbumGrid albums={albums} onNearEnd={likedOnly ? undefined : loadMore} priority={16} />
+        {(likedOnly ? starred.isPending : pages.isPending) ? (
+          <Delayed>
+            <AlbumGridSkeleton count={24} />
+          </Delayed>
+        ) : (
+          <AlbumGrid albums={albums} onNearEnd={likedOnly ? undefined : loadMore} priority={16} />
+        )}
       </Content>
     </>
   );
@@ -140,6 +149,7 @@ function LikedToggle({ pressed, onPressedChange }: { pressed: boolean; onPressed
   );
 }
 
+const LETTERS = ["#", ..."ABCDEFGHIJKLMNOPQRSTUVWXYZ"];
 const LETTER_COLUMN = 48;
 const ARTIST_MIN = 220;
 const ARTIST_GAP = 24;
@@ -180,23 +190,27 @@ export function ArtistsPage() {
   return (
     <>
       <PageHeader title="artists" meta={data ? plural(total, "artist") : undefined}>
-        <LikedToggle pressed={likedOnly} onPressedChange={setLikedOnly} />
+        {/* The whole alphabet from the first frame (missing letters disabled), so its width never changes. */}
         <nav aria-label="jump to letter" className="flex flex-wrap justify-end">
-          {groups.map((group) => (
+          {[...new Set([...LETTERS, ...groups.map((group) => group.name)])].map((letter) => (
             <Button
-              key={group.name}
+              key={letter}
               variant="ghost"
               size="xs"
               className="w-5 px-0 font-mono text-muted-foreground"
-              onClick={() => virtualizer.scrollToIndex(letterRow.get(group.name) ?? 0, { align: "start" })}
+              disabled={!letterRow.has(letter)}
+              onClick={() => virtualizer.scrollToIndex(letterRow.get(letter) ?? 0, { align: "start" })}
             >
-              {group.name}
+              {letter}
             </Button>
           ))}
         </nav>
+        {/* Last, so the letters arriving grow leftwards instead of pushing it. */}
+        <LikedToggle pressed={likedOnly} onPressedChange={setLikedOnly} />
       </PageHeader>
       <Content>
         {groups.length === 0 && data && <EmptyState>no artists</EmptyState>}
+        {!data && <ArtistRowsSkeleton count={80} />}
         <div ref={listRef} className="relative" style={{ height: virtualizer.getTotalSize() }}>
           {virtualizer.getVirtualItems().map((item) => {
             const row = rows[item.index];
@@ -234,7 +248,8 @@ export function ArtistsPage() {
 const SONGS_SOURCE = { kind: "songs", name: "songs", href: "/songs" };
 
 export function SongsPage() {
-  const { items: songs, loadMore } = useAllPages(useInfiniteQuery(queries.songPages()));
+  const pages = useInfiniteQuery(queries.songPages());
+  const { items: songs, loadMore } = useAllPages(pages);
   const totals = useQuery(queries.totals());
 
   return (
@@ -254,7 +269,7 @@ export function SongsPage() {
         </Button>
       </PageHeader>
       <Content>
-        <TrackList songs={songs} onNearEnd={loadMore} source={SONGS_SOURCE} />
+        {pages.isPending ? <TrackListSkeleton count={24} /> : <TrackList songs={songs} onNearEnd={loadMore} source={SONGS_SOURCE} />}
       </Content>
     </>
   );
@@ -268,6 +283,16 @@ export function GenresPage() {
     <>
       <PageHeader title="genres" meta={data ? plural(genres.length, "genre") : undefined} />
       <Content>
+        {!data && (
+          <Delayed>
+            <div aria-hidden className="flex flex-wrap gap-2">
+              {Array.from({ length: 16 }, (_, index) => (
+                // biome-ignore lint/suspicious/noArrayIndexKey: placeholders have no identity
+                <Skeleton key={index} className="h-7" style={{ width: `${72 + ((index * 41) % 64)}px` }} />
+              ))}
+            </div>
+          </Delayed>
+        )}
         {genres.length === 0 && data && <EmptyState>no genres yet · they come from your files' tags</EmptyState>}
         <ul className="flex flex-wrap gap-2">
           {genres.map((genre) => (
@@ -361,7 +386,9 @@ export function LikedPage() {
       <Content>
         <div data-filter-scope="page">
           {filter !== null && <ListFilterBar scope="page" query={filter} shown={shown.length} total={songs.length} />}
-          {data && !songs.length ? (
+          {!data ? (
+            <TrackListSkeleton count={12} />
+          ) : !songs.length ? (
             <EmptyState>no liked songs yet: the heart on any song (or F while it plays) adds it here and in Arpeggi</EmptyState>
           ) : filter && !shown.length ? (
             <EmptyState>nothing here matches “{filter}”</EmptyState>

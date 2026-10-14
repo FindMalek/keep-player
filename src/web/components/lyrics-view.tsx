@@ -16,6 +16,7 @@ import type { LyricLine } from "../../shared/lyrics";
 import { Hint } from "./hint";
 import { KeyCombo } from "./key-combo";
 import { EmptyState } from "./library";
+import { Delayed } from "./skeletons";
 
 type Size = "panel" | "full";
 type LineState = "past" | "active" | "future";
@@ -122,11 +123,13 @@ const Line = memo(function Line({
 
 function LoadingLines() {
   return (
-    <div aria-hidden className="flex flex-col gap-3 px-2 py-3">
-      {[70, 55, 85, 40, 65, 75, 50, 60].map((width) => (
-        <Skeleton key={width} className="h-5" style={{ width: `${width}%` }} />
-      ))}
-    </div>
+    <Delayed>
+      <div aria-hidden className="flex flex-col gap-3 px-2 py-3">
+        {[70, 55, 85, 40, 65, 75, 50, 60].map((width) => (
+          <Skeleton key={width} className="h-5" style={{ width: `${width}%` }} />
+        ))}
+      </div>
+    </Delayed>
   );
 }
 

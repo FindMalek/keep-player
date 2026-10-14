@@ -4,17 +4,19 @@ import { Fragment, type ReactNode } from "react";
 import { ArtistCard } from "@/components/artist-card";
 import { Cover } from "@/components/cover";
 import { KeepOffline } from "@/components/keep-offline";
-import { AlbumGrid, Content, EmptyState, PageHeader, Section, TrackList } from "@/components/library";
+import { AlbumGrid, AlbumGridSkeleton, Content, EmptyState, PageHeader, Section, TrackList } from "@/components/library";
 import { LikeButton } from "@/components/like-button";
 import { Link } from "@/components/link";
+import { Delayed, HeroSkeleton, TrackListSkeleton } from "@/components/skeletons";
 import { Badge } from "@/components/ui/badge";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
+import { cachedSummary } from "@/lib/cached";
 import { length, plural, quality } from "@/lib/format";
 import type { LikeKind } from "@/lib/likes";
 import { player } from "@/lib/player";
 import { queries, queryClient } from "@/lib/queries";
-import type { Song } from "@/lib/types";
+import type { Album, Artist, Playlist, Song } from "@/lib/types";
 
 function Hero({
   cover,
@@ -62,6 +64,18 @@ function Hero({
   );
 }
 
+/** Nothing cached to start from (a deep link, a reload): header and rows as placeholders. */
+function DetailSkeleton() {
+  return (
+    <>
+      <HeroSkeleton />
+      <Content>
+        <TrackListSkeleton count={12} />
+      </Content>
+    </>
+  );
+}
+
 const Kind = ({ children }: { children: ReactNode }) => (
   <Badge variant="outline" className="border-ring font-mono font-normal text-[10.5px] text-muted-foreground">
     {children}
@@ -73,14 +87,22 @@ const Bio = ({ children }: { children: ReactNode }) => (
 );
 
 export function AlbumPage({ id }: { id: string }) {
-  const { data: album, error } = useQuery(queries.album(id));
+  const {
+    data: album,
+    error,
+    isPlaceholderData,
+  } = useQuery({
+    ...queries.album(id),
+    // The card you clicked already knows the cover, title and track count: paint the header with them right away.
+    placeholderData: () => cachedSummary<Album>(id, ["albumList", "albumPages", "starred", "artist", "search"]),
+  });
   if (error)
     return (
       <Content>
         <EmptyState>album not found</EmptyState>
       </Content>
     );
-  if (!album) return null;
+  if (!album) return <DetailSkeleton />;
   const songs = album.song ?? [];
   const source = { kind: "album", name: album.name, href: `/album/${album.id}` };
   const first = songs[0];
@@ -106,7 +128,12 @@ export function AlbumPage({ id }: { id: string }) {
           </ArtistCard>
         )}
         <span className="text-muted-foreground">
-          {[album.year, plural(songs.length, "track"), length(album.duration), first ? quality(first.suffix, first.bitRate) : ""]
+          {[
+            album.year,
+            plural(album.songCount ?? songs.length, "track"),
+            length(album.duration),
+            first ? quality(first.suffix, first.bitRate) : "",
+          ]
             .filter(Boolean)
             .join(" · ")}
         </span>
@@ -131,15 +158,19 @@ export function AlbumPage({ id }: { id: string }) {
         )}
       </Hero>
       <Content>
-        <TrackList
-          songs={songs}
-          showAlbum={false}
-          showArtist={songs.some((song) => song.artist !== album.artist)}
-          numbered="track"
-          asAlbum
-          filterable
-          source={source}
-        />
+        {isPlaceholderData ? (
+          <TrackListSkeleton count={album.songCount ?? 12} />
+        ) : (
+          <TrackList
+            songs={songs}
+            showAlbum={false}
+            showArtist={songs.some((song) => song.artist !== album.artist)}
+            numbered="track"
+            asAlbum
+            filterable
+            source={source}
+          />
+        )}
         {album.musicBrainzId && (
           <Button
             variant="link"
@@ -156,7 +187,14 @@ export function AlbumPage({ id }: { id: string }) {
 }
 
 export function ArtistPage({ id }: { id: string }) {
-  const { data: artist, error } = useQuery(queries.artist(id));
+  const {
+    data: artist,
+    error,
+    isPlaceholderData,
+  } = useQuery({
+    ...queries.artist(id),
+    placeholderData: () => cachedSummary<Artist>(id, ["artists", "starred", "search"]),
+  });
   const info = useQuery(queries.artistInfo(id));
   const name = artist?.name;
   const top = useQuery({ ...queries.topSongs(name ?? ""), enabled: Boolean(name) });
@@ -166,7 +204,7 @@ export function ArtistPage({ id }: { id: string }) {
         <EmptyState>artist not found</EmptyState>
       </Content>
     );
-  if (!artist) return null;
+  if (!artist) return <DetailSkeleton />;
   const albums = [...(artist.album ?? [])].sort((a, b) => (b.year ?? 0) - (a.year ?? 0));
   const source = { kind: "artist", name: artist.name, href: `/artist/${artist.id}` };
   const bio = info.data?.biography?.replace(/<a [^>]*>.*?<\/a>\.?/g, "").trim();
@@ -184,16 +222,18 @@ export function ArtistPage({ id }: { id: string }) {
         onQueue={() => void everything().then(player.addToQueue)}
         like={{ kind: "artist", id: artist.id }}
       >
-        <span className="text-muted-foreground">{plural(albums.length, "album")}</span>
-        {bio && <Bio>{bio}</Bio>}
+        <span className="text-muted-foreground">{plural(artist.albumCount ?? albums.length, "album")}</span>
+        {/* Always three lines tall: the bio arrives after the header, and the header is bottom-aligned to the cover. */}
+        <p className="line-clamp-3 h-[3lh] max-w-[72ch] text-[12.5px] text-muted-foreground">{bio}</p>
       </Hero>
-      {(top.data?.length ?? 0) > 0 && (
+      {/* Held open while loading (albums sit below it), so the grid doesn't jump when the top songs arrive. */}
+      {(top.isPending || (top.data?.length ?? 0) > 0) && (
         <Section title="popular">
-          <TrackList songs={top.data ?? []} showArtist={false} source={source} />
+          {top.data ? <TrackList songs={top.data} showArtist={false} source={source} /> : <TrackListSkeleton count={10} immediate />}
         </Section>
       )}
       <Section title="albums">
-        <AlbumGrid albums={albums} />
+        {isPlaceholderData ? <AlbumGridSkeleton count={artist.albumCount ?? 6} /> : <AlbumGrid albums={albums} />}
       </Section>
     </>
   );
@@ -205,21 +245,34 @@ export function GenrePage({ name }: { name: string }) {
     <>
       <PageHeader title={name.toLowerCase()} meta={data ? plural(data.length, "album") : "genre"} />
       <Content>
-        <AlbumGrid albums={data ?? []} />
+        {data ? (
+          <AlbumGrid albums={data} />
+        ) : (
+          <Delayed>
+            <AlbumGridSkeleton count={24} />
+          </Delayed>
+        )}
       </Content>
     </>
   );
 }
 
 export function PlaylistPage({ id }: { id: string }) {
-  const { data: playlist, error } = useQuery(queries.playlist(id));
+  const {
+    data: playlist,
+    error,
+    isPlaceholderData,
+  } = useQuery({
+    ...queries.playlist(id),
+    placeholderData: () => cachedSummary<Playlist>(id, ["playlists"]),
+  });
   if (error)
     return (
       <Content>
         <EmptyState>playlist not found</EmptyState>
       </Content>
     );
-  if (!playlist) return null;
+  if (!playlist) return <DetailSkeleton />;
   const songs = playlist.entry ?? [];
   const source = { kind: "playlist", name: playlist.name.split(" / ").at(-1) ?? playlist.name, href: `/playlist/${playlist.id}` };
   const parts = playlist.name.split(" / ");
@@ -253,11 +306,17 @@ export function PlaylistPage({ id }: { id: string }) {
         onQueue={() => player.addToQueue(songs)}
         extra={<KeepOffline group={`playlist:${playlist.id}`} songs={songs} />}
       >
-        <span className="text-muted-foreground">{[plural(songs.length, "track"), length(playlist.duration)].join(" · ")}</span>
+        <span className="text-muted-foreground">
+          {[plural(playlist.songCount ?? songs.length, "track"), length(playlist.duration)].join(" · ")}
+        </span>
         {playlist.comment && <Bio>{playlist.comment}</Bio>}
       </Hero>
       <Content>
-        <TrackList songs={songs} source={source} filterable />
+        {isPlaceholderData ? (
+          <TrackListSkeleton count={playlist.songCount || 12} />
+        ) : (
+          <TrackList songs={songs} source={source} filterable />
+        )}
       </Content>
     </>
   );

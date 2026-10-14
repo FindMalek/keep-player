@@ -1,3 +1,4 @@
+import { useIsFetching } from "@tanstack/react-query";
 import { type CSSProperties, lazy, Suspense, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { NowPlayingAnnouncer } from "@/components/announcer";
@@ -45,6 +46,27 @@ const CheatSheet = lazy(() => import("@/components/cheat-sheet").then((module) =
 
 // Only loaded on the first ⌘K (cmdk + dialog stay out of the first paint), then kept mounted.
 const SearchPalette = lazy(() => import("@/components/search-palette").then((module) => ({ default: module.SearchPalette })));
+
+const TopProgressLine = lazy(() => import("@/components/top-progress").then((module) => ({ default: module.TopProgressLine })));
+
+/**
+ * Revisits paint from the persisted cache and refresh in the background; only a refresh slower than 300 ms gets the
+ * line at the top. First loads have skeletons instead, so they don't count.
+ */
+function TopProgress() {
+  const refreshing = useIsFetching({ predicate: (query) => query.state.data !== undefined }) > 0;
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    if (!refreshing) return setShown(false);
+    const id = setTimeout(() => setShown(true), 300);
+    return () => clearTimeout(id);
+  }, [refreshing]);
+  return shown ? (
+    <Suspense>
+      <TopProgressLine />
+    </Suspense>
+  ) : null;
+}
 
 function Page({ path }: { path: string }) {
   const [, section, id] = path.split("/");
@@ -150,6 +172,7 @@ export function App() {
 
   return (
     <TooltipProvider delay={400}>
+      <TopProgress />
       <div className="flex h-svh flex-col" style={{ "--bar-height": hasTrack ? "4rem" : "0px" } as CSSProperties}>
         {/* First tab stop: straight to the page, past the sidebar. */}
         <a
