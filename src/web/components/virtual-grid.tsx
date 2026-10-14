@@ -1,5 +1,5 @@
 import { type ReactNode, useEffect, useRef } from "react";
-import { focusWhenRendered, type ListCommand, listProps, rememberedFocus, rememberFocus } from "@/lib/list-nav";
+import { focusWhenRendered, type ListCommand, rememberedFocus, rememberFocus, useListNav } from "@/lib/list-nav";
 import { navigationType } from "@/lib/router";
 import { cn } from "@/lib/utils";
 import { useColumns, usePageVirtualizer } from "@/lib/virtual";
@@ -91,10 +91,12 @@ export function VirtualGrid<T>({
     if (navigationType() === "pop" && remembered !== undefined && items.length) focusItem(remembered);
   }, [items.length > 0]);
 
+  const listNav = useListNav(handler);
+
   const style = { gridTemplateColumns: `repeat(auto-fill, minmax(${min}px, 1fr))`, columnGap: gap, rowGap };
   if (!virtual)
     return (
-      <div ref={ref} className={cn("grid", className)} style={style} {...listProps(handler)}>
+      <div ref={ref} className={cn("grid", className)} style={style} {...listNav}>
         {items.map((item, index) => (
           <div key={getKey(item)} className="min-w-0" data-grid-index={index}>
             {renderItem(item)}
@@ -105,7 +107,7 @@ export function VirtualGrid<T>({
 
   const margin = virtualizer.options.scrollMargin;
   return (
-    <div ref={ref} className={cn("relative", className)} style={{ height: virtualizer.getTotalSize() }} {...listProps(handler)}>
+    <div ref={ref} className={cn("relative", className)} style={{ height: virtualizer.getTotalSize() }} {...listNav}>
       {rows.map((row) => (
         <div
           key={row.key}

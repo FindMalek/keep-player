@@ -181,7 +181,7 @@ export function ArtistsPage() {
                 className={cn("absolute inset-x-0 grid grid-cols-[48px_minmax(0,1fr)]", row.last && "border-muted border-b pb-2")}
                 style={{ transform: `translateY(${item.start - margin}px)`, paddingTop: row.letter ? 8 : 0 }}
               >
-                <h2 className="font-mono text-[15px] text-faint">{row.letter}</h2>
+                {row.letter ? <h2 className="font-mono text-[15px] text-faint">{row.letter}</h2> : <span aria-hidden />}
                 <ul className="grid gap-x-6" style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
                   {row.artists.map((artist) => (
                     <li key={artist.id}>

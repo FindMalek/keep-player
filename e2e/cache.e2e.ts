@@ -22,7 +22,7 @@ test("hovering an album prefetches it, and back to home needs no network", async
   await (await prefetched).finished();
   await slowApi(page);
   await link.click();
-  await expect(page.getByRole("table", { name: "tracks" })).toBeVisible({ timeout: 4000 });
+  await expect(page.getByRole("grid", { name: "tracks" })).toBeVisible({ timeout: 4000 });
   await page.goBack();
   await expect(page.locator('a[href^="/album/"]').first()).toBeVisible({ timeout: 4000 });
 });

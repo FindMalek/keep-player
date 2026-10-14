@@ -5,7 +5,7 @@ import { Empty, EmptyDescription } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { clock } from "@/lib/format";
-import { focusWhenRendered, type ListCommand, listProps, rememberedFocus, rememberFocus } from "@/lib/list-nav";
+import { focusWhenRendered, type ListCommand, rememberedFocus, rememberFocus, useListNav } from "@/lib/list-nav";
 import { useCachedIds } from "@/lib/offline";
 import { currentSong, player, type QueueSource, usePlayer } from "@/lib/player";
 import { queries, queryClient } from "@/lib/queries";
@@ -386,6 +386,8 @@ export function TrackList({
     if (navigationType() === "pop" && remembered !== undefined && songs.length) focusSong(remembered);
   }, [songs.length > 0]);
 
+  const listNav = useListNav(handler);
+
   if (!songs.length) return <EmptyState>no tracks</EmptyState>;
 
   const shown = virtual
@@ -396,7 +398,7 @@ export function TrackList({
   const columns = showAlbum ? 5 : 4;
 
   return (
-    <div ref={listRef} {...listProps(handler)}>
+    <div ref={listRef} {...listNav}>
       {selected.size > 0 && (
         <SelectionBar
           songs={selectedSongs()}
@@ -407,7 +409,14 @@ export function TrackList({
           }}
         />
       )}
-      <Table className="table-fixed text-[13px]" aria-label="tracks" aria-rowcount={virtual ? items.length + 1 : undefined}>
+      <Table
+        // A grid: rows are navigable and selectable from the keyboard (j/k, x, ⇧j…).
+        role="grid"
+        aria-multiselectable="true"
+        className="table-fixed text-[13px]"
+        aria-label="tracks"
+        aria-rowcount={virtual ? items.length + 1 : undefined}
+      >
         <colgroup>
           <col className="w-10" />
           <col />
@@ -421,7 +430,9 @@ export function TrackList({
             <TableHead className={cn(LABEL, "h-6")}>title</TableHead>
             {showAlbum && <TableHead className={cn(LABEL, "h-6 max-lg:hidden")}>album</TableHead>}
             <TableHead className={cn(LABEL, "h-6 text-right")}>time</TableHead>
-            <TableHead className="h-6" />
+            <TableHead className="h-6">
+              <span className="sr-only">actions</span>
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
