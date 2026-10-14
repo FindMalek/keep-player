@@ -1,0 +1,20 @@
+import { expect, test } from "bun:test";
+import { parseQuery } from "./search-query";
+
+test("operators become filters and chips, the rest stays the text", () => {
+  const parsed = parseQuery('love artist:"pink floyd" year:1970..1979 is:liked format:FLAC genre:rock');
+  expect(parsed.text).toBe("love");
+  expect(parsed.filters).toEqual({ artist: "pink floyd", year: [1970, 1979], liked: true, format: "flac", genre: "rock" });
+  expect(parsed.chips.map((chip) => chip.raw)).toEqual(['artist:"pink floyd"', "year:1970..1979", "is:liked", "format:FLAC", "genre:rock"]);
+  expect(parseQuery("year:1994 is:nonsense").filters).toEqual({ year: [1994, 1994] });
+  expect(parseQuery("year:1994 is:nonsense").text).toBe("is:nonsense");
+});
+
+test("artist - title and title by artist, and lyrics: takes the rest literally", () => {
+  expect(parseQuery("radiohead - creep").pairs).toEqual([
+    { artist: "radiohead", title: "creep" },
+    { artist: "creep", title: "radiohead" },
+  ]);
+  expect(parseQuery("creep by radiohead").pairs).toEqual([{ title: "creep", artist: "radiohead" }]);
+  expect(parseQuery("lyrics: is this the real life")).toMatchObject({ lyricsOnly: true, text: "is this the real life", chips: [] });
+});

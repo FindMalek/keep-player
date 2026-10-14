@@ -5,6 +5,7 @@ import { Empty, EmptyDescription } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { clock } from "@/lib/format";
+import { closeListFilter, songMatches, useListFilter } from "@/lib/list-filter";
 import { focusWhenRendered, type ListCommand, rememberedFocus, rememberFocus, useListNav } from "@/lib/list-nav";
 import { useCachedIds } from "@/lib/offline";
 import { currentSong, player, type QueueSource, usePlayer } from "@/lib/player";
@@ -17,6 +18,7 @@ import { usePageVirtualizer, VIRTUALIZE_FROM } from "@/lib/virtual";
 import { Cover } from "./cover";
 import { Equalizer } from "./equalizer";
 import { Link } from "./link";
+import { ListFilterBar } from "./list-filter-bar";
 import { OfflineMark } from "./offline-mark";
 import { SelectionBar } from "./selection-bar";
 import { VirtualGrid } from "./virtual-grid";
@@ -254,19 +256,50 @@ TrackRow.displayName = "TrackRow";
 
 type TrackItem = { kind: "disc"; disc: number } | { kind: "song"; song: Song; index: number };
 
-export function TrackList({
+type TrackListOptions = TrackListProps & { onNearEnd?: () => void; source?: QueueSource };
+
+/** A track list; `filterable` lets ⌘F filter it in place, while playing a match still plays the whole list from there. */
+export function TrackList({ filterable = false, ...props }: TrackListOptions & { filterable?: boolean }) {
+  const query = useListFilter("page");
+  const active = filterable && query !== null;
+  useEffect(() => (filterable ? () => closeListFilter("page") : undefined), [filterable]);
+  const shown = useMemo(
+    () => (active && query ? props.songs.filter((song) => songMatches(song, query)) : props.songs),
+    [active, query, props.songs],
+  );
+  return (
+    <div data-filter-scope={filterable ? "page" : undefined}>
+      {active && <ListFilterBar scope="page" query={query} shown={shown.length} total={props.songs.length} />}
+      {active && query && !shown.length ? (
+        <EmptyState>nothing here matches “{query}”</EmptyState>
+      ) : (
+        <TrackRows {...props} songs={shown} context={shown === props.songs ? undefined : props.songs} />
+      )}
+    </div>
+  );
+}
+
+function TrackRows({
   songs,
+  context,
   showAlbum = true,
   showArtist = true,
   numbered = "index",
   asAlbum = false,
   source,
   onNearEnd,
-}: TrackListProps & { onNearEnd?: () => void; source?: QueueSource }) {
+}: TrackListOptions & { context?: Song[] }) {
   const playingId = usePlayer((state) => currentSong(state)?.id);
   const playing = usePlayer((state) => state.playing);
   const cached = useCachedIds();
-  const onPlay = useCallback((index: number) => player.play(songs, index, { album: asAlbum, source }), [songs, asAlbum, source]);
+  const onPlay = useCallback(
+    (index: number) => {
+      const song = songs[index];
+      if (context && song) player.play(context, context.indexOf(song), { album: asAlbum, source });
+      else player.play(songs, index, { album: asAlbum, source });
+    },
+    [songs, context, asAlbum, source],
+  );
   const items = useMemo<TrackItem[]>(() => {
     const multiDisc = asAlbum && new Set(songs.map((song) => song.discNumber ?? 1)).size > 1;
     let lastDisc: number | undefined;

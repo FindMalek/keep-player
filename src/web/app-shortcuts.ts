@@ -16,6 +16,8 @@ export interface AppActions {
   toggleSearch: () => void;
   openCheatSheet: () => void;
   toggleFullScreen: () => void;
+  /** ⌘F: false when there's no list to filter, so the browser's own find opens. */
+  findInList: () => boolean;
 }
 
 /** The default map. Everything it calls is passed in, so a unit test can check it for conflicts without a browser. */
@@ -62,6 +64,7 @@ export function appShortcuts(actions: AppActions): Shortcut[] {
     global("search", ["mod+k", "/"], "search", "navigation", (event) =>
       event.code === "Slash" ? actions.openSearch() : actions.toggleSearch(),
     ),
+    global("find-in-list", ["mod+f"], "filter this list", "lists", () => actions.findInList()),
     global("cheat-sheet", ["?"], "keyboard shortcuts", "navigation", () => actions.openCheatSheet()),
     global("go-home", ["g h"], "go to home", "navigation", () => go("/")),
     global("go-albums", ["g a"], "go to albums", "navigation", () => go("/albums")),

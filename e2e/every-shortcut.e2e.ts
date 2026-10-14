@@ -19,6 +19,7 @@ const SHORTCUTS = appShortcuts({
   toggleSearch: noop,
   openCheatSheet: noop,
   toggleFullScreen: noop,
+  findInList: () => true,
 });
 
 /** "shift+arrowright" → "Shift+ArrowRight", "mod+k" → "ControlOrMeta+k", chords → one press per step. */
@@ -167,6 +168,27 @@ const CHECKS: Record<string, Check> = {
   search: async (page, press) => {
     await press();
     await expect(page.getByRole("dialog", { name: "search" })).toBeVisible();
+  },
+  "find-in-list": async (page, press, titles) => {
+    await press();
+    const filter = page.getByRole("textbox", { name: "filter this list" });
+    await expect(filter).toBeFocused();
+    await filter.fill(titles[1] as string);
+    await expect(
+      page
+        .getByRole("main")
+        .getByRole("row")
+        .filter({ hasText: titles[1] as string })
+        .first(),
+    ).toBeVisible();
+    await expect(
+      page
+        .getByRole("main")
+        .getByRole("row")
+        .filter({ hasText: titles[2] as string }),
+    ).toHaveCount(0);
+    await filter.press("Escape");
+    await expect(filter).toHaveCount(0);
   },
   "cheat-sheet": async (page, press) => {
     await press();

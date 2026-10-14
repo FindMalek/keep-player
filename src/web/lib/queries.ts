@@ -2,7 +2,7 @@ import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persi
 import { infiniteQueryOptions, type Query, QueryClient, queryOptions } from "@tanstack/react-query";
 import { del, get, set } from "idb-keyval";
 import type { Lyrics } from "../../shared/lyrics";
-import type { IndexStatus, LyricsSearch } from "../../shared/search";
+import type { IndexStatus, LyricsSearch, SearchResults } from "../../shared/search";
 import { api, onAccountChange } from "./subsonic";
 import type { Album, Artist, ArtistInfo, Directory, Genre, Playlist, Song } from "./types";
 
@@ -218,16 +218,18 @@ export const queries = {
       },
       staleTime: MINUTE,
     }),
-  search: (query: string) =>
+  /** The server's ranked search (operators, typos, your likes first); keeps the previous results while typing. */
+  search: (query: string, limit = 8) =>
     queryOptions({
-      queryKey: ["search", query],
-      queryFn: () =>
-        api<{ searchResult3: { artist?: Artist[]; album?: Album[]; song?: Song[] } }>("search3", {
-          query,
-          artistCount: 4,
-          albumCount: 6,
-          songCount: 8,
-        }).then((response) => response.searchResult3),
+      queryKey: ["search", query, limit],
+      queryFn: async ({ signal }): Promise<SearchResults> => {
+        const response = await fetch(`/api/search?${new URLSearchParams({ q: query, limit: String(limit) })}`, {
+          headers: { "x-keep-player": "1" },
+          signal,
+        });
+        if (!response.ok) throw new Error(`search: ${response.status}`);
+        return (await response.json()) as SearchResults;
+      },
       staleTime: MINUTE,
     }),
 };

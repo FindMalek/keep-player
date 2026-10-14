@@ -127,6 +127,7 @@ export function AlbumPage({ id }: { id: string }) {
           showArtist={songs.some((song) => song.artist !== album.artist)}
           numbered="track"
           asAlbum
+          filterable
           source={source}
         />
         {album.musicBrainzId && (
@@ -245,7 +246,7 @@ export function PlaylistPage({ id }: { id: string }) {
         {playlist.comment && <Bio>{playlist.comment}</Bio>}
       </Hero>
       <Content>
-        <TrackList songs={songs} source={source} />
+        <TrackList songs={songs} source={source} filterable />
       </Content>
     </>
   );

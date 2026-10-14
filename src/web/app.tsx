@@ -7,6 +7,7 @@ import { PageSlot, usePageHost } from "@/components/page-host";
 import { type Panel, PlayerBar } from "@/components/player-bar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { openListFilter } from "@/lib/list-filter";
 import { runListCommand } from "@/lib/list-nav";
 import { notify } from "@/lib/notify";
 import { PageScrollContext } from "@/lib/page-scroll";
@@ -26,6 +27,7 @@ import {
   HomePage,
   PlaylistPage,
   preloadAllRoutes,
+  SearchPage,
   SongsPage,
 } from "@/routes";
 import { appShortcuts } from "./app-shortcuts";
@@ -64,6 +66,8 @@ function Page({ path }: { path: string }) {
       return <FoldersPage key={param ?? "root"} id={param} />;
     case "playlist":
       return param ? <PlaylistPage key={param} id={param} /> : null;
+    case "search":
+      return <SearchPage />;
     default:
       return <HomePage />;
   }
@@ -99,6 +103,7 @@ export function App() {
       toggleSearch: () => setSearching((value) => !value),
       openCheatSheet: () => setCheatSheet(true),
       toggleFullScreen: () => setFullScreen((value) => !value),
+      findInList: openListFilter,
     }),
   );
 

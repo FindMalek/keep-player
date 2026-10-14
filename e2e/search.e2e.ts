@@ -39,4 +39,42 @@ test("a few words of a lyric find the song, and picking it plays from that line"
     .toBeGreaterThanOrEqual(25);
 });
 
+test("typos, artist - title and operators find the right thing, and see all opens the results page", async ({ page, signedIn }) => {
+  await signedIn.goto("/");
+  const call = (path: string, method = "GET") =>
+    page.evaluate(async ([url, verb]) => (await fetch(url, { method: verb, headers: { "x-keep-player": "1" } })).json(), [
+      path,
+      method,
+    ] as const);
+  await call("/api/index", "POST");
+  await expect.poll(async () => (await call("/api/index")).building, { timeout: 20_000 }).toBe(false);
+  const album = (await call("/rest/getAlbum?f=json&id=al-7"))["subsonic-response"].album;
+  const song = album.song[1] as { title: string; artist: string };
+
+  await page.keyboard.press("ControlOrMeta+k");
+  const dialog = page.getByRole("dialog", { name: "search" });
+  const box = dialog.getByRole("combobox");
+  // "Artist - Title" puts that exact song on top, even with a letter swapped in the title.
+  const typo = song.title.replace(/^(\w)(\w)/, "$2$1");
+  await box.fill(`${song.artist} - ${typo}`);
+  await expect(dialog.getByRole("group", { name: "top result" })).toContainText(song.title);
+  await expect(dialog.getByRole("group", { name: "top result" })).toContainText(song.artist);
+
+  // Operators become chips; removing the chip takes it out of the query.
+  await box.fill(`year:${album.year} ${album.name}`);
+  await expect(dialog.getByText(`year: ${album.year}`)).toBeVisible();
+  await expect(
+    dialog
+      .getByRole("group", { name: "albums" })
+      .or(dialog.getByRole("group", { name: "top result" }))
+      .first(),
+  ).toContainText(album.name);
+  await dialog.getByRole("button", { name: "remove year filter" }).click();
+  await expect(box).toHaveValue(album.name);
+
+  await dialog.getByRole("button", { name: /see all results/ }).click();
+  await expect(page).toHaveURL(new RegExp(`/search\\?q=${encodeURIComponent(album.name).replace(/%20/g, "\\+")}`));
+  await expect(page.getByRole("main").getByText(album.name).first()).toBeVisible();
+});
+
 const seconds = (text: string | null) => (text ?? "0:00").split(":").reduce((total, part) => total * 60 + Number(part), 0);
