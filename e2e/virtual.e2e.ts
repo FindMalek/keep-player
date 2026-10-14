@@ -26,7 +26,7 @@ test("albums grid renders a window of cards and the A–Z bar jumps on the artis
 
   await page.goto("/artists");
   const nav = page.getByRole("navigation", { name: "jump to letter" });
-  const last = nav.getByRole("button").last();
+  const last = nav.locator("button:not([disabled])").last();
   const letter = (await last.textContent()) ?? "";
   await last.click();
   await expect(page.getByRole("heading", { name: letter, exact: true })).toBeInViewport();

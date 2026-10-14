@@ -34,6 +34,7 @@ import { parseQuery } from "../../shared/search-query";
 import { Cover } from "./cover";
 import { KeyCombo } from "./key-combo";
 import { LyricsSnippet } from "./lyrics-snippet";
+import { ResultGroupSkeleton } from "./skeletons";
 
 /** Typing pauses shorter than this don't send a request; the previous results stay up meanwhile. */
 const DEBOUNCE_MS = 30;
@@ -64,7 +65,7 @@ export function SearchPalette({ open, onOpenChange }: { open: boolean; onOpenCha
   const parsed = useMemo(() => parseQuery(text), [text]);
   const active = useMemo(() => parseQuery(query), [query]);
 
-  const { data } = useQuery({
+  const { data, isPending: searching } = useQuery({
     ...apiQueries.search(query),
     enabled: query.length > 0 && !active.lyricsOnly,
     placeholderData: (previous) => previous,
@@ -156,7 +157,8 @@ export function SearchPalette({ open, onOpenChange }: { open: boolean; onOpenCha
           </div>
         )}
         <CommandList className="max-h-[60vh]">
-          {needle && <CommandEmpty className="font-mono text-faint">no matches</CommandEmpty>}
+          {needle && !(searching && query) && <CommandEmpty className="font-mono text-faint">no matches</CommandEmpty>}
+          {query && !active.lyricsOnly && searching && <ResultGroupSkeleton />}
           {recent.length > 0 && (
             <CommandGroup heading="recent searches">
               {recent.map((item) => (

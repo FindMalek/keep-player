@@ -5,6 +5,7 @@ import { Cover } from "@/components/cover";
 import { AlbumGrid, Content, EmptyState, PageHeader, Section, TrackList } from "@/components/library";
 import { Link } from "@/components/link";
 import { LyricsSnippet } from "@/components/lyrics-snippet";
+import { TrackListSkeleton } from "@/components/skeletons";
 import { Button } from "@/components/ui/button";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { apiQueries } from "@/lib/api-queries";
@@ -65,6 +66,7 @@ export function SearchPage() {
           />
         </InputGroup>
         {nothing && <EmptyState>nothing matches “{query}”</EmptyState>}
+        {query && !parsed.lyricsOnly && isPending && <TrackListSkeleton count={10} />}
         {top && (
           <Section title="top result">
             <div className="flex max-w-xl items-center gap-4 border p-3">
