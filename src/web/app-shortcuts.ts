@@ -1,4 +1,5 @@
 import type { Panel } from "./components/player-bar";
+import type { ListCommand, runListCommand } from "./lib/list-nav";
 import type { notify } from "./lib/notify";
 import type { player } from "./lib/player";
 import type { go } from "./lib/router";
@@ -7,6 +8,7 @@ import type { Shortcut } from "./lib/shortcuts";
 export interface AppActions {
   player: typeof player;
   go: typeof go;
+  runListCommand: typeof runListCommand;
   notify: typeof notify;
   togglePanel: (panel: Exclude<Panel, null>) => void;
   closeTopLayer: () => void;
@@ -68,6 +70,39 @@ export function appShortcuts(actions: AppActions): Shortcut[] {
     global("go-queue", ["g q"], "open the queue", "navigation", () => actions.togglePanel("queue")),
     global("back", ["mod+[", "backspace"], "back", "navigation", () => window.history.back()),
     global("forward", ["mod+]"], "forward", "navigation", () => window.history.forward()),
+    ...listShortcuts(actions.runListCommand),
     { ...global("sidebar", ["mod+b"], "show / hide the sidebar", "navigation", () => undefined), passive: true },
+  ];
+}
+
+/** In a focused list or grid; each falls through to the global shortcut on the same key when the list can't use it. */
+function listShortcuts(run: typeof runListCommand): Shortcut[] {
+  const list = (id: ListCommand, keys: string[], label: string): Shortcut => ({
+    id: `list-${id}`,
+    keys,
+    label,
+    group: "lists",
+    scope: "list",
+    run: () => run(id),
+  });
+  return [
+    list("down", ["j", "arrowdown"], "next row"),
+    list("up", ["k", "arrowup"], "previous row"),
+    list("left", ["h", "arrowleft"], "left (grids)"),
+    list("right", ["l", "arrowright"], "right (grids)"),
+    list("first", ["home"], "first row"),
+    list("last", ["end"], "last row"),
+    list("extend-down", ["shift+j", "shift+arrowdown"], "extend selection down"),
+    list("extend-up", ["shift+k", "shift+arrowup"], "extend selection up"),
+    list("toggle", ["x"], "select / unselect"),
+    list("select-all", ["mod+a"], "select all"),
+    list("clear", ["escape"], "clear selection"),
+    list("play", ["enter"], "play from here"),
+    list("play-next", ["shift+enter"], "play next"),
+    list("queue", ["a"], "add to queue"),
+    list("open", ["o"], "open album / artist"),
+    list("remove", ["delete"], "remove (queue)"),
+    list("move-up", ["alt+arrowup"], "move up (queue)"),
+    list("move-down", ["alt+arrowdown"], "move down (queue)"),
   ];
 }

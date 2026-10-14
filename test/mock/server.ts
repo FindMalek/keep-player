@@ -257,6 +257,22 @@ function handle(endpoint: string, params: Params, request: Request): Response {
       library.playlists.push(playlist);
       return ok({ playlist });
     }
+    case "updatePlaylist": {
+      const playlist = library.playlists.find((item) => item.id === params.get("playlistId"));
+      if (!playlist) return fail(70, "playlist not found");
+      const entry = [...(playlist.entry ?? [])];
+      const removing = new Set(params.getAll("songIndexToRemove").map(Number));
+      const kept = entry.filter((_, index) => !removing.has(index));
+      kept.push(...params.getAll("songIdToAdd").flatMap((songId) => songsById.get(songId) ?? []));
+      Object.assign(playlist, {
+        entry: kept,
+        name: params.get("name") ?? playlist.name,
+        songCount: kept.length,
+        duration: kept.reduce((sum, song) => sum + (song.duration ?? 0), 0),
+        changed: new Date().toISOString(),
+      });
+      return ok();
+    }
     case "deletePlaylist": {
       const at = library.playlists.findIndex((item) => item.id === id);
       if (at >= 0) library.playlists.splice(at, 1);

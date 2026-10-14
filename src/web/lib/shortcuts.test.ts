@@ -10,6 +10,7 @@ test("the default map has no two actions on the same key in a scope", () => {
   const shortcuts = appShortcuts({
     player: stub,
     go: stub,
+    runListCommand: stub,
     notify: stub,
     togglePanel: noop,
     closeTopLayer: noop,

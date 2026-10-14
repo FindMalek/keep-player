@@ -7,6 +7,7 @@ import {
   contextUpcoming,
   EMPTY_QUEUE,
   jumpTo,
+  move,
   next,
   peekNext,
   playContext,
@@ -113,5 +114,15 @@ describe("queue", () => {
     expect(queue.upNext.map((entry) => entry.song.id)).toEqual(["q2"]);
     expect(contextUpcoming(clearContext(queue))).toEqual([]);
     expect(clearUpNext(queue).upNext).toEqual([]);
+  });
+
+  test("move reorders within your queue and within the upcoming context, never past the current song", () => {
+    let queue = addToQueue(playContext(EMPTY_QUEUE, album, 0), [song("q1"), song("q2")]);
+    queue = move(queue, queue.upNext[1] as never, -1);
+    expect(queue.upNext.map((entry) => entry.song.id)).toEqual(["q2", "q1"]);
+    const upcoming = contextUpcoming(queue);
+    queue = move(queue, upcoming[0] as never, 1);
+    expect(contextUpcoming(queue).map((entry) => entry.song.id)).toEqual(["3", "2", "4"]);
+    expect(move(queue, contextUpcoming(queue)[0] as never, -1)).toBe(queue);
   });
 });
