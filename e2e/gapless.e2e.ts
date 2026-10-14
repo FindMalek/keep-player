@@ -27,8 +27,8 @@ test("rapid next and previous land on the right track with one deck playing", as
   await signedIn.goto("/album/al-3");
   const titles = await trackTitles(page);
   await page.getByRole("button", { name: "play", exact: true }).first().click();
-  for (let i = 0; i < 6; i += 1) await page.keyboard.press("Shift+ArrowRight");
-  await page.keyboard.press("Shift+ArrowLeft");
+  for (let i = 0; i < 6; i += 1) await page.keyboard.press("n");
+  await page.keyboard.press("p");
   const bar = page.getByRole("contentinfo");
   await expect(bar.getByRole("link", { name: titles[5] as string })).toBeVisible();
   await page.waitForTimeout(500);

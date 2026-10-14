@@ -13,7 +13,7 @@ test("once the next tracks are precached, going offline still plays and seeks th
   await context.setOffline(true);
   const bar = page.getByRole("contentinfo");
   for (const title of titles.slice(1, 4)) {
-    await page.keyboard.press("Shift+ArrowRight");
+    await page.keyboard.press("n");
     await expect(bar.getByRole("link", { name: title as string })).toBeVisible();
   }
   const seek = page.locator("[data-slot=audio-player-seek]");

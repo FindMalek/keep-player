@@ -1,6 +1,7 @@
 import { type CSSProperties, lazy, Suspense, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { AppSidebar } from "@/components/app-sidebar";
+import { ChordHint } from "@/components/chord-hint";
 import { PageSlot, usePageHost } from "@/components/page-host";
 import { type Panel, PlayerBar } from "@/components/player-bar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
@@ -8,7 +9,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { notify } from "@/lib/notify";
 import { PageScrollContext } from "@/lib/page-scroll";
 import { currentSong, player, usePlayer } from "@/lib/player";
-import { usePath } from "@/lib/router";
+import { go, usePath } from "@/lib/router";
+import { installShortcuts, useShortcuts } from "@/lib/shortcuts";
 import { useCheckingSession, useUser } from "@/lib/subsonic";
 import {
   AlbumPage,
@@ -23,6 +25,7 @@ import {
   preloadAllRoutes,
   SongsPage,
 } from "@/routes";
+import { appShortcuts } from "./app-shortcuts";
 
 // Signed-out visitors and the side panels are rare enough to load on demand.
 const Login = lazy(() => import("@/components/login").then((module) => ({ default: module.Login })));
@@ -60,9 +63,7 @@ function Page({ path }: { path: string }) {
   }
 }
 
-function isTyping(target: EventTarget | null): boolean {
-  return target instanceof HTMLElement && (target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName));
-}
+installShortcuts();
 
 export function App() {
   const user = useUser();
@@ -78,38 +79,17 @@ export function App() {
   const showPanel = panel !== null && hasTrack;
   const host = usePageHost();
 
-  useEffect(() => {
-    function onKey(event: KeyboardEvent): void {
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
-        event.preventDefault();
-        setSearching((value) => !value);
-        return;
-      }
-      if (isTyping(event.target) || event.metaKey || event.ctrlKey || event.altKey) return;
-      const actions: Record<string, () => void> = {
-        " ": () => player.toggle(),
-        ArrowRight: () => (event.shiftKey ? player.next() : player.seek(player.getPosition() + 5)),
-        ArrowLeft: () => (event.shiftKey ? player.previous() : player.seek(player.getPosition() - 5)),
-        m: player.toggleMute,
-        s: player.toggleShuffle,
-        S: () => {
-          player.toggleStopAfterCurrent();
-          notify({ message: player.getState().sleep ? "will stop after this song" : "will keep playing" });
-        },
-        r: player.cycleRepeat,
-        q: () => setPanel((value) => (value === "queue" ? null : "queue")),
-        l: () => setPanel((value) => (value === "lyrics" ? null : "lyrics")),
-        "/": () => setSearching(true),
-      };
-      const action = actions[event.key];
-      if (!action) return;
-      // Space on a focused button would also "click" it; the shortcut wins.
-      event.preventDefault();
-      action();
-    }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  useShortcuts(() =>
+    appShortcuts({
+      player,
+      go,
+      notify,
+      togglePanel: (next) => setPanel((value) => (value === next ? null : next)),
+      closeTopLayer: () => setPanel(null),
+      openSearch: () => setSearching(true),
+      toggleSearch: () => setSearching((value) => !value),
+    }),
+  );
 
   useEffect(() => {
     if (user)
@@ -156,6 +136,7 @@ export function App() {
         </SidebarProvider>
         <PlayerBar panel={panel} onPanel={setPanel} />
       </div>
+      <ChordHint />
       {createPortal(
         <PageScrollContext.Provider value={host}>
           <Suspense>
