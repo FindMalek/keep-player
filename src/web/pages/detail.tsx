@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { ExternalLinkIcon } from "lucide-react";
-import { Fragment, type ReactNode, useState } from "react";
+import { Fragment, type ReactNode, useEffect, useState } from "react";
 import { ArtistCard } from "@/components/artist-card";
 import { Cover } from "@/components/cover";
 import { KeepOffline } from "@/components/keep-offline";
@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { cachedSummary } from "@/lib/cached";
 import { length, plural, quality } from "@/lib/format";
 import type { LikeKind } from "@/lib/likes";
-import { consumeMorph } from "@/lib/motion";
+import { clearMorph, isMorphing } from "@/lib/motion";
 import { player } from "@/lib/player";
 import { queries, queryClient } from "@/lib/queries";
 import type { Album, Artist, Playlist, Song } from "@/lib/types";
@@ -93,7 +93,9 @@ const Bio = ({ children }: { children: ReactNode }) => (
 );
 
 export function AlbumPage({ id }: { id: string }) {
-  const [morph] = useState(() => consumeMorph(id));
+  const [morph] = useState(() => isMorphing(id));
+  // Cleared only after commit: a first render that suspends runs the initializer again and must still see it.
+  useEffect(() => clearMorph(id), [id]);
   const {
     data: album,
     error,

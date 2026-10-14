@@ -25,11 +25,16 @@ let morphing: string | null = null;
 export function setMorph(id: string | null): void {
   morphing = id;
 }
-/** True once, for the page of the album that was clicked (so a later visit doesn't morph again). */
-export function consumeMorph(id: string): boolean {
-  const yes = morphing === id;
-  morphing = null;
-  return yes;
+/**
+ * Whether this album's card was just clicked. Read during render (a render that suspends and retries reads it
+ * again), and cleared with `clearMorph` once the page has committed.
+ */
+export function isMorphing(id: string): boolean {
+  return morphing === id;
+}
+
+export function clearMorph(id: string): void {
+  if (morphing === id) morphing = null;
 }
 
 // Hidden tabs don't animate (the equalizer, the progress line): marked for app.css.
