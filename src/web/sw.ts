@@ -38,6 +38,7 @@ declare const __VERSION__: string;
 
 export type Message =
   | { type: "precache"; ids: string[] }
+  | { type: "drop"; id: string }
   | { type: "pause" | "resume" | "status" | "clear" }
   | { type: "pin"; group: string; ids: string[] }
   | { type: "unpin"; group: string }
@@ -105,11 +106,20 @@ async function evict(): Promise<void> {
 const wanted: string[] = [];
 let paused = false;
 let downloading = false;
-let inflight: AbortController | null = null;
+let inflight: { id: string; controller: AbortController; dropped: boolean } | null = null;
 
 function pauseDownloads(): void {
   paused = true;
-  inflight?.abort();
+  inflight?.controller.abort();
+}
+
+/** The page loads this song itself (the idle deck): forget it here, cancelling its download if it's the one running. */
+function dropDownload(id: string): void {
+  for (let at = wanted.indexOf(id); at >= 0; at = wanted.indexOf(id)) wanted.splice(at, 1);
+  if (inflight?.id === id) {
+    inflight.dropped = true;
+    inflight.controller.abort();
+  }
 }
 
 async function drain(): Promise<void> {
@@ -121,7 +131,8 @@ async function drain(): Promise<void> {
       const current = await loadIndex();
       if (current.songs[id]) continue;
       const controller = new AbortController();
-      inflight = controller;
+      const running = { id, controller, dropped: false };
+      inflight = running;
       const download = async () => {
         const response = await fetch(audioKey(id), {
           credentials: "same-origin",
@@ -133,7 +144,8 @@ async function drain(): Promise<void> {
       const result = await download().catch(() => null);
       inflight = null;
       if (controller.signal.aborted) {
-        wanted.unshift(id);
+        // Paused: back to the front of the line. Dropped: the page has it.
+        if (!running.dropped) wanted.unshift(id);
         continue;
       }
       if (!result) continue;
@@ -245,6 +257,9 @@ self.addEventListener("message", (event) => {
           break;
         case "pause":
           pauseDownloads();
+          break;
+        case "drop":
+          dropDownload(message.id);
           break;
         case "resume":
           paused = false;

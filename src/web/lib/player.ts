@@ -3,7 +3,7 @@ import { useRef, useSyncExternalStore } from "react";
 import type { FrameSource } from "./audio/types";
 import { Decks } from "./decks";
 import { notify } from "./notify";
-import { controlled, isCached, onCacheChange, pausePrecache, precache } from "./offline";
+import { controlled, dropPrecache, isCached, onCacheChange, pausePrecache, precache } from "./offline";
 import { queries, queryClient } from "./queries";
 import * as Q from "./queue";
 import { api, coverUrl, onAccountChange, preloadCover, scrobble, streamUrl } from "./subsonic";
@@ -396,6 +396,8 @@ function lineUpNextDeck(now: boolean): void {
     if (decks.preloadedId) decks.preload(null, null, 1);
     return;
   }
+  // Straight from the network: if the service worker is fetching the same song, it stops (one download, not two).
+  if (next && controlled() && !isCached(next.song.id)) dropPrecache(next.song.id);
   decks.preload(next?.song.id ?? null, next ? streamUrl(next.song.id) : null, next?.factor ?? 1);
 }
 
