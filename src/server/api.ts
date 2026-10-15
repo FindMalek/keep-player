@@ -10,6 +10,7 @@ import { type NewPlay, readPlays, recordPlay } from "./history";
 import type { LyricsService } from "./lyrics";
 import { forgetMisses, lyricsCoverageReport, missingLyrics } from "./lyrics-coverage";
 import { lyricsCoverage, queryLyrics } from "./lyrics-search";
+import { ban, listBans, unban } from "./radio";
 import type { LoginLimiter } from "./rate-limit";
 import { search } from "./search";
 import type { IndexSync } from "./search-index";
@@ -491,6 +492,24 @@ export function createApi({
     return json({ ok: true });
   }
 
+  /** `/api/radio/bans`: songs no radio plays for you (GET), ban one (POST `{ song }`), or lift one (DELETE `?id=`). */
+  async function radioBans(request: Request): Promise<Response> {
+    if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
+    const session = sessions.get(cookieValue(request));
+    if (!session) return json({ error: "signed out" }, 401);
+    const account = `${session.server}:${session.user}`;
+    if (request.method === "POST") {
+      const body = (await request.json().catch(() => null)) as { song?: { id?: unknown } & Record<string, unknown> } | null;
+      if (typeof body?.song?.id !== "string") return json({ error: "song" }, 400);
+      ban(library, account, body.song as { id: string } & Record<string, unknown>);
+    } else if (request.method === "DELETE") {
+      const id = new URL(request.url).searchParams.get("id");
+      if (!id) return json({ error: "id" }, 400);
+      unban(library, account, id);
+    }
+    return json({ songs: listBans(library, account) }, 200, { "cache-control": "private, no-cache" });
+  }
+
   /** `/api/playlists/:id/hidden`: the songs you hid in a playlist (GET), hide or show one (PUT `{ songId, hidden }`). */
   async function playlistHidden(request: Request & { params: { id: string } }): Promise<Response> {
     if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
@@ -519,6 +538,7 @@ export function createApi({
 
   return {
     history,
+    radioBans,
     playlistHidden,
     login,
     logout,

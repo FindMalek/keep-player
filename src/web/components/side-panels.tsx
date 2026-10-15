@@ -1,7 +1,7 @@
 import { queryOptions, useQuery } from "@tanstack/react-query";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { ListPlusIcon, XIcon } from "lucide-react";
-import { type FormEvent, Fragment, memo, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { type FormEvent, Fragment, lazy, memo, type ReactNode, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
@@ -25,6 +25,8 @@ import { Link } from "./link";
 import { ListFilterBar } from "./list-filter-bar";
 import { LyricsView } from "./lyrics-view";
 import { Truncated } from "./truncated";
+
+const RadioControls = lazy(() => import("./radio-controls").then((module) => ({ default: module.RadioControls })));
 
 function PanelFrame({
   title,
@@ -264,6 +266,9 @@ export function QueuePanel({ onClose }: { onClose: () => void }) {
 
   return (
     <PanelFrame title="queue" meta={`${upcoming} up next`} onClose={onClose} actions={queue.current && <SaveQueue />}>
+      <Suspense>
+        <RadioControls />
+      </Suspense>
       {/* A list, not a listbox: rows hold their own buttons (jump, remove), which options can't contain. */}
       <div data-filter-scope="queue">
         {filter !== null && (

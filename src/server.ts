@@ -86,6 +86,7 @@ const server = Bun.serve({
     "/api/lyrics/:songId/offset": { GET: api.lyricsOffset, PUT: api.lyricsOffset },
     "/api/playlists/:id/hidden": { GET: api.playlistHidden, PUT: api.playlistHidden },
     "/api/history": { GET: api.history, POST: api.history },
+    "/api/radio/bans": { GET: api.radioBans, POST: api.radioBans, DELETE: api.radioBans },
     "/api/index": { GET: api.searchIndex, POST: api.searchIndex },
     "/api/search": { GET: api.searchLibrary },
     "/api/search/lyrics": { GET: api.searchLyrics },
