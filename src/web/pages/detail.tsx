@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { discStarts, groupByRelease } from "@/lib/album-browse";
+import { discStarts, groupByRelease, topArtists, topSongs } from "@/lib/album-browse";
 import { cachedSummary } from "@/lib/cached";
 import { length, plural, quality } from "@/lib/format";
 import type { LikeKind } from "@/lib/likes";
@@ -325,8 +325,14 @@ export function ArtistPage({ id }: { id: string }) {
   );
 }
 
+/** A genre (`/genre/Rock`): its top artists and most played songs, then every album in it. Multi-genre albums show in each. */
 export function GenrePage({ name }: { name: string }) {
   const { data } = useQuery(queries.albumList("byGenre", 200, { genre: name }));
+  const songs = useQuery(queries.songsByGenre(name, 200));
+  const artists = useMemo(() => topArtists(data ?? []), [data]);
+  const popular = useMemo(() => topSongs(songs.data ?? []), [songs.data]);
+  const source = { kind: "genre", name: name.toLowerCase(), href: `/genre/${encodeURIComponent(name)}` };
+
   return (
     <>
       <PageHeader title={name.toLowerCase()} meta={data ? plural(data.length, "album") : "genre"}>
@@ -339,7 +345,26 @@ export function GenrePage({ name }: { name: string }) {
           {name.toLowerCase()} radio
         </Button>
       </PageHeader>
-      <Content>
+      {artists.length > 0 && (
+        <Section title="top artists">
+          <ul className="flex flex-wrap gap-2">
+            {artists.map((artist) => (
+              <li key={artist.id}>
+                <Badge variant="outline" className="h-7 gap-2.5 px-2.5 font-normal" render={<Link href={`/artist/${artist.id}`} />}>
+                  {artist.name}
+                  <span className="font-mono text-muted-foreground tabular-nums">{artist.albums}</span>
+                </Badge>
+              </li>
+            ))}
+          </ul>
+        </Section>
+      )}
+      {popular.length > 0 && (
+        <Section title="popular songs">
+          <TrackList songs={popular} source={source} />
+        </Section>
+      )}
+      <Section title="albums">
         {data ? (
           <AlbumGrid albums={data} />
         ) : (
@@ -347,7 +372,7 @@ export function GenrePage({ name }: { name: string }) {
             <AlbumGridSkeleton count={24} />
           </Delayed>
         )}
-      </Content>
+      </Section>
     </>
   );
 }

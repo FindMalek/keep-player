@@ -46,3 +46,12 @@ test("a two-disc album offers play from disc 2", async ({ page, signedIn }) => {
   await page.getByRole("button", { name: "disc 2" }).click();
   await expect(page.getByRole("contentinfo").getByRole("link").first()).toBeVisible();
 });
+
+test("a genre page shows its top artists, popular songs and albums", async ({ page, signedIn }) => {
+  await signedIn.goto("/genres");
+  await page.locator('a[href^="/genre/"]').first().click();
+  await expect(page.getByText("top artists", { exact: true })).toBeVisible();
+  await expect(page.getByText("popular songs", { exact: true })).toBeVisible();
+  await expect(page.getByText("albums", { exact: true }).first()).toBeVisible();
+  await expect(page.locator('a[href^="/artist/"]').first()).toBeVisible();
+});
