@@ -1,7 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import {
+  BanIcon,
   DiscIcon,
   DownloadIcon,
+  EyeIcon,
+  EyeOffIcon,
   FolderIcon,
   HeartIcon,
   HeartOffIcon,
@@ -13,6 +16,7 @@ import {
   PlayIcon,
   PlusIcon,
   RadioIcon,
+  ScissorsIcon,
   ShuffleIcon,
   UserIcon,
 } from "lucide-react";
@@ -39,6 +43,7 @@ import { notify } from "@/lib/notify";
 import { player } from "@/lib/player";
 import { openPlaylistDialog } from "@/lib/playlist-dialogs";
 import { addToPlaylist, canEdit } from "@/lib/playlists";
+import { albumPref, songPref, usePrefsVersion } from "@/lib/prefs";
 import { queries } from "@/lib/queries";
 import { go } from "@/lib/router";
 import { type MenuTarget, songsOf, sourceOf } from "@/lib/targets";
@@ -81,6 +86,15 @@ export function ItemActions({ target }: { target: MenuTarget }) {
   const song = target.kind === "songs" && target.songs.length === 1 ? target.songs[0] : undefined;
   const count = target.kind === "songs" && target.songs.length > 1 ? `${target.songs.length} songs` : null;
   const album = target.kind === "album";
+  usePrefsVersion();
+  const pref = song ? songPref(song.id) : undefined;
+  const albumRules = target.kind === "album" ? albumPref(target.album.id) : undefined;
+  const edit =
+    <T,>(run: (module: typeof import("@/lib/prefs-edit")) => T) =>
+    () =>
+      void import("@/lib/prefs-edit").then(run);
+  const playing = song && player.getState().queue.current?.song.id === song.id;
+  const at = Math.round(player.getPosition() * 10) / 10;
 
   return (
     <>
@@ -113,6 +127,82 @@ export function ItemActions({ target }: { target: MenuTarget }) {
           {liked ? <HeartOffIcon /> : <HeartIcon />} {liked ? "unlike" : "like"}
         </DropdownMenuItem>
       )}
+      {song && (
+        <>
+          <DropdownMenuSeparator />
+          {playing && at >= 1 && (
+            <>
+              <DropdownMenuItem onClick={edit((m) => m.trimHere("start"))}>
+                <ScissorsIcon /> start here at {clock(at)}
+                <DropdownMenuShortcut>⌥[</DropdownMenuShortcut>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={edit((m) => m.trimHere("end"))}>
+                <ScissorsIcon /> end here at {clock(at)}
+                <DropdownMenuShortcut>⌥]</DropdownMenuShortcut>
+              </DropdownMenuItem>
+            </>
+          )}
+          {(pref?.trimStart != null || pref?.trimEnd != null) && (
+            <DropdownMenuItem onClick={edit((m) => m.clearTrim(song))}>
+              <ScissorsIcon /> clear trim ({clock(pref.trimStart ?? 0)} – {pref.trimEnd != null ? clock(pref.trimEnd) : "end"})
+            </DropdownMenuItem>
+          )}
+          <DropdownMenuItem
+            onClick={edit((m) =>
+              m.changeSong(
+                song,
+                { never: !pref?.never },
+                pref?.never ? `${song.title} can come up in shuffle and radio again` : `${song.title} never comes up in shuffle or radio`,
+              ),
+            )}
+          >
+            <BanIcon /> {pref?.never ? "allow in shuffle and radio" : "never in shuffle or radio"}
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={edit((m) =>
+              m.changeSong(
+                song,
+                { hidden: !pref?.hidden },
+                pref?.hidden ? `${song.title} is back everywhere` : `${song.title} now shows only on its album`,
+              ),
+            )}
+          >
+            {pref?.hidden ? <EyeIcon /> : <EyeOffIcon />} {pref?.hidden ? "unhide song" : "hide song"}
+          </DropdownMenuItem>
+        </>
+      )}
+      {target.kind === "album" && (
+        <>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            onClick={edit((m) =>
+              m.changeAlbum(
+                target.album,
+                { keepOrder: !albumRules?.keepOrder },
+                albumRules?.keepOrder
+                  ? `${target.album.name} shuffles song by song again`
+                  : `${target.album.name} stays in order when shuffled`,
+              ),
+            )}
+          >
+            <ListMusicIcon /> {albumRules?.keepOrder ? "shuffle song by song" : "keep in order when shuffled"}
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={edit((m) =>
+              m.changeAlbum(
+                target.album,
+                { never: !albumRules?.never },
+                albumRules?.never
+                  ? `${target.album.name} can come up in shuffle and radio again`
+                  : `${target.album.name} never comes up in shuffle or radio`,
+              ),
+            )}
+          >
+            <BanIcon /> {albumRules?.never ? "allow in shuffle and radio" : "never in shuffle or radio"}
+          </DropdownMenuItem>
+        </>
+      )}
+      <DropdownMenuSeparator />
       {song?.albumId && (
         <DropdownMenuItem onClick={() => go(`/album/${song.albumId}`)}>
           <DiscIcon /> go to album

@@ -25,6 +25,7 @@ test("the default map has no two actions on the same key in a scope", () => {
     undo: noop,
     redo: noop,
     saveMoment: noop,
+    trimHere: noop,
     copyLink: noop,
   });
   expect(findConflicts(shortcuts)).toEqual([]);

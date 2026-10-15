@@ -1,4 +1,4 @@
-import { EyeIcon, EyeOffIcon, ListEndIcon, ListStartIcon, MinusIcon, PlayIcon } from "lucide-react";
+import { BanIcon, EyeIcon, EyeOffIcon, ListEndIcon, ListStartIcon, MinusIcon, PlayIcon, ScissorsIcon } from "lucide-react";
 import { type DragEvent, memo, type ReactNode, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Empty, EmptyDescription } from "@/components/ui/empty";
@@ -11,6 +11,7 @@ import { focusWhenRendered, type ListCommand, rememberedFocus, rememberFocus, us
 import { setMorph } from "@/lib/motion";
 import { useCachedIds } from "@/lib/offline";
 import { currentSong, player, type QueueSource, usePlayer } from "@/lib/player";
+import { anyHidden, isHidden, type RuleMarks, ruleMarks, usePrefsVersion } from "@/lib/prefs";
 import { queries, queryClient } from "@/lib/queries";
 import { go, navigationType } from "@/lib/router";
 import { useSetting } from "@/lib/settings";
@@ -207,9 +208,34 @@ interface TrackRowProps {
   onDragRow: (event: DragEvent, index: number) => void;
   /** A row being dragged within the playlist would land here. */
   dropTarget?: boolean;
+  /** The song's playback rules as flags (trimmed, never in shuffle, hidden), shown as small marks after the title. */
+  rules?: RuleMarks | null;
   /** Set when virtualized: lets the virtualizer measure the row. */
   measure?: (element: Element | null) => void;
   virtualIndex?: number;
+}
+
+/** Small marks for a song's playback rules, each with its tooltip. */
+function RuleIcons({ trim, never, hidden }: RuleMarks) {
+  return (
+    <span className="flex shrink-0 items-center gap-1 text-faint">
+      {trim && (
+        <Hint label="trimmed: starts or ends where you said">
+          <ScissorsIcon aria-label="trimmed" className="size-3" />
+        </Hint>
+      )}
+      {never && (
+        <Hint label="never in shuffle or radio">
+          <BanIcon aria-label="never in shuffle or radio" className="size-3" />
+        </Hint>
+      )}
+      {hidden && (
+        <Hint label="hidden: shows only on its album">
+          <EyeOffIcon aria-label="hidden" className="size-3" />
+        </Hint>
+      )}
+    </span>
+  );
 }
 
 const TrackRow = memo(function TrackRow({
@@ -228,6 +254,7 @@ const TrackRow = memo(function TrackRow({
   onSelectClick,
   onDragRow,
   dropTarget,
+  rules,
   measure,
   virtualIndex,
 }: TrackRowProps) {
@@ -266,7 +293,10 @@ const TrackRow = memo(function TrackRow({
       </TableCell>
       <TableCell className="py-0">
         <div className="flex min-w-0 flex-col">
-          <Truncated text={song.title} className={cn(status && "font-medium")} />
+          <div className="flex min-w-0 items-center gap-1.5">
+            <Truncated text={song.title} className={cn(status && "font-medium")} />
+            {rules && <RuleIcons {...rules} />}
+          </div>
           {showArtist && song.artistId && (
             <ArtistCard id={song.artistId} name={song.artist}>
               <Link href={`/artist/${song.artistId}`} className={cn(SUBLINK, "text-xs")}>
@@ -366,10 +396,19 @@ export interface ListEditing {
 type TrackListOptions = TrackListProps & { onNearEnd?: () => void; source?: QueueSource; editing?: ListEditing };
 
 /** A track list; `filterable` lets ⌘F filter it in place, while playing a match still plays the whole list from there. */
-export function TrackList({ filterable = false, ...props }: TrackListOptions & { filterable?: boolean }) {
+export function TrackList({ filterable = false, ...incoming }: TrackListOptions & { filterable?: boolean }) {
   const query = useListFilter("page");
   const active = filterable && query !== null;
   useEffect(() => (filterable ? () => closeListFilter("page") : undefined), [filterable]);
+  // Songs you hid show only on their album's page; an editable playlist keeps them (positions are what you edit).
+  const rules = usePrefsVersion();
+  const onAlbum = incoming.asAlbum || incoming.source?.kind === "album";
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `rules` changes whenever a song is hidden or shown
+  const visible = useMemo(
+    () => (onAlbum || incoming.editing || !anyHidden() ? incoming.songs : incoming.songs.filter((song) => !isHidden(song.id))),
+    [incoming.songs, incoming.editing, onAlbum, rules],
+  );
+  const props = visible === incoming.songs ? incoming : { ...incoming, songs: visible };
   const shown = useMemo(
     () => (active && query ? props.songs.filter((song) => songMatches(song, query)) : props.songs),
     [active, query, props.songs],
@@ -714,6 +753,7 @@ function TrackRows({
                   onSelectClick={onSelectClick}
                   onDragRow={onDragRow}
                   dropTarget={dropAt === item.index}
+                  rules={ruleMarks(item.song)}
                   measure={virtual ? virtualizer.measureElement : undefined}
                   virtualIndex={virtualIndex}
                 />

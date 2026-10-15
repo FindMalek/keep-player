@@ -24,6 +24,7 @@ export interface AppActions {
   undo: () => void;
   redo: () => void;
   saveMoment: () => void;
+  trimHere: (edge: "start" | "end") => void;
   copyLink: () => void;
 }
 
@@ -70,6 +71,8 @@ export function appShortcuts(actions: AppActions): Shortcut[] {
     }),
     global("like", ["f"], "like the current song", "playback", () => actions.likeCurrent()),
     global("moment", ["b"], "save a moment here", "playback", () => actions.saveMoment()),
+    global("trim-start", ["alt+["], "start this song here from now on", "playback", () => actions.trimHere("start")),
+    global("trim-end", ["alt+]"], "end this song here from now on", "playback", () => actions.trimHere("end")),
     global("copy-link", ["shift+c"], "copy a link to this point in the song", "playback", () => actions.copyLink()),
     global("queue", ["q"], "queue", "panels", () => actions.togglePanel("queue")),
     global("lyrics", ["y"], "lyrics", "panels", () => actions.togglePanel("lyrics")),

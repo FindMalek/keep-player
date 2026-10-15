@@ -19,6 +19,7 @@ import { notify } from "@/lib/notify";
 import { PageScrollContext } from "@/lib/page-scroll";
 import { currentSong, player, usePlayer } from "@/lib/player";
 import { openPlaylistDialog, usePlaylistDialog } from "@/lib/playlist-dialogs";
+import { loadPrefs } from "@/lib/prefs";
 import { useReachability } from "@/lib/reachability";
 import { go, usePath } from "@/lib/router";
 import { useSetting } from "@/lib/settings";
@@ -189,6 +190,7 @@ export function App() {
       openMiniPlayer: () => void openMiniPlayer(),
       newPlaylist: () => openPlaylistDialog({ kind: "new" }),
       undo: () => void undo(),
+      trimHere: (edge) => void import("@/lib/prefs-edit").then((edit) => edit.trimHere(edge)),
       saveMoment: () => void import("@/lib/moments").then((moments) => moments.saveMoment()),
       copyLink: () => void import("@/lib/moments").then((moments) => moments.copyCurrentLink()),
       redo: () => void redo(),
@@ -209,6 +211,7 @@ export function App() {
   useEffect(() => {
     if (!user) return;
     void loadLikes();
+    void loadPrefs();
     startListeningHistory();
     void import("@/lib/settings-sync").then((sync) => sync.startSettingsSync());
     // The queue hand-off (Arpeggi, other browsers) waits until the first screen is done.

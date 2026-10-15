@@ -117,6 +117,48 @@ export function balancedShuffle(songs: Song[], indexes: number[], random: Random
   return order;
 }
 
+/** Songs you said never to shuffle, and albums to keep together (#62); set once the rules load. */
+export interface ShuffleRules {
+  /** Never comes up in a shuffle (an interlude, a hidden song). */
+  skip?: (song: Song) => boolean;
+  /** The block a song belongs to (an album kept in order), or null. A block moves as one, in its own order. */
+  block?: (song: Song) => string | null;
+}
+let rules: ShuffleRules = {};
+export function setShuffleRules(next: ShuffleRules): void {
+  rules = next;
+}
+
+/** `balancedShuffle` with the rules: skipped songs dropped, blocks kept together at the slot of their first member. */
+export function shuffled(songs: Song[], indexes: number[], random: Random = Math.random, applied: ShuffleRules = rules): number[] {
+  const kept = applied.skip ? indexes.filter((index) => !applied.skip?.(songs[index] as Song)) : indexes;
+  const order = balancedShuffle(songs, kept, random);
+  const { block } = applied;
+  if (!block) return order;
+  const members = new Map<string, number[]>();
+  for (const index of kept) {
+    const key = block(songs[index] as Song);
+    if (key) members.set(key, [...(members.get(key) ?? []), index]);
+  }
+  // A block plays in the album's own order: disc, then track, then where it was in the list.
+  const position = (index: number) => {
+    const song = songs[index] as Song & { discNumber?: number; track?: number };
+    return [song.discNumber ?? 1, song.track ?? 0, index] as const;
+  };
+  for (const list of members.values()) list.sort((a, b) => position(a)[0] - position(b)[0] || position(a)[1] - position(b)[1] || a - b);
+  const placed = new Set<string>();
+  const out: number[] = [];
+  for (const index of order) {
+    const key = block(songs[index] as Song);
+    if (!key) out.push(index);
+    else if (!placed.has(key)) {
+      placed.add(key);
+      out.push(...(members.get(key) ?? []));
+    }
+  }
+  return out;
+}
+
 /** Start a new context (album, playlist, …) at `start` (-1: a random song, for shuffle buttons). Your up-next queue stays. */
 export function playContext(
   queue: Queue,
@@ -131,7 +173,7 @@ export function playContext(
   const order = shuffle
     ? [
         startIndex,
-        ...balancedShuffle(
+        ...shuffled(
           songs,
           natural.filter((index) => index !== startIndex),
           random,
@@ -195,7 +237,7 @@ export function next(queue: Queue, random: Random = Math.random): Queue {
   }
   if (queue.repeat === "all" && queue.context.songs.length) {
     const natural = queue.context.songs.map((_, index) => index);
-    const order = queue.shuffle ? balancedShuffle(queue.context.songs, natural, random) : natural;
+    const order = queue.shuffle ? shuffled(queue.context.songs, natural, random) : natural;
     const wrapped = { ...queue, history, context: { ...queue.context, order, cursor: 0 } };
     return { ...wrapped, current: contextEntry(wrapped, 0) };
   }
@@ -320,7 +362,7 @@ export function setShuffle(queue: Queue, shuffle: boolean, random: Random = Math
   const { songs, order, cursor } = queue.context;
   if (shuffle) {
     const upcoming = order.slice(cursor + 1);
-    const reordered = [...order.slice(0, cursor + 1), ...balancedShuffle(songs, upcoming, random)];
+    const reordered = [...order.slice(0, cursor + 1), ...shuffled(songs, upcoming, random)];
     return { ...queue, shuffle, context: { ...queue.context, order: reordered, album: false } };
   }
   const natural = songs.map((_, index) => index);

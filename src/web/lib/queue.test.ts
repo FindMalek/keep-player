@@ -19,6 +19,7 @@ import {
   type Queue,
   remove,
   setShuffle,
+  shuffled,
 } from "./queue";
 import type { Song } from "./types";
 
@@ -148,4 +149,36 @@ test("a radio refills by appending to the context: the new songs play after the 
   expect(more.context.order.slice(2)).toEqual([2, 3]);
   expect(peekUpcoming(more, 3).map((item) => item.id)).toEqual(["b", "c", "d"]);
   expect(appendContext(start, [])).toBe(start);
+});
+
+describe("shuffle rules", () => {
+  const withAlbum = (id: string, albumId: string, track: number): Song => ({ ...song(id, id), albumId, track }) as Song;
+  const library = [
+    withAlbum("a1", "A", 1),
+    withAlbum("a2", "A", 2),
+    withAlbum("a3", "A", 3),
+    withAlbum("b1", "B", 1),
+    withAlbum("b2", "B", 2),
+    withAlbum("c1", "C", 1),
+  ];
+  const all = library.map((_, index) => index);
+  const ids = (order: number[]) => order.map((index) => library[index]?.id);
+
+  test("never: skipped songs are left out of a shuffle", () => {
+    const order = shuffled(library, all, () => 0.3, { skip: (item) => item.id === "b1" || item.albumId === "C" });
+    expect(ids(order).sort()).toEqual(["a1", "a2", "a3", "b2"]);
+  });
+
+  test("keep in order: an album stays together and in track order wherever the shuffle puts it", () => {
+    for (const seed of [0.05, 0.3, 0.6, 0.95]) {
+      const order = ids(shuffled(library, all, () => seed, { block: (item) => (item.albumId === "A" ? "A" : null) }));
+      const at = order.indexOf("a1");
+      expect(order.slice(at, at + 3)).toEqual(["a1", "a2", "a3"]);
+      expect([...order].sort()).toEqual(["a1", "a2", "a3", "b1", "b2", "c1"]);
+    }
+  });
+
+  test("no rules, no change", () => {
+    expect(shuffled(library, all, () => 0.3, {})).toEqual(balancedShuffle(library, all, () => 0.3));
+  });
 });

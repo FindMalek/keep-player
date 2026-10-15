@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from "react";
 import { notify } from "./notify";
 import { currentSong, player } from "./player";
+import { isSkipped } from "./prefs";
 import { contextUpcoming } from "./queue";
 import { artistOf, pick, type Station } from "./radio-pick";
 import { api, HEADERS, onAccountChange } from "./subsonic";
@@ -106,7 +107,10 @@ async function candidates(current: Station): Promise<{ song: Song; weight: numbe
         (topSongs.song ?? []).map((song) => ({ song, weight: 3 })),
       ),
     );
-  return (await Promise.allSettled(asks)).flatMap((result) => (result.status === "fulfilled" ? result.value : []));
+  // Songs you said never (or hid) stay off every station.
+  return (await Promise.allSettled(asks)).flatMap((result) =>
+    result.status === "fulfilled" ? result.value.filter(({ song }) => !isSkipped(song)) : [],
+  );
 }
 
 async function loadBans(): Promise<void> {
