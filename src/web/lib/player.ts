@@ -715,7 +715,16 @@ export const player = {
   },
   /** Drag and drop in the queue: `entry` takes `to`'s place. */
   moveTo(entry: Q.Entry, to: Q.Entry): void {
-    edit(Q.moveTo(state.queue, entry, to));
+    const before = state.queue;
+    const after = Q.moveTo(before, entry, to);
+    if (after === before) return;
+    edit(after);
+    // Undone only while the same song plays: positions mean nothing once the queue has moved on.
+    record({
+      label: `moved ${entry.song.title}`,
+      undo: () => restoreQueue(before, () => state.queue),
+      redo: () => restoreQueue(after, () => state.queue),
+    });
   },
   /** Take over a queue from another device, paused at `seconds` in its current song (the queue hand-off). */
   adopt(songs: Song[], index: number, seconds: number): void {
