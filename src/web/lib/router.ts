@@ -73,6 +73,13 @@ export function go(path: string): void {
   push(path);
 }
 
+/** Swap the current entry (a link that redirects): back skips it. */
+export function replace(path: string): void {
+  lastNavigation = "push";
+  window.history.replaceState({ scroll: 0 }, "", path);
+  transition(() => window.dispatchEvent(new Event(NAVIGATE)));
+}
+
 export function useSearchParam(name: string): string {
   return useSyncExternalStore(subscribe, () => new URLSearchParams(window.location.search).get(name) ?? "");
 }

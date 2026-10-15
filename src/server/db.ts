@@ -1,5 +1,6 @@
 import { Database } from "bun:sqlite";
 import { createHistoryTables } from "./history";
+import { createMomentTables } from "./moments";
 import { createRadioTables } from "./radio";
 
 /**
@@ -24,6 +25,7 @@ export function openLibraryDb(path: string): Database {
     primary key (user, song_id)
   )`);
   createHistoryTables(db);
+  createMomentTables(db);
   createRadioTables(db);
   // Songs you keep in a playlist but don't want to hear from it (#46): per user, the playlist itself is untouched.
   db.run(`create table if not exists playlist_hidden (

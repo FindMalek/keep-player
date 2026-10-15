@@ -18,3 +18,9 @@ test("artist - title and title by artist, and lyrics: takes the rest literally",
   expect(parseQuery("creep by radiohead").pairs).toEqual([{ title: "creep", artist: "radiohead" }]);
   expect(parseQuery("lyrics: is this the real life")).toMatchObject({ lyricsOnly: true, text: "is this the real life", chips: [] });
 });
+
+test("moment: finds songs by a moment's note, is:moment any song with one", () => {
+  expect(parseQuery('moment:"the drop" bass').filters.moment).toBe("the drop");
+  expect(parseQuery("is:moment").filters).toEqual({ moment: "" });
+  expect(parseQuery("is:moment").chips).toEqual([{ key: "is", value: "moment", raw: "is:moment" }]);
+});

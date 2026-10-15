@@ -26,12 +26,14 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
+  DropdownMenuShortcut,
   DropdownMenuSub,
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { clock } from "@/lib/format";
 import { isLiked, type LikeKind, setLiked } from "@/lib/likes";
 import { notify } from "@/lib/notify";
 import { player } from "@/lib/player";
@@ -134,6 +136,12 @@ export function ItemActions({ target }: { target: MenuTarget }) {
           })}
         >
           <LinkIcon /> copy link
+        </DropdownMenuItem>
+      )}
+      {song && player.getState().queue.current?.song.id === song.id && player.getPosition() >= 1 && (
+        <DropdownMenuItem onClick={run(() => import("@/lib/moments").then((moments) => moments.copyCurrentLink()))}>
+          <LinkIcon /> copy link at {clock(player.getPosition())}
+          <DropdownMenuShortcut>⇧C</DropdownMenuShortcut>
         </DropdownMenuItem>
       )}
       {(song || target.kind === "album") && (

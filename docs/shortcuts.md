@@ -25,6 +25,8 @@ rebound there (pencil icon); a rebound key shows everywhere the app shows the ke
 | `r` | repeat: off / all / one |
 | `⇧` `s` | stop after this song |
 | `f` | like the current song |
+| `b` | save a moment here |
+| `⇧` `c` | copy a link to this point in the song |
 | `0` … `9` | jump to 0 % … 90 % of the song |
 
 ## Navigation
@@ -42,6 +44,7 @@ rebound there (pencil icon); a rebound key shows everywhere the app shows the ke
 | `g` then `s` | go to songs |
 | `g` then `g` | go to genres |
 | `g` then `p` | go to history |
+| `g` then `m` | go to moments |
 | `g` then `t` | go to stats |
 | `g` then `l` | go to liked songs |
 | `g` then `f` | go to folders |
