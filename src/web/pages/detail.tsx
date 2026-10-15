@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { ExternalLinkIcon, RadioIcon, Trash2Icon } from "lucide-react";
+import { ExternalLinkIcon, PlayIcon, RadioIcon, Trash2Icon } from "lucide-react";
 import { Fragment, type ReactNode, useEffect, useMemo, useState } from "react";
 import { ArtistCard } from "@/components/artist-card";
 import { Cover } from "@/components/cover";
@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { discStarts, groupByRelease } from "@/lib/album-browse";
 import { cachedSummary } from "@/lib/cached";
 import { length, plural, quality } from "@/lib/format";
 import type { LikeKind } from "@/lib/likes";
@@ -137,6 +138,7 @@ export function AlbumPage({ id }: { id: string }) {
   const songs = album.song ?? [];
   const source = { kind: "album", name: album.name, href: `/album/${album.id}` };
   const first = songs[0];
+  const discs = discStarts(songs);
   const genres = album.genres?.map((genre) => genre.name) ?? (album.genre ? [album.genre] : []);
 
   return (
@@ -190,6 +192,23 @@ export function AlbumPage({ id }: { id: string }) {
         )}
       </Hero>
       <Content>
+        {discs.length > 0 && !isPlaceholderData && (
+          <div className="mb-2 flex flex-wrap items-center gap-1.5">
+            <span className="font-mono text-muted-foreground text-xs">play from</span>
+            {discs.map(({ disc, index }) => (
+              <Button
+                key={disc}
+                variant="outline"
+                size="xs"
+                className="font-mono font-normal"
+                onClick={() => player.play(songs, index, { album: true, shuffle: false, source })}
+              >
+                <PlayIcon />
+                disc {disc}
+              </Button>
+            ))}
+          </div>
+        )}
         {isPlaceholderData ? (
           <TrackListSkeleton count={album.songCount ?? 12} />
         ) : (
@@ -239,6 +258,8 @@ export function ArtistPage({ id }: { id: string }) {
   if (!artist) return <DetailSkeleton />;
   const albums = [...(artist.album ?? [])].sort((a, b) => (b.year ?? 0) - (a.year ?? 0));
   const source = { kind: "artist", name: artist.name, href: `/artist/${artist.id}` };
+  // Only artists that exist in this library have a page to open.
+  const similar = (info.data?.similarArtist ?? []).filter((other) => other.id && other.id !== artist.id).slice(0, 12);
   const bio = info.data?.biography?.replace(/<a [^>]*>.*?<\/a>\.?/g, "").trim();
   const everything = async (): Promise<Song[]> =>
     (await Promise.all(albums.map((album) => queryClient.fetchQuery(queries.album(album.id))))).flatMap((album) => album.song ?? []);
@@ -253,6 +274,18 @@ export function ArtistPage({ id }: { id: string }) {
         onShuffle={() => void everything().then((songs) => player.play(songs, -1, { shuffle: true, source }))}
         onQueue={() => void everything().then(player.addToQueue)}
         like={{ kind: "artist", id: artist.id }}
+        extra={
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() =>
+              void import("@/lib/radio").then((radio) => radio.startRadio({ kind: "artist", artist: { id: artist.id, name: artist.name } }))
+            }
+          >
+            <RadioIcon />
+            radio
+          </Button>
+        }
       >
         <span className="text-muted-foreground">{plural(artist.albumCount ?? albums.length, "album")}</span>
         {/* Always three lines tall: the bio arrives after the header, and the header is bottom-aligned to the cover. */}
@@ -264,9 +297,30 @@ export function ArtistPage({ id }: { id: string }) {
           {top.data ? <TrackList songs={top.data} showArtist={false} source={source} /> : <TrackListSkeleton count={10} immediate />}
         </Section>
       )}
-      <Section title="albums">
-        {isPlaceholderData ? <AlbumGridSkeleton count={artist.albumCount ?? 6} /> : <AlbumGrid albums={albums} />}
-      </Section>
+      {isPlaceholderData ? (
+        <Section title="albums">
+          <AlbumGridSkeleton count={artist.albumCount ?? 6} />
+        </Section>
+      ) : (
+        groupByRelease(albums).map((group) => (
+          <Section key={group.kind} title={group.title}>
+            <AlbumGrid albums={group.albums} />
+          </Section>
+        ))
+      )}
+      {similar.length > 0 && (
+        <Section title="similar artists">
+          <ul className="flex flex-wrap gap-2">
+            {similar.map((other) => (
+              <li key={other.id}>
+                <Badge variant="outline" className="h-7 px-2.5 font-normal" render={<Link href={`/artist/${other.id}`} />}>
+                  {other.name}
+                </Badge>
+              </li>
+            ))}
+          </ul>
+        </Section>
+      )}
     </>
   );
 }
