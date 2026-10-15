@@ -57,7 +57,7 @@ test("the ⋯ button opens the same actions, and an album card has its own on ri
     .first();
   await card.click({ button: "right" });
   const menu = page.getByRole("menu");
-  await expect(menu.getByRole("menuitem", { name: "shuffle" })).toBeVisible();
+  await expect(menu.getByRole("menuitem", { name: "shuffle", exact: true })).toBeVisible();
   await expect(menu.getByRole("menuitem", { name: "download (zip)" })).toBeVisible();
   await menu.getByRole("menuitem", { name: "play", exact: true }).click();
   await expect(page.getByRole("contentinfo").getByRole("button", { name: "pause" })).toBeVisible();

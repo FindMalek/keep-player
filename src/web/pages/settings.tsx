@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { DownloadIcon, ExternalLinkIcon, HardDriveDownloadIcon, LogOutIcon, MonitorSmartphoneIcon } from "lucide-react";
 import { lazy, type ReactNode, Suspense, useState } from "react";
 import { Content, PageHeader } from "@/components/library";
+import { LibraryRules } from "@/components/library-rules";
 import { Link } from "@/components/link";
 import { OutputDevice } from "@/components/output-device";
 import { Button } from "@/components/ui/button";
@@ -18,7 +19,7 @@ import { setTheme, type Theme, useTheme } from "@/lib/theme";
 const StorageDialog = lazy(() => import("@/components/storage-dialog").then((module) => ({ default: module.StorageDialog })));
 const SessionsDialog = lazy(() => import("@/components/sessions-dialog").then((module) => ({ default: module.SessionsDialog })));
 
-const SECTIONS = ["playback", "appearance", "sync", "storage", "lyrics", "shortcuts", "account", "about"] as const;
+const SECTIONS = ["playback", "appearance", "library", "sync", "storage", "lyrics", "shortcuts", "account", "about"] as const;
 type Section = (typeof SECTIONS)[number];
 
 /** One setting: what it is and why you'd change it on the left, the control on the right. */
@@ -119,6 +120,13 @@ export function SettingsPage({ section }: { section: string | null }) {
               label="show ratings"
               hint={<>1–5 stars in track lists, for smart playlists in other clients · {SYNCED}</>}
             />
+          </TabsContent>
+
+          <TabsContent value="library">
+            <p className="pb-2 text-muted-foreground text-xs">
+              your rules for songs and albums, on every browser. <span className="font-mono">follows you to every browser</span>
+            </p>
+            <LibraryRules />
           </TabsContent>
 
           <TabsContent value="sync">

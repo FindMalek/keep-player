@@ -4,6 +4,7 @@ import type { FrameSource } from "./audio/types";
 import { Decks } from "./decks";
 import { notify } from "./notify";
 import { controlled, dropPrecache, isCached, onCacheChange, pausePrecache, precache } from "./offline";
+import { isHidden, songPref } from "./prefs";
 import { queries, queryClient } from "./queries";
 import * as Q from "./queue";
 import { api, coverUrl, onAccountChange, preloadCover, scrobble, streamUrl } from "./subsonic";
@@ -61,6 +62,17 @@ let position = 0;
 const positionListeners = new Set<() => void>();
 let frame = 0;
 
+/** A song with an end you set moves on there (an extra track hidden after silence, an outro cut). */
+function checkTrimEnd(seconds: number): void {
+  const song = current();
+  const end = song ? songPref(song.id)?.trimEnd : null;
+  if (song && end && seconds >= end && state.playing && trimmed !== song.id) {
+    trimmed = song.id;
+    onEnded();
+  }
+}
+let trimmed: string | null = null;
+
 function setPosition(seconds: number): void {
   if (seconds === position) return;
   position = seconds;
@@ -72,6 +84,7 @@ function tick(): void {
   frame = 0;
   if (decks.element.paused || document.hidden) return;
   setPosition(decks.element.currentTime);
+  checkTrimEnd(decks.element.currentTime);
   decks.tick();
   frame = requestAnimationFrame(tick);
 }
@@ -205,6 +218,7 @@ const decks = new Decks({
   duration: (seconds) => set({ duration: seconds || (current()?.duration ?? 0) }),
   time: (seconds) => {
     if (document.hidden) setPosition(seconds);
+    checkTrimEnd(seconds);
     // The next song is due soon and still isn't in the idle deck (its precache is slow): load it straight away.
     const left = decks.element.duration - seconds;
     if (Number.isFinite(left) && left < DIRECT_PRELOAD_SECONDS) lineUpNextDeck(true);
@@ -399,7 +413,12 @@ function lineUpNextDeck(now: boolean): void {
   }
   // Straight from the network: if the service worker is fetching the same song, it stops (one download, not two).
   if (next && controlled() && !isCached(next.song.id)) dropPrecache(next.song.id);
-  decks.preload(next?.song.id ?? null, next ? streamUrl(next.song.id) : null, next?.factor ?? 1);
+  decks.preload(
+    next?.song.id ?? null,
+    next ? streamUrl(next.song.id) : null,
+    next?.factor ?? 1,
+    (next && songPref(next.song.id)?.trimStart) || 0,
+  );
 }
 
 // The service worker saved another song: it may be the one the idle deck is waiting for.
@@ -409,7 +428,8 @@ onCacheChange(() => nextLined && lineUpNextDeck(false));
 function started(song: Song | undefined): void {
   scrobbled = false;
   nextLined = false;
-  setPosition(0);
+  trimmed = null;
+  setPosition((song && songPref(song.id)?.trimStart) || 0);
   set({ duration: song?.duration ?? 0, error: null });
   applyVolume();
   updateMediaSession();
@@ -424,14 +444,16 @@ function started(song: Song | undefined): void {
 function load(autoplay: boolean, startAt = 0): void {
   const song = current();
   if (!song) return;
-  decks.load(song.id, streamUrl(song.id), currentFactor(), startAt, false);
+  // An explicit start (a lyrics hit, a moment) wins; otherwise a song with an intro you trimmed starts after it.
+  const from = startAt || songPref(song.id)?.trimStart || 0;
+  decks.load(song.id, streamUrl(song.id), currentFactor(), from, false);
   set({ buffering: autoplay });
   started(autoplay ? song : undefined);
   if (!autoplay) {
     set({ duration: song.duration ?? 0 });
     updateMediaSession();
   }
-  setPosition(startAt);
+  setPosition(from);
   if (autoplay) void decks.play().catch(() => set({ playing: false, buffering: false }));
 }
 
@@ -634,8 +656,12 @@ export const player = {
     persist();
   },
   /** Start a context (album, playlist, …) at `start`, `startAt` seconds in (a lyrics hit). Your up-next queue stays. */
-  play(songs: Song[], start = 0, options: { shuffle?: boolean; album?: boolean; source?: Q.QueueSource; startAt?: number } = {}): void {
+  play(all: Song[], start = 0, options: { shuffle?: boolean; album?: boolean; source?: Q.QueueSource; startAt?: number } = {}): void {
+    // Songs you hid play only from their album's page (or when you pick one yourself).
+    const chosen = all[start];
+    const songs = options.album || options.source?.kind === "album" ? all : all.filter((song) => song === chosen || !isHidden(song.id));
     if (!songs.length) return;
+    if (songs !== all && start >= 0) start = Math.max(0, songs.indexOf(chosen as Song));
     const before = state.queue;
     const at = position;
     advance(Q.playContext(state.queue, songs, start, options), options.startAt);

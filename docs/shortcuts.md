@@ -26,6 +26,8 @@ rebound there (pencil icon); a rebound key shows everywhere the app shows the ke
 | `⇧` `s` | stop after this song |
 | `f` | like the current song |
 | `b` | save a moment here |
+| `⌥/alt` `[` | start this song here from now on |
+| `⌥/alt` `]` | end this song here from now on |
 | `⇧` `c` | copy a link to this point in the song |
 | `0` … `9` | jump to 0 % … 90 % of the song |
 

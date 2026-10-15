@@ -179,10 +179,10 @@ export class Decks {
   }
 
   /** Put the song that comes next into the idle deck (null clears it, e.g. at the end of the queue). */
-  preload(songId: string | null, url: string | null, factor: number): void {
+  preload(songId: string | null, url: string | null, factor: number, startAt = 0): void {
     const wait = this.tailUntil - performance.now();
     if (wait > 0) {
-      setTimeout(() => this.preload(songId, url, factor), wait);
+      setTimeout(() => this.preload(songId, url, factor, startAt), wait);
       return;
     }
     const idle = this.idle;
@@ -198,6 +198,8 @@ export class Decks {
     if (url) {
       idle.element.src = url;
       idle.element.load();
+      // A trimmed song starts where you said (an intro skipped), also when it takes over gaplessly.
+      if (startAt) idle.element.addEventListener("loadedmetadata", () => (idle.element.currentTime = startAt), { once: true });
     } else idle.element.removeAttribute("src");
   }
 

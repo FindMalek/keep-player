@@ -49,6 +49,9 @@ async function midSong(page: Page): Promise<void> {
   await expect.poll(() => elapsed(page)).toBeGreaterThan(60);
 }
 
+// The trim shortcuts change the account's rules; the fixture stubs the server, so nothing outlives the test.
+const undoTrim = (page: Page) => page.locator("body").press("ControlOrMeta+z");
+
 const focusRow = async (page: Page, index = 0) => page.locator("[aria-label=tracks] tbody tr[data-song-index]").nth(index).focus();
 const focused = (page: Page) => page.evaluate(() => document.activeElement?.closest("[data-song-index]")?.getAttribute("data-song-index"));
 const selection = (page: Page) => page.getByRole("toolbar", { name: "selection" });
@@ -252,6 +255,18 @@ const CHECKS: Record<string, Check> = {
   moment: async (page, press) => {
     await press();
     await expect(page.getByText(/^saved a moment at \d+:\d\d in /)).toBeVisible();
+  },
+  "trim-start": async (page, press) => {
+    await midSong(page);
+    await press();
+    await expect(page.getByText(/ now starts at \d+:\d\d$/)).toBeVisible();
+    await undoTrim(page);
+  },
+  "trim-end": async (page, press) => {
+    await midSong(page);
+    await press();
+    await expect(page.getByText(/ now ends at \d+:\d\d$/)).toBeVisible();
+    await undoTrim(page);
   },
   "copy-link": async (page, press) => {
     await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);

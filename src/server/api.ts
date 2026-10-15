@@ -11,6 +11,7 @@ import type { LyricsService } from "./lyrics";
 import { forgetMisses, lyricsCoverageReport, missingLyrics } from "./lyrics-coverage";
 import { lyricsCoverage, queryLyrics } from "./lyrics-search";
 import { addMoment, deleteMoment, listMoments, momentNotes, updateMoment } from "./moments";
+import { changeAlbum, changeSong, readPrefs } from "./prefs";
 import { ban, listBans, unban } from "./radio";
 import type { LoginLimiter } from "./rate-limit";
 import { search } from "./search";
@@ -555,6 +556,46 @@ export function createApi({
     });
   }
 
+  /** `/api/prefs`: your per-song and per-album playback rules (trims, never in shuffle, keep in order, hidden). */
+  async function prefs(request: Request): Promise<Response> {
+    if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
+    const session = sessions.get(cookieValue(request));
+    if (!session) return json({ error: "signed out" }, 401);
+    return json(readPrefs(library, `${session.server}:${session.user}`), 200, { "cache-control": "private, no-cache" });
+  }
+
+  /** `PUT /api/prefs/songs/:id` or `/albums/:id`: change the fields sent (null clears a trim). */
+  async function setPref(request: Request & { params: { kind: string; id: string } }): Promise<Response> {
+    if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
+    const session = sessions.get(cookieValue(request));
+    if (!session) return json({ error: "signed out" }, 401);
+    const account = `${session.server}:${session.user}`;
+    const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
+    if (!body || typeof body !== "object") return json({ error: "an object" }, 400);
+    const flag = (value: unknown) => (typeof value === "boolean" ? value : undefined);
+    if (request.params.kind === "songs") {
+      const song =
+        body.song && typeof (body.song as { id?: unknown }).id === "string"
+          ? (body.song as { id: string } & Record<string, unknown>)
+          : undefined;
+      const ok = changeSong(library, account, request.params.id, {
+        ...(song ? { song } : {}),
+        ...("trimStart" in body ? { trimStart: body.trimStart as number | null } : {}),
+        ...("trimEnd" in body ? { trimEnd: body.trimEnd as number | null } : {}),
+        never: flag(body.never),
+        hidden: flag(body.hidden),
+      });
+      if (!ok) return json({ error: "invalid trim" }, 400);
+    } else if (request.params.kind === "albums") {
+      changeAlbum(library, account, request.params.id, {
+        name: typeof body.name === "string" ? body.name : undefined,
+        keepOrder: flag(body.keepOrder),
+        never: flag(body.never),
+      });
+    } else return json({ error: "not found" }, 404);
+    return json(readPrefs(library, account));
+  }
+
   /** `/api/radio/bans`: songs no radio plays for you (GET), ban one (POST `{ song }`), or lift one (DELETE `?id=`). */
   async function radioBans(request: Request): Promise<Response> {
     if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
@@ -626,6 +667,8 @@ export function createApi({
   return {
     history,
     radioBans,
+    prefs,
+    setPref,
     userSettings,
     moments,
     moment,

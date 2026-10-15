@@ -19,6 +19,8 @@ export const test = base.extend<{ signedIn: Page }>({
       // The first-run setup is its own test (onboarding.e2e.ts); everywhere else it's done.
       if (localStorage.getItem("keep-player:onboarded") === null) localStorage.setItem("keep-player:onboarded", "test");
     });
+    // Playback rules (#62) are per account too, and a hidden song would vanish from every other test's lists.
+    await page.route("**/api/prefs**", (route) => route.fulfill({ json: { songs: [], albums: [] } }));
     // Synced settings are per account, and every test is the same account: a server copy would carry one test's
     // settings into the next. Each test starts with none (settings.e2e.ts removes this to test the sync itself).
     await page.route("**/api/settings", (route) =>
