@@ -33,6 +33,8 @@ rebound there (pencil icon); a rebound key shows everywhere the app shows the ke
 |---|---|
 | `⌘/ctrl` `k` or `/` | search |
 | `⇧` `n` | new playlist |
+| `⌘/ctrl` `z` | undo (queue, playlists, likes) |
+| `⌘/ctrl` `⇧` `z` | redo |
 | `?` | keyboard shortcuts |
 | `g` then `h` | go to home |
 | `g` then `a` | go to albums |
