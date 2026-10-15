@@ -517,6 +517,10 @@ export function createApi({
       .query<{ body: string; updated: number }, [string]>("select body, updated from user_settings where account = ?")
       .get(account);
     return json(row ? { settings: JSON.parse(row.body), updated: row.updated } : { settings: null, updated: 0 }, 200, {
+      "cache-control": "private, no-cache",
+    });
+  }
+
   /** `/api/stats?from=&to=&tz=`: your listening in a range (ms epoch, `tz` minutes east of UTC). At most ~400 days. */
   async function stats(request: Request): Promise<Response> {
     if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
