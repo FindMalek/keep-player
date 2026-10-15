@@ -1,11 +1,13 @@
 import type { Database } from "bun:sqlite";
 import { createHash, randomBytes } from "node:crypto";
 import type { Server } from "bun";
+import { runChecks } from "../shared/doctor";
 import type { LyricsCoverage } from "../shared/lyrics";
 import type { LyricsSearch } from "../shared/search";
 import { readTrack } from "../shared/spotify-import";
 import type { Upstream } from "./config";
 import { type CoverCache, snapCoverSize } from "./covers";
+import { libraryItems } from "./doctor";
 import { UpdateCheck } from "./health";
 import { type NewPlay, readPlays, recordPlay } from "./history";
 import { matchTrack } from "./import-match";
@@ -386,6 +388,18 @@ export function createApi({
     return json(report, 200, { "cache-control": "private, no-cache" });
   }
 
+  /** `/api/doctor`: checks over the indexed library (covers, tags, duplicates…). Admins only. */
+  async function doctorRoute(request: Request): Promise<Response> {
+    if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
+    const session = sessions.get(cookieValue(request));
+    if (!session) return json({ error: "signed out" }, 401);
+    if (!session.admin) return json({ error: "admins only" }, 403);
+    const upstream = upstreamFor(session.server);
+    if (!upstream) return json({ error: "server removed from config" }, 401);
+    const { songs, albums } = libraryItems(library, upstream.id);
+    return json(runChecks(songs, albums), 200, { "cache-control": "private, no-cache" });
+  }
+
   /** `/api/lyrics/missing?offset=&limit=`: songs nobody found lyrics for, a page at a time. */
   async function lyricsMissing(request: Request): Promise<Response> {
     if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
@@ -704,6 +718,7 @@ export function createApi({
     lyricsOffset,
     lyricsCoverage: lyricsCoverageRoute,
     lyricsMissing,
+    doctor: doctorRoute,
     lyricsRefetch,
     lyricsWritten,
     searchIndex,

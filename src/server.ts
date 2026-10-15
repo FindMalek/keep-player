@@ -80,6 +80,7 @@ const server = Bun.serve({
     "/rest/*": api.proxy,
     "/cover/:id/:size": api.cover,
     "/api/lyrics/coverage": { GET: api.lyricsCoverage },
+    "/api/doctor": { GET: api.doctor },
     "/api/lyrics/missing": { GET: api.lyricsMissing },
     "/api/lyrics/refetch": { POST: api.lyricsRefetch },
     "/api/lyrics/written": { DELETE: api.lyricsWritten },

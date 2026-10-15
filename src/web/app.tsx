@@ -34,6 +34,7 @@ import {
   AlbumsPage,
   ArtistPage,
   ArtistsPage,
+  DoctorPage,
   FoldersPage,
   GenrePage,
   GenresPage,
@@ -140,6 +141,8 @@ function Page({ path }: { path: string }) {
       return <MomentsPage />;
     case "import":
       return <ImportPage />;
+    case "doctor":
+      return <DoctorPage />;
     case "song":
       return param ? <SongLink key={param} id={param} /> : null;
     default:
