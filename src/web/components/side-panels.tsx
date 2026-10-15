@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { current as currentDrag, dropSongs, endDrag, startDrag } from "@/lib/drag";
 import { clock, quality } from "@/lib/format";
 import { closeListFilter, songMatches, useListFilter } from "@/lib/list-filter";
 import { focusWhenRendered, type ListCommand, useListNav } from "@/lib/list-nav";
@@ -18,6 +19,7 @@ import type { Song } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Cover } from "./cover";
 import { Hint } from "./hint";
+import { ListContextMenu } from "./item-menu";
 import { EmptyState } from "./library";
 import { Link } from "./link";
 import { ListFilterBar } from "./list-filter-bar";
@@ -66,7 +68,14 @@ type QueueItem =
 const QueueRow = memo(function QueueRow({ entry, state }: { entry: Entry; state: "played" | "current" | "next" }) {
   const { song } = entry;
   return (
-    <div className={cn("group/queue flex h-10 items-center", state === "played" && "opacity-45")}>
+    // biome-ignore lint/a11y/noStaticElementInteractions: a drag source wrapper; the buttons inside are the controls
+    <div
+      className={cn("group/queue flex h-10 items-center", state === "played" && "opacity-45")}
+      // Upcoming songs can be dragged to another place in the queue, or onto a playlist.
+      draggable={state === "next"}
+      onDragStart={(event) => startDrag(event, { kind: "songs", songs: [song] }, { list: "queue", index: -1, key: entry.uid })}
+      onDragEnd={endDrag}
+    >
       <button
         type="button"
         className={cn(
@@ -178,6 +187,7 @@ function SaveQueue() {
 
 export function QueuePanel({ onClose }: { onClose: () => void }) {
   const queue = usePlayer((state) => state.queue);
+  const [dropping, setDropping] = useState(false);
   const filter = useListFilter("queue");
   useEffect(() => () => closeListFilter("queue"), []);
   const items = useMemo(() => {
@@ -264,39 +274,77 @@ export function QueuePanel({ onClose }: { onClose: () => void }) {
             total={queueItems(queue).filter((item) => item.kind === "entry").length}
           />
         )}
-        <ol ref={listRef} aria-label="queue" className="relative" style={{ height: virtualizer.getTotalSize() }} {...listNav}>
-          {virtualizer.getVirtualItems().map((virtual) => {
-            const item = items[virtual.index];
-            if (!item) return null;
-            return (
-              <li
-                key={item.kind === "entry" ? item.entry.uid : `h-${item.label}`}
-                aria-current={item.kind === "entry" && item.state === "current" ? "true" : undefined}
-                data-queue-index={item.kind === "entry" ? virtual.index : undefined}
-                className="absolute inset-x-0"
-                style={{ transform: `translateY(${virtual.start - margin}px)` }}
-              >
-                {item.kind === "header" ? (
-                  <div className="flex h-9 items-end justify-between px-1.5 pb-1.5">
-                    <h3 className="truncate font-mono text-[10.5px] text-faint">{item.label}</h3>
-                    {item.action && (
-                      <Button
-                        variant="link"
-                        size="xs"
-                        className="h-auto p-0 font-mono text-[10.5px] text-muted-foreground"
-                        onClick={item.action.run}
-                      >
-                        {item.action.label}
-                      </Button>
-                    )}
-                  </div>
-                ) : (
-                  <QueueRow entry={item.entry} state={item.state} />
-                )}
-              </li>
-            );
-          })}
-        </ol>
+        <ListContextMenu
+          resolve={(element) => {
+            const item = items[Number(element.closest("[data-queue-index]")?.getAttribute("data-queue-index") ?? Number.NaN)];
+            return item?.kind === "entry" ? { kind: "songs", songs: [item.entry.song] } : null;
+          }}
+        >
+          <ol
+            ref={listRef}
+            aria-label="queue"
+            className="relative data-drop-target:outline data-drop-target:outline-foreground data-drop-target:-outline-offset-1"
+            style={{ height: virtualizer.getTotalSize() }}
+            data-drop-target={dropping || undefined}
+            {...listNav}
+            onDragOver={(event) => {
+              const drag = currentDrag(event);
+              if (!drag) return;
+              event.preventDefault();
+              event.dataTransfer.dropEffect = drag.reorder?.list === "queue" ? "move" : "copy";
+              setDropping(drag.reorder?.list !== "queue");
+            }}
+            onDragLeave={() => setDropping(false)}
+            onDrop={(event) => {
+              const drag = currentDrag(event);
+              setDropping(false);
+              if (!drag) return;
+              event.preventDefault();
+              endDrag();
+              if (drag.reorder?.list === "queue") {
+                // Dropped on another upcoming song: take its place.
+                const over =
+                  items[Number((event.target as Element).closest("[data-queue-index]")?.getAttribute("data-queue-index") ?? Number.NaN)];
+                const from = queueItems(queue).find((item) => item.kind === "entry" && item.entry.uid === drag.reorder?.key);
+                if (over?.kind === "entry" && over.state === "next" && from?.kind === "entry") player.moveTo(from.entry, over.entry);
+                return;
+              }
+              void dropSongs(drag.target).then((songs) => player.addToQueue(songs));
+            }}
+          >
+            {virtualizer.getVirtualItems().map((virtual) => {
+              const item = items[virtual.index];
+              if (!item) return null;
+              return (
+                <li
+                  key={item.kind === "entry" ? item.entry.uid : `h-${item.label}`}
+                  aria-current={item.kind === "entry" && item.state === "current" ? "true" : undefined}
+                  data-queue-index={item.kind === "entry" ? virtual.index : undefined}
+                  className="absolute inset-x-0"
+                  style={{ transform: `translateY(${virtual.start - margin}px)` }}
+                >
+                  {item.kind === "header" ? (
+                    <div className="flex h-9 items-end justify-between px-1.5 pb-1.5">
+                      <h3 className="truncate font-mono text-[10.5px] text-faint">{item.label}</h3>
+                      {item.action && (
+                        <Button
+                          variant="link"
+                          size="xs"
+                          className="h-auto p-0 font-mono text-[10.5px] text-muted-foreground"
+                          onClick={item.action.run}
+                        >
+                          {item.action.label}
+                        </Button>
+                      )}
+                    </div>
+                  ) : (
+                    <QueueRow entry={item.entry} state={item.state} />
+                  )}
+                </li>
+              );
+            })}
+          </ol>
+        </ListContextMenu>
         {upcoming === 0 && filter === null && <NothingNext />}
       </div>
     </PanelFrame>

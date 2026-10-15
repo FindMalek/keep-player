@@ -616,6 +616,10 @@ export const player = {
   move(entry: Q.Entry, delta: -1 | 1): void {
     edit(Q.move(state.queue, entry, delta));
   },
+  /** Drag and drop in the queue: `entry` takes `to`'s place. */
+  moveTo(entry: Q.Entry, to: Q.Entry): void {
+    edit(Q.moveTo(state.queue, entry, to));
+  },
   /** Take over a queue from another device, paused at `seconds` in its current song (the queue hand-off). */
   adopt(songs: Song[], index: number, seconds: number): void {
     if (!songs.length) return;
