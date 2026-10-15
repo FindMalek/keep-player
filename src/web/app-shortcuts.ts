@@ -23,6 +23,8 @@ export interface AppActions {
   newPlaylist: () => void;
   undo: () => void;
   redo: () => void;
+  saveMoment: () => void;
+  copyLink: () => void;
 }
 
 /** In a text field ⌘Z undoes the typing, not the app. */
@@ -67,6 +69,8 @@ export function appShortcuts(actions: AppActions): Shortcut[] {
       notify({ message: player.getState().sleep ? "will stop after this song" : "will keep playing" });
     }),
     global("like", ["f"], "like the current song", "playback", () => actions.likeCurrent()),
+    global("moment", ["b"], "save a moment here", "playback", () => actions.saveMoment()),
+    global("copy-link", ["shift+c"], "copy a link to this point in the song", "playback", () => actions.copyLink()),
     global("queue", ["q"], "queue", "panels", () => actions.togglePanel("queue")),
     global("lyrics", ["y"], "lyrics", "panels", () => actions.togglePanel("lyrics")),
     global("info", ["i"], "song info", "panels", () => actions.togglePanel("info")),
@@ -88,6 +92,7 @@ export function appShortcuts(actions: AppActions): Shortcut[] {
     global("go-songs", ["g s"], "go to songs", "navigation", () => go("/songs")),
     global("go-genres", ["g g"], "go to genres", "navigation", () => go("/genres")),
     global("go-history", ["g p"], "go to history", "navigation", () => go("/history")),
+    global("go-moments", ["g m"], "go to moments", "navigation", () => go("/moments")),
     global("go-liked", ["g l"], "go to liked songs", "navigation", () => go("/liked")),
     global("go-folders", ["g f"], "go to folders", "navigation", () => go("/folders")),
     global("go-queue", ["g q"], "open the queue", "navigation", () => actions.togglePanel("queue")),

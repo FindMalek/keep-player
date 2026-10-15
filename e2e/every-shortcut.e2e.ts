@@ -249,6 +249,21 @@ const CHECKS: Record<string, Check> = {
     await press();
     await expect(page).toHaveURL(/\/genres$/);
   },
+  moment: async (page, press) => {
+    await press();
+    await expect(page.getByText(/^saved a moment at \d+:\d\d in /)).toBeVisible();
+  },
+  "copy-link": async (page, press) => {
+    await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
+    await midSong(page);
+    await press();
+    await expect(page.getByText(/^copied a link to /)).toBeVisible();
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toMatch(/\/song\/[^?]+\?t=\d+$/);
+  },
+  "go-moments": async (page, press) => {
+    await press();
+    await expect(page).toHaveURL(/\/moments$/);
+  },
   "go-history": async (page, press) => {
     await press();
     await expect(page).toHaveURL(/\/history$/);

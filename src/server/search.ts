@@ -8,6 +8,8 @@ import { type Hit, type Kind, queryIndex } from "./search-index";
 export interface SearchContext {
   folders: string[] | null;
   liked: Set<string>;
+  /** Song id → the notes of this user's moments in it, for `moment:` and `is:moment`. */
+  moments?: Map<string, string[]>;
 }
 
 const CANDIDATES = 200;
@@ -17,8 +19,12 @@ const has = (value: string, wanted: string) => value.includes(normalize(wanted))
 
 /** Whether an item passes the operators; fields an item kind doesn't have (an artist's year) don't filter it. */
 function passes(kind: Kind, id: string, data: Record<string, unknown>, filters: Filters, context: SearchContext): boolean {
-  const { artist, album, genre, year, format, liked, unplayed } = filters;
+  const { artist, album, genre, year, format, liked, unplayed, moment } = filters;
   if (liked && !context.liked.has(id)) return false;
+  if (moment !== undefined) {
+    const notes = kind === "song" ? context.moments?.get(id) : undefined;
+    if (!notes || (moment && !notes.some((note) => has(normalize(note), moment)))) return false;
+  }
   if (unplayed && Number(data.playCount ?? 0) > 0) return false;
   if (artist && !has(field(data, kind === "artist" ? "name" : "artist"), artist)) return false;
   if (kind === "artist") return !(album || genre || year || format);
