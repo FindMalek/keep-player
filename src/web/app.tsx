@@ -37,6 +37,7 @@ import {
   HistoryPage,
   HomePage,
   LikedPage,
+  LyricsPage,
   PlaylistPage,
   preloadAllRoutes,
   SearchPage,
@@ -121,6 +122,8 @@ function Page({ path }: { path: string }) {
       return <SearchPage />;
     case "history":
       return <HistoryPage />;
+    case "lyrics":
+      return <LyricsPage />;
     default:
       return <HomePage />;
   }

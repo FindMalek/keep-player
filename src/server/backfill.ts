@@ -69,6 +69,14 @@ export class LyricsBackfill {
     this.schedule(5000);
   }
 
+  /** Walk the library again from the start now (after misses were forgotten, so they're asked again). */
+  restart(): void {
+    this.offset = 0;
+    this.queue = [];
+    this.backoff = STEP_MS;
+    this.schedule(0);
+  }
+
   stop(): void {
     clearTimeout(this.timer);
   }

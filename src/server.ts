@@ -6,6 +6,7 @@ import { CoverCache } from "./server/covers";
 import { openLibraryDb } from "./server/db";
 import { font } from "./server/fonts";
 import { HealthCheck, UpdateCheck, VERSION } from "./server/health";
+import { LrcWriter } from "./server/lrc-writer";
 import { LyricsService } from "./server/lyrics";
 import { LoginLimiter } from "./server/rate-limit";
 import { IndexSync } from "./server/search-index";
@@ -27,6 +28,22 @@ const indexes = new Map(
   ]),
 );
 for (const index of indexes.values()) index.start();
+const lrc = config.lrcDir ? new LrcWriter(library, config.lrcDir) : null;
+if (lrc) lyrics.onLrclib = (server, song, text) => lrc.write(server, song, text);
+const backfills = new Map(
+  config.lyricsBackfill && config.lrclibUrl
+    ? config.upstreams.map((upstream) => [
+        upstream.id,
+        new LyricsBackfill(
+          library,
+          lyrics,
+          upstream,
+          serviceAccount(sessions, upstream, { user: config.indexUser, password: config.indexPassword }),
+        ),
+      ])
+    : [],
+);
+for (const backfill of backfills.values()) backfill.start();
 const covers = new CoverCache(join(config.dataDir, "covers"), config.coverCacheMb * 1024 * 1024);
 const api = createApi({
   upstreams: config.upstreams,
@@ -39,17 +56,10 @@ const api = createApi({
   idleSeconds,
   trustProxy: config.trustProxy,
   updates: new UpdateCheck(config.updateCheck),
+  backfills,
+  lrc,
 });
 const health = new HealthCheck(config.upstreams);
-
-if (config.lyricsBackfill && config.lrclibUrl)
-  for (const upstream of config.upstreams)
-    new LyricsBackfill(
-      library,
-      lyrics,
-      upstream,
-      serviceAccount(sessions, upstream, { user: config.indexUser, password: config.indexPassword }),
-    ).start();
 
 const server = Bun.serve({
   port: config.port,
@@ -68,6 +78,10 @@ const server = Bun.serve({
     "/auth/sessions/:id": { DELETE: api.revokeSession },
     "/rest/*": api.proxy,
     "/cover/:id/:size": api.cover,
+    "/api/lyrics/coverage": { GET: api.lyricsCoverage },
+    "/api/lyrics/missing": { GET: api.lyricsMissing },
+    "/api/lyrics/refetch": { POST: api.lyricsRefetch },
+    "/api/lyrics/written": { DELETE: api.lyricsWritten },
     "/api/lyrics/:songId": { GET: api.songLyrics },
     "/api/lyrics/:songId/offset": { GET: api.lyricsOffset, PUT: api.lyricsOffset },
     "/api/playlists/:id/hidden": { GET: api.playlistHidden, PUT: api.playlistHidden },

@@ -21,3 +21,17 @@ export interface LyricLine {
 }
 
 export const MISSING: Lyrics = { status: "missing", lines: [], offset: 0, source: null };
+
+/** `/api/lyrics/coverage`: how many songs have which kind of lyrics, and the albums missing the most. */
+export interface LyricsCoverage {
+  total: number;
+  synced: number;
+  plain: number;
+  instrumental: number;
+  missing: number;
+  /** Not looked up yet (the backfill reaches them over time). */
+  unchecked: number;
+  albums: { id: string; name: string; artist: string; total: number; synced: number; plain: number; missing: number }[];
+  /** Set for admins when `LYRICS_WRITE_LRC=on`: how many .lrc files keep music wrote. */
+  written?: number;
+}
