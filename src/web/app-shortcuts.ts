@@ -20,6 +20,7 @@ export interface AppActions {
   findInList: () => boolean;
   likeCurrent: () => void;
   openMiniPlayer: () => void;
+  newPlaylist: () => void;
 }
 
 /** The default map. Everything it calls is passed in, so a unit test can check it for conflicts without a browser. */
@@ -70,12 +71,15 @@ export function appShortcuts(actions: AppActions): Shortcut[] {
       event.code === "Slash" ? actions.openSearch() : actions.toggleSearch(),
     ),
     global("find-in-list", ["mod+f"], "filter this list", "lists", () => actions.findInList()),
+    // ⌘N is the browser's new window: pages never receive it.
+    global("new-playlist", ["shift+n"], "new playlist", "navigation", () => actions.newPlaylist()),
     global("cheat-sheet", ["?"], "keyboard shortcuts", "navigation", () => actions.openCheatSheet()),
     global("go-home", ["g h"], "go to home", "navigation", () => go("/")),
     global("go-albums", ["g a"], "go to albums", "navigation", () => go("/albums")),
     global("go-artists", ["g r"], "go to artists", "navigation", () => go("/artists")),
     global("go-songs", ["g s"], "go to songs", "navigation", () => go("/songs")),
     global("go-genres", ["g g"], "go to genres", "navigation", () => go("/genres")),
+    global("go-history", ["g p"], "go to history", "navigation", () => go("/history")),
     global("go-liked", ["g l"], "go to liked songs", "navigation", () => go("/liked")),
     global("go-folders", ["g f"], "go to folders", "navigation", () => go("/folders")),
     global("go-queue", ["g q"], "open the queue", "navigation", () => actions.togglePanel("queue")),
