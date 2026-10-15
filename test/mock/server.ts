@@ -28,7 +28,17 @@ function ok(payload: Payload = {}): Response {
 }
 
 function fail(code: number, message: string): Response {
-  return Response.json({ "subsonic-response": { status: "failed", version: "1.16.1", error: { code, message } } });
+  // Navidrome names itself in errors too (an unauthenticated ping is how /api/health identifies it).
+  return Response.json({
+    "subsonic-response": {
+      status: "failed",
+      version: "1.16.1",
+      type: "navidrome",
+      serverVersion: "0.64.2",
+      openSubsonic: true,
+      error: { code, message },
+    },
+  });
 }
 
 function authorized(params: Params): boolean {

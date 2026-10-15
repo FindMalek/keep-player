@@ -58,16 +58,23 @@ Built for the desktop web. On a phone, use a native Subsonic app.
 ```yaml
 services:
   player:
-    build: .
+    image: ghcr.io/findmalek/keep-player:latest   # amd64 and arm64
     restart: unless-stopped
     environment:
-      NAVIDROME_URL: http://navidrome:4533   # reachable from this container
+      NAVIDROME_URL: http://navidrome:4533        # as this container reaches Navidrome
     ports:
-      - "8080:8080"                          # or route it through your reverse proxy
+      - "8080:8080"
+    volumes:
+      - player-data:/data
+volumes:
+  player-data:
 ```
 
 Sign in with any Navidrome account. Album metadata, cover art, genres and lyrics come from Navidrome, so tags
 from [beets](https://beets.io) (MusicBrainz, LRCLIB synced lyrics, ReplayGain) show up as-is.
+
+- every setting: [docs/configuration.md](docs/configuration.md)
+- full stack, Traefik, Caddy, nginx, Dokploy: [docs/deploy](docs/deploy/README.md)
 
 ## Develop
 
@@ -77,8 +84,8 @@ NAVIDROME_URL=http://localhost:4533 bun src/server.ts
 bun run typecheck
 ```
 
-Deploying to your own box: put `KEEP_HOST`, `COMPOSE_ID` and `SOURCE_DIR` in a git-ignored `.deploy.env` and run
-`./deploy.sh` (Dokploy).
+Deploys: CI publishes the image and redeploys Dokploy on every merge ([docs/deploy/dokploy.md](docs/deploy/dokploy.md)).
+`./deploy.sh` (settings in a git-ignored `.deploy.env`) is the manual fallback that builds from a copy of the source.
 
 ## Credits
 

@@ -4,6 +4,7 @@ import type { Server } from "bun";
 import type { LyricsSearch } from "../shared/search";
 import type { Upstream } from "./config";
 import { type CoverCache, snapCoverSize } from "./covers";
+import { UpdateCheck } from "./health";
 import { type NewPlay, readPlays, recordPlay } from "./history";
 import type { LyricsService } from "./lyrics";
 import { lyricsCoverage, queryLyrics } from "./lyrics-search";
@@ -117,9 +118,22 @@ export interface ApiOptions {
   limiter: LoginLimiter;
   idleSeconds: number;
   trustProxy: boolean;
+  /** Release check for admins (off unless `UPDATE_CHECK=on`). */
+  updates?: UpdateCheck;
 }
 
-export function createApi({ upstreams, covers, lyrics, indexes, library, sessions, limiter, idleSeconds, trustProxy }: ApiOptions) {
+export function createApi({
+  upstreams,
+  covers,
+  lyrics,
+  indexes,
+  library,
+  sessions,
+  limiter,
+  idleSeconds,
+  trustProxy,
+  updates = new UpdateCheck(false),
+}: ApiOptions) {
   const upstreamFor = (id: string) => upstreams.find((upstream) => upstream.id === id);
 
   // The music folders (libraries) each session may see, asked as that user so Navidrome decides. Ten minutes.
@@ -172,11 +186,19 @@ export function createApi({ upstreams, covers, lyrics, indexes, library, session
     const query = upstreamQuery({ user, token, salt });
     query.set("f", "json");
     const ping = await fetch(`${upstream.url}/rest/ping?${query}`, { signal: AbortSignal.timeout(8000) }).catch(() => null);
-    if (!ping) return json({ error: "server unreachable" }, 502);
-    const result = ping.ok ? ((await ping.json().catch(() => null)) as { "subsonic-response"?: { status?: string } } | null) : null;
-    if (result?.["subsonic-response"]?.status !== "ok") {
+    if (!ping) return json({ error: "can't reach the music server", reason: "unreachable" }, 502);
+    const result = (await ping.json().catch(() => null)) as {
+      "subsonic-response"?: { status?: string; error?: { code?: number } };
+    } | null;
+    const answer = result?.["subsonic-response"];
+    // Something answered, but not a Subsonic API: usually NAVIDROME_URL points at the wrong port or a web page.
+    if (!answer)
+      return json({ error: "the server answered, but it isn't Navidrome or another Subsonic server", reason: "not-subsonic" }, 502);
+    if (answer.status !== "ok") {
+      // 50: the account exists but may not use the API (disabled, or no access to this server).
+      if (answer.error?.code === 50) return json({ error: "this account isn't allowed to sign in here", reason: "forbidden" }, 403);
       limiter.fail(keys);
-      return json({ error: "wrong username or password" }, 401);
+      return json({ error: "wrong username or password", reason: "credentials" }, 401);
     }
     limiter.succeed(keys);
     // Admins' sessions can run the background jobs (lyrics backfill, search index) when no service account is set.
@@ -368,6 +390,16 @@ export function createApi({ upstreams, covers, lyrics, indexes, library, session
     return json(search(library, upstream.id, query, { folders, liked }, limit), 200, { "cache-control": "private, no-cache" });
   }
 
+  /** `/api/version`: the running version, and for admins whether a newer release is out. */
+  async function version(request: Request): Promise<Response> {
+    const session = sessions.get(cookieValue(request));
+    if (!session) return json({ error: "signed out" }, 401);
+    const info = await updates.info();
+    return json(session.admin ? info : { version: info.version, latest: null, updateAvailable: false }, 200, {
+      "cache-control": "private, no-cache",
+    });
+  }
+
   /** `/api/history`: GET your plays (newest first, `?before=` to page back), POST one that just ended. */
   async function history(request: Request): Promise<Response> {
     if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
@@ -425,6 +457,7 @@ export function createApi({ upstreams, covers, lyrics, indexes, library, session
     login,
     logout,
     current,
+    version,
     listSessions,
     revokeSession,
     proxy,

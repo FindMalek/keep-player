@@ -24,7 +24,7 @@ import { go, usePath } from "@/lib/router";
 import { useSetting } from "@/lib/settings";
 import { installShortcuts, useShortcuts } from "@/lib/shortcuts";
 import { useCheckingSession, useUser } from "@/lib/subsonic";
-import { welcomeTip } from "@/lib/tips";
+import { isOnboarded, welcomeTip } from "@/lib/tips";
 import { loadTooltips } from "@/lib/tooltips";
 import {
   AlbumPage,
@@ -52,6 +52,7 @@ const InfoPanel = lazy(() => import("@/components/side-panels").then((module) =>
 const LyricsPanel = lazy(() => import("@/components/side-panels").then((module) => ({ default: module.LyricsPanel })));
 
 const NowPlayingFull = lazy(() => import("@/components/now-playing-full").then((module) => ({ default: module.NowPlayingFull })));
+const FirstRun = lazy(() => import("@/components/first-run").then((module) => ({ default: module.FirstRun })));
 const CheatSheet = lazy(() => import("@/components/cheat-sheet").then((module) => ({ default: module.CheatSheet })));
 
 // Only loaded on the first ⌘K (cmdk + dialog stay out of the first paint), then kept mounted.
@@ -144,6 +145,8 @@ export function App() {
   }, [reduceMotion]);
   const [searching, setSearching] = useState(false);
   const [cheatSheet, setCheatSheet] = useState(false);
+  // First sign-in in this browser: a short setup and tour, once.
+  const [firstRun, setFirstRun] = useState(() => !isOnboarded());
   const [fullScreen, setFullScreen] = useState(false);
   const [searchLoaded, setSearchLoaded] = useState(false);
   if (searching && !searchLoaded) setSearchLoaded(true);
@@ -189,10 +192,10 @@ export function App() {
   }, [user]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || firstRun) return;
     const id = setTimeout(() => welcomeTip(() => setCheatSheet(true)), 4000);
     return () => clearTimeout(id);
-  }, [user]);
+  }, [user, firstRun]);
 
   useEffect(() => {
     if (user)
@@ -285,6 +288,11 @@ export function App() {
       {fullScreen && (
         <Suspense>
           <NowPlayingFull open={fullScreen} onOpenChange={setFullScreen} />
+        </Suspense>
+      )}
+      {firstRun && (
+        <Suspense>
+          <FirstRun onDone={() => setFirstRun(false)} />
         </Suspense>
       )}
       {cheatSheet && (
