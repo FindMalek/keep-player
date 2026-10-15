@@ -1,6 +1,7 @@
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { HeartIcon, PlayIcon, ShuffleIcon } from "lucide-react";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ListContextMenu, type MenuTarget } from "@/components/item-menu";
 import { AlbumGrid, AlbumGridSkeleton, Content, EmptyState, PageHeader, Section, TrackList } from "@/components/library";
 import { Link } from "@/components/link";
 import { ListFilterBar } from "@/components/list-filter-bar";
@@ -243,38 +244,50 @@ export function ArtistsPage() {
       <Content>
         {groups.length === 0 && data && <EmptyState>no artists</EmptyState>}
         {!data && <ArtistRowsSkeleton count={80} />}
-        <div ref={listRef} className="relative" style={{ height: virtualizer.getTotalSize() }}>
-          {virtualizer.getVirtualItems().map((item) => {
-            const row = rows[item.index];
-            if (!row) return null;
-            return (
-              <div
-                key={item.key}
-                ref={virtualizer.measureElement}
-                data-index={item.index}
-                className={cn("absolute inset-x-0 grid grid-cols-[48px_minmax(0,1fr)]", row.last && "border-muted border-b pb-2")}
-                style={{ transform: `translateY(${item.start - margin}px)`, paddingTop: row.letter ? 8 : 0 }}
-              >
-                {row.letter ? <h2 className="font-mono text-[15px] text-faint">{row.letter}</h2> : <span aria-hidden />}
-                <ul className="grid gap-x-6" style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
-                  {row.artists.map((artist) => (
-                    <li key={artist.id}>
-                      <Link href={`/artist/${artist.id}`} className="flex h-[26px] items-center justify-between gap-3 px-1.5 hover:bg-card">
-                        <span className="truncate">{artist.name}</span>
-                        <span className="shrink-0 font-mono text-muted-foreground text-xs tabular-nums">
-                          {plural(artist.albumCount ?? 0, "album")}
-                        </span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            );
-          })}
-        </div>
+        <ListContextMenu resolve={artistTarget}>
+          <div ref={listRef} className="relative" style={{ height: virtualizer.getTotalSize() }}>
+            {virtualizer.getVirtualItems().map((item) => {
+              const row = rows[item.index];
+              if (!row) return null;
+              return (
+                <div
+                  key={item.key}
+                  ref={virtualizer.measureElement}
+                  data-index={item.index}
+                  className={cn("absolute inset-x-0 grid grid-cols-[48px_minmax(0,1fr)]", row.last && "border-muted border-b pb-2")}
+                  style={{ transform: `translateY(${item.start - margin}px)`, paddingTop: row.letter ? 8 : 0 }}
+                >
+                  {row.letter ? <h2 className="font-mono text-[15px] text-faint">{row.letter}</h2> : <span aria-hidden />}
+                  <ul className="grid gap-x-6" style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
+                    {row.artists.map((artist) => (
+                      <li key={artist.id} data-artist-id={artist.id} data-artist-name={artist.name}>
+                        <Link
+                          href={`/artist/${artist.id}`}
+                          className="flex h-[26px] items-center justify-between gap-3 px-1.5 hover:bg-card"
+                        >
+                          <span className="truncate">{artist.name}</span>
+                          <span className="shrink-0 font-mono text-muted-foreground text-xs tabular-nums">
+                            {plural(artist.albumCount ?? 0, "album")}
+                          </span>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              );
+            })}
+          </div>
+        </ListContextMenu>
       </Content>
     </>
   );
+}
+
+/** Right-click an artist: the element carries its id and name. */
+function artistTarget(element: Element): MenuTarget | null {
+  const item = element.closest("[data-artist-id]");
+  const id = item?.getAttribute("data-artist-id");
+  return item && id ? { kind: "artist", artist: { id, name: item.getAttribute("data-artist-name") ?? "" } } : null;
 }
 
 const SONGS_SOURCE = { kind: "songs", name: "songs", href: "/songs" };

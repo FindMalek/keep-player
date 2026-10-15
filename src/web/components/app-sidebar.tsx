@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import {
+  ChartColumnIcon,
   ChevronRightIcon,
   Disc3Icon,
   EllipsisIcon,
@@ -35,6 +36,7 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
+import { current as currentDrag, dropFailed, dropSongs, endDrag, leftTarget } from "@/lib/drag";
 import { useElsewhere } from "@/lib/elsewhere";
 import { openPlaylistDialog } from "@/lib/playlist-dialogs";
 import { queries } from "@/lib/queries";
@@ -47,6 +49,8 @@ import { Link } from "./link";
 const StorageDialog = lazy(() => import("./storage-dialog").then((module) => ({ default: module.StorageDialog })));
 const ElsewhereBadge = lazy(() => import("./elsewhere-badge").then((module) => ({ default: module.ElsewhereBadge })));
 const IndexDialog = lazy(() => import("./index-dialog").then((module) => ({ default: module.IndexDialog })));
+// Right-clicking a playlist loads the shared item menu then (menus stay off the first screen).
+const PointMenu = lazy(() => import("./item-menu").then((module) => ({ default: module.PointMenu })));
 const SessionsDialog = lazy(() => import("./sessions-dialog").then((module) => ({ default: module.SessionsDialog })));
 
 const LIBRARY = [
@@ -56,6 +60,7 @@ const LIBRARY = [
   ["/songs", "songs", MusicIcon],
   ["/liked", "liked songs", HeartIcon],
   ["/history", "history", HistoryIcon],
+  ["/stats", "stats", ChartColumnIcon],
   ["/genres", "genres", TagIcon],
   ["/folders", "folders", FolderIcon],
 ] as const;
@@ -93,7 +98,7 @@ function tree(playlists: Playlist[]): FolderNode {
 /** The tree's "/A/B" as the "A / B" that starts the playlist names inside. */
 const playlistPrefix = (path: string) => path.replace(/^\//, "").split("/").join(" / ");
 
-function SubTree({ node, path }: { node: FolderNode; path: string }) {
+function SubTree({ node, path, dropId }: { node: FolderNode; path: string; dropId: string | null }) {
   return (
     <>
       {[...node.folders.values()].map((folder) => (
@@ -116,7 +121,7 @@ function SubTree({ node, path }: { node: FolderNode; path: string }) {
           </button>
           <CollapsibleContent>
             <SidebarMenuSub className="mr-0 pr-0">
-              <SubTree node={folder} path={path} />
+              <SubTree node={folder} path={path} dropId={dropId} />
             </SidebarMenuSub>
           </CollapsibleContent>
         </Collapsible>
@@ -124,7 +129,12 @@ function SubTree({ node, path }: { node: FolderNode; path: string }) {
       {node.playlists.map((playlist) => {
         const href = `/playlist/${playlist.id}`;
         return (
-          <SidebarMenuSubItem key={playlist.id}>
+          <SidebarMenuSubItem
+            key={playlist.id}
+            data-playlist-id={playlist.id}
+            data-drop-target={dropId === playlist.id || undefined}
+            className="data-drop-target:bg-sidebar-accent data-drop-target:outline data-drop-target:outline-foreground"
+          >
             <SidebarMenuSubButton isActive={path === href} className="font-mono text-muted-foreground" render={<Link href={href} />}>
               <span>{playlist.name.split(" / ").at(-1)}</span>
             </SidebarMenuSubButton>
@@ -157,11 +167,19 @@ export function AppSidebar({ path, onSearch, onShortcuts }: { path: string; onSe
   const elsewhere = useElsewhere();
   const [menuWanted, setMenuWanted] = useState(false);
   const [storageOpen, setStorageOpen] = useState(false);
+  // Dragging songs, an album or a playlist over a playlist you can edit adds them to it on drop.
+  const [dropId, setDropId] = useState<string | null>(null);
+  const [menu, setMenu] = useState<{ target: { kind: "playlist"; playlist: Playlist }; x: number; y: number } | null>(null);
   const { data } = useQuery(queries.playlists());
   const playlists = [...(data ?? [])].sort((a, b) => a.name.localeCompare(b.name));
 
   return (
     <Sidebar collapsible="icon" className="bottom-(--bar-height) h-auto">
+      {menu && (
+        <Suspense>
+          <PointMenu target={menu.target} x={menu.x} y={menu.y} onClose={() => setMenu(null)} />
+        </Suspense>
+      )}
       {/* `contents` keeps the sidebar's flex layout; the nav makes it a landmark for screen readers. */}
       <nav aria-label="sidebar" className="contents">
         <SidebarHeader className="gap-1.5">
@@ -212,8 +230,43 @@ export function AppSidebar({ path, onSearch, onShortcuts }: { path: string; onSe
                     <ListMusicIcon /> none yet · save your queue as one
                   </span>
                 ) : (
-                  <SidebarMenuSub className="mx-0 border-0 px-0">
-                    <SubTree node={tree(playlists)} path={path} />
+                  <SidebarMenuSub
+                    className="mx-0 border-0 px-0"
+                    onDragOver={(event) => {
+                      const id = (event.target as Element).closest("[data-playlist-id]")?.getAttribute("data-playlist-id");
+                      const playlist = playlists.find((item) => item.id === id);
+                      const drag = currentDrag(event);
+                      // Yours and not a smart playlist (lib/playlists canEdit, inlined to keep it off the first screen).
+                      const editable = playlist && !playlist.readonly && (!playlist.owner || playlist.owner === user);
+                      if (!drag || !playlist || !editable || (drag.target.kind === "playlist" && drag.target.playlist.id === id)) {
+                        setDropId(null);
+                        return;
+                      }
+                      event.preventDefault();
+                      event.dataTransfer.dropEffect = "copy";
+                      setDropId(playlist.id);
+                    }}
+                    onDragLeave={(event) => leftTarget(event) && setDropId(null)}
+                    onDrop={(event) => {
+                      const drag = currentDrag(event);
+                      const playlist = playlists.find((item) => item.id === dropId);
+                      setDropId(null);
+                      if (!drag || !playlist) return;
+                      event.preventDefault();
+                      endDrag();
+                      void Promise.all([dropSongs(drag.target), import("@/lib/playlists")])
+                        .then(([songs, edits]) => edits.addToPlaylist(playlist, songs))
+                        .catch(dropFailed);
+                    }}
+                    onContextMenu={(event) => {
+                      const id = (event.target as Element).closest("[data-playlist-id]")?.getAttribute("data-playlist-id");
+                      const playlist = playlists.find((item) => item.id === id);
+                      if (!playlist) return;
+                      event.preventDefault();
+                      setMenu({ target: { kind: "playlist", playlist }, x: event.clientX, y: event.clientY });
+                    }}
+                  >
+                    <SubTree node={tree(playlists)} path={path} dropId={dropId} />
                   </SidebarMenuSub>
                 )}
               </SidebarMenuItem>

@@ -253,6 +253,10 @@ const CHECKS: Record<string, Check> = {
     await press();
     await expect(page).toHaveURL(/\/history$/);
   },
+  "go-stats": async (page, press) => {
+    await press();
+    await expect(page).toHaveURL(/\/stats$/);
+  },
   "go-liked": async (page, press) => {
     await press();
     await expect(page).toHaveURL(/\/liked$/);

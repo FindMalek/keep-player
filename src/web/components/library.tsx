@@ -1,9 +1,10 @@
 import { EyeIcon, EyeOffIcon, ListEndIcon, ListStartIcon, MinusIcon, PlayIcon } from "lucide-react";
-import { memo, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type DragEvent, memo, type ReactNode, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Empty, EmptyDescription } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { current as currentDrag, endDrag, leftTarget, startDrag } from "@/lib/drag";
 import { clock } from "@/lib/format";
 import { closeListFilter, songMatches, useListFilter } from "@/lib/list-filter";
 import { focusWhenRendered, type ListCommand, rememberedFocus, rememberFocus, useListNav } from "@/lib/list-nav";
@@ -21,6 +22,7 @@ import { ArtistCard } from "./artist-card";
 import { Cover } from "./cover";
 import { Equalizer } from "./equalizer";
 import { Hint } from "./hint";
+import { ItemMoreButton, ListContextMenu, type MenuTarget } from "./item-menu";
 import { LikeButton } from "./like-button";
 import { Link } from "./link";
 import { ListFilterBar } from "./list-filter-bar";
@@ -77,7 +79,9 @@ export async function playAlbum(id: string, shuffle = false): Promise<void> {
 
 const AlbumCard = memo(function AlbumCard({ album, priority = false }: { album: Album; priority?: boolean }) {
   return (
-    <div className="group/album relative">
+    // Drag a card onto a playlist, the queue or the player bar (the link inside is the control; this only carries drags).
+    // biome-ignore lint/a11y/noStaticElementInteractions: a drag source wrapper, not a control
+    <div className="group/album relative" onDragStart={(event) => startDrag(event, { kind: "album", album })} onDragEnd={endDrag}>
       <Link
         href={`/album/${album.id}`}
         className="flex flex-col gap-px"
@@ -143,18 +147,26 @@ const albumCardHeight = (width: number) => width + 6 + 18 + 16;
 export function AlbumGrid({ albums, onNearEnd, priority = 0 }: { albums: Album[]; onNearEnd?: () => void; priority?: number }) {
   const first = new Set(albums.slice(0, priority).map((album) => album.id));
   if (!albums.length) return <EmptyState>no albums</EmptyState>;
+  const menuTarget = (element: Element): MenuTarget | null => {
+    const album = albums[Number(element.closest("[data-grid-index]")?.getAttribute("data-grid-index") ?? Number.NaN)];
+    return album ? { kind: "album", album } : null;
+  };
   return (
-    <VirtualGrid
-      items={albums}
-      getKey={(album) => album.id}
-      renderItem={(album) => <AlbumCard album={album} priority={first.has(album.id)} />}
-      min={136}
-      gap={12}
-      rowGap={16}
-      estimateRow={albumCardHeight}
-      onNearEnd={onNearEnd}
-      actions={ALBUM_ACTIONS}
-    />
+    <ListContextMenu resolve={menuTarget}>
+      <div>
+        <VirtualGrid
+          items={albums}
+          getKey={(album) => album.id}
+          renderItem={(album) => <AlbumCard album={album} priority={first.has(album.id)} />}
+          min={136}
+          gap={12}
+          rowGap={16}
+          estimateRow={albumCardHeight}
+          onNearEnd={onNearEnd}
+          actions={ALBUM_ACTIONS}
+        />
+      </div>
+    </ListContextMenu>
   );
 }
 
@@ -191,6 +203,10 @@ interface TrackRowProps {
   selected: boolean;
   /** ⌘/ctrl-click toggles the row, ⇧-click extends the selection to it. */
   onSelectClick: (index: number, extend: boolean) => void;
+  /** Drag started on this row (it carries the selection when the row is in it). */
+  onDragRow: (event: DragEvent, index: number) => void;
+  /** A row being dragged within the playlist would land here. */
+  dropTarget?: boolean;
   /** Set when virtualized: lets the virtualizer measure the row. */
   measure?: (element: Element | null) => void;
   virtualIndex?: number;
@@ -210,6 +226,8 @@ const TrackRow = memo(function TrackRow({
   editing,
   selected,
   onSelectClick,
+  onDragRow,
+  dropTarget,
   measure,
   virtualIndex,
 }: TrackRowProps) {
@@ -224,11 +242,15 @@ const TrackRow = memo(function TrackRow({
       data-state={selected ? "selected" : undefined}
       data-playing={status ? true : undefined}
       data-hidden={hidden || undefined}
-      className="group/row h-[34px] data-hidden:opacity-45 scroll-my-12 border-muted outline-none hover:bg-card focus-visible:bg-card focus-visible:shadow-[inset_2px_0_0_var(--foreground)]"
+      data-drop-target={dropTarget || undefined}
+      className="group/row h-[34px] data-drop-target:shadow-[inset_0_2px_0_var(--foreground)] data-hidden:opacity-45 scroll-my-12 border-muted outline-none hover:bg-card focus-visible:bg-card focus-visible:shadow-[inset_2px_0_0_var(--foreground)]"
       onDoubleClick={() => onPlay(index)}
       onClick={(event) => {
         if (event.metaKey || event.ctrlKey || event.shiftKey) onSelectClick(index, event.shiftKey);
       }}
+      draggable
+      onDragStart={(event) => onDragRow(event, index)}
+      onDragEnd={endDrag}
     >
       <TableCell className="relative py-0 font-mono text-muted-foreground tabular-nums">
         <span className="group-hover/row:invisible">{status ? <Equalizer playing={status === "playing"} /> : number}</span>
@@ -287,6 +309,7 @@ const TrackRow = memo(function TrackRow({
               <ListEndIcon />
             </Button>
           </Hint>
+          <ItemMoreButton target={{ kind: "songs", songs: [song] }} label={song.title} />
           {editing && (
             <>
               <Hint label={hidden ? "play it with the playlist again" : "skip it when this playlist plays"}>
@@ -333,6 +356,8 @@ export interface ListEditing {
   remove: (indexes: number[]) => void;
   /** Move one song up or down; returns where it ended up. */
   move: (index: number, delta: -1 | 1) => number;
+  /** Drag and drop: the song at `from` takes the place of the one at `to`. */
+  moveTo: (from: number, to: number) => void;
   /** Songs kept in the playlist but skipped when it plays. */
   hidden: ReadonlySet<string>;
   toggleHidden: (song: Song) => void;
@@ -542,6 +567,24 @@ function TrackRows({
 
   const listNav = useListNav(handler);
 
+  // Drag a row: the selection when that row is in it. On a playlist you can edit, a single row can also be dropped on
+  // another to move it there.
+  const listId = useId();
+  const latest = useRef({ songs, selected, editing });
+  latest.current = { songs, selected, editing };
+  const onDragRow = useCallback(
+    (event: DragEvent, index: number) => {
+      const { songs: all, selected: chosen, editing: edits } = latest.current;
+      const song = all[index];
+      if (!song) return;
+      const many = chosen.has(index) && chosen.size > 1;
+      const songsDragged = many ? [...chosen].sort((a, b) => a - b).flatMap((at) => all[at] ?? []) : [song];
+      startDrag(event, { kind: "songs", songs: songsDragged }, edits && !many ? { list: listId, index } : undefined);
+    },
+    [listId],
+  );
+  const [dropAt, setDropAt] = useState<number | null>(null);
+
   if (!songs.length) return <EmptyState>no tracks</EmptyState>;
 
   const shown = virtual
@@ -551,97 +594,135 @@ function TrackRows({
   const bottom = virtual ? virtualizer.getTotalSize() - ((windowItems.at(-1)?.end ?? 0) - virtualizer.options.scrollMargin) : 0;
   const columns = (showAlbum ? 6 : 5) + (ratings ? 1 : 0);
 
+  const reorderProps = editing
+    ? {
+        onDragOver: (event: DragEvent) => {
+          const drag = currentDrag(event);
+          const row = (event.target as Element).closest("[data-song-index]");
+          if (drag?.reorder?.list !== listId || !row) return;
+          event.preventDefault();
+          event.dataTransfer.dropEffect = "move";
+          setDropAt(Number(row.getAttribute("data-song-index")));
+        },
+        onDragLeave: (event: DragEvent) => {
+          if (leftTarget(event)) setDropAt(null);
+        },
+        onDrop: (event: DragEvent) => {
+          const drag = currentDrag(event);
+          setDropAt(null);
+          const to = Number((event.target as Element).closest("[data-song-index]")?.getAttribute("data-song-index") ?? Number.NaN);
+          if (drag?.reorder?.list !== listId || Number.isNaN(to)) return;
+          event.preventDefault();
+          endDrag();
+          if (drag.reorder.index !== to) editing.moveTo(drag.reorder.index, to);
+        },
+      }
+    : {};
+
+  // Right-click a row: the selection when that row is in it, else just that song.
+  const menuTarget = (element: Element): MenuTarget | null => {
+    const index = Number(element.closest("[data-song-index]")?.getAttribute("data-song-index") ?? Number.NaN);
+    const song = songs[index];
+    if (!song) return null;
+    return { kind: "songs", songs: selected.has(index) && selected.size > 1 ? selectedSongs() : [song] };
+  };
+
   return (
-    <div ref={listRef} {...listNav}>
-      {selected.size > 0 && (
-        <SelectionBar
-          songs={selectedSongs()}
-          onRemove={
-            editing
-              ? () => {
-                  editing.remove([...selected]);
-                  setSelected(new Set());
-                }
-              : undefined
-          }
-          onPlay={() => player.play(selectedSongs(), 0, { source })}
-          onClear={() => {
-            setSelected(new Set());
-            anchor.current = null;
-          }}
-        />
-      )}
-      <Table
-        // A grid: rows are navigable and selectable from the keyboard (j/k, x, ⇧j…).
-        role="grid"
-        aria-multiselectable="true"
-        className="table-fixed text-[13px]"
-        aria-label="tracks"
-        aria-rowcount={virtual ? items.length + 1 : undefined}
-      >
-        <colgroup>
-          <col className="w-10" />
-          <col />
-          {showAlbum && <col className="w-[38%] max-lg:hidden" />}
-          {ratings && <col className="w-20" />}
-          <col className="w-8" />
-          <col className="w-14" />
-          <col className="w-16" />
-        </colgroup>
-        <TableHeader>
-          <TableRow className="hover:bg-transparent">
-            <TableHead className={cn(LABEL, "h-6")}>#</TableHead>
-            <TableHead className={cn(LABEL, "h-6")}>title</TableHead>
-            {showAlbum && <TableHead className={cn(LABEL, "h-6 max-lg:hidden")}>album</TableHead>}
-            {ratings && <TableHead className={cn(LABEL, "h-6")}>rating</TableHead>}
-            <TableHead className="h-6 w-8">
-              <span className="sr-only">liked</span>
-            </TableHead>
-            <TableHead className={cn(LABEL, "h-6 text-right")}>time</TableHead>
-            <TableHead className="h-6">
-              <span className="sr-only">actions</span>
-            </TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {top > 0 && <tr aria-hidden style={{ height: top }} />}
-          {shown.map(({ item, virtualIndex }) =>
-            item.kind === "disc" ? (
-              <TableRow
-                key={`disc-${item.disc}`}
-                ref={virtual ? virtualizer.measureElement : undefined}
-                data-index={virtualIndex}
-                className="border-0 hover:bg-transparent"
-              >
-                <TableCell colSpan={columns} className={cn(LABEL, "px-2 pt-3 pb-1")}>
-                  disc {item.disc}
-                </TableCell>
-              </TableRow>
-            ) : (
-              <TrackRow
-                // A song can appear twice in a playlist, so position is part of the key.
-                key={`${item.song.id}-${item.index}`}
-                song={item.song}
-                index={item.index}
-                number={numbered === "track" ? (item.song.track ?? item.index + 1) : item.index + 1}
-                status={item.song.id === playingId ? (playing ? "playing" : "paused") : null}
-                showAlbum={showAlbum}
-                showArtist={showArtist}
-                onPlay={onPlay}
-                offline={cached.has(item.song.id)}
-                ratings={ratings}
-                hidden={hidden?.has(item.song.id) ?? false}
-                editing={rowEditing}
-                selected={selected.has(item.index)}
-                onSelectClick={onSelectClick}
-                measure={virtual ? virtualizer.measureElement : undefined}
-                virtualIndex={virtualIndex}
-              />
-            ),
-          )}
-          {bottom > 0 && <tr aria-hidden style={{ height: bottom }} />}
-        </TableBody>
-      </Table>
-    </div>
+    <ListContextMenu resolve={menuTarget}>
+      <div ref={listRef} {...listNav} {...reorderProps}>
+        {selected.size > 0 && (
+          <SelectionBar
+            songs={selectedSongs()}
+            onRemove={
+              editing
+                ? () => {
+                    editing.remove([...selected]);
+                    setSelected(new Set());
+                  }
+                : undefined
+            }
+            onPlay={() => player.play(selectedSongs(), 0, { source })}
+            onClear={() => {
+              setSelected(new Set());
+              anchor.current = null;
+            }}
+          />
+        )}
+        <Table
+          // A grid: rows are navigable and selectable from the keyboard (j/k, x, ⇧j…).
+          role="grid"
+          aria-multiselectable="true"
+          className="table-fixed text-[13px]"
+          aria-label="tracks"
+          aria-rowcount={virtual ? items.length + 1 : undefined}
+        >
+          <colgroup>
+            <col className="w-10" />
+            <col />
+            {showAlbum && <col className="w-[38%] max-lg:hidden" />}
+            {ratings && <col className="w-20" />}
+            <col className="w-8" />
+            <col className="w-14" />
+            {/* play next, add to queue, ⋯ (and hide, remove on a playlist you can edit) */}
+            <col className={editing ? "w-32" : "w-20"} />
+          </colgroup>
+          <TableHeader>
+            <TableRow className="hover:bg-transparent">
+              <TableHead className={cn(LABEL, "h-6")}>#</TableHead>
+              <TableHead className={cn(LABEL, "h-6")}>title</TableHead>
+              {showAlbum && <TableHead className={cn(LABEL, "h-6 max-lg:hidden")}>album</TableHead>}
+              {ratings && <TableHead className={cn(LABEL, "h-6")}>rating</TableHead>}
+              <TableHead className="h-6 w-8">
+                <span className="sr-only">liked</span>
+              </TableHead>
+              <TableHead className={cn(LABEL, "h-6 text-right")}>time</TableHead>
+              <TableHead className="h-6">
+                <span className="sr-only">actions</span>
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {top > 0 && <tr aria-hidden style={{ height: top }} />}
+            {shown.map(({ item, virtualIndex }) =>
+              item.kind === "disc" ? (
+                <TableRow
+                  key={`disc-${item.disc}`}
+                  ref={virtual ? virtualizer.measureElement : undefined}
+                  data-index={virtualIndex}
+                  className="border-0 hover:bg-transparent"
+                >
+                  <TableCell colSpan={columns} className={cn(LABEL, "px-2 pt-3 pb-1")}>
+                    disc {item.disc}
+                  </TableCell>
+                </TableRow>
+              ) : (
+                <TrackRow
+                  // A song can appear twice in a playlist, so position is part of the key.
+                  key={`${item.song.id}-${item.index}`}
+                  song={item.song}
+                  index={item.index}
+                  number={numbered === "track" ? (item.song.track ?? item.index + 1) : item.index + 1}
+                  status={item.song.id === playingId ? (playing ? "playing" : "paused") : null}
+                  showAlbum={showAlbum}
+                  showArtist={showArtist}
+                  onPlay={onPlay}
+                  offline={cached.has(item.song.id)}
+                  ratings={ratings}
+                  hidden={hidden?.has(item.song.id) ?? false}
+                  editing={rowEditing}
+                  selected={selected.has(item.index)}
+                  onSelectClick={onSelectClick}
+                  onDragRow={onDragRow}
+                  dropTarget={dropAt === item.index}
+                  measure={virtual ? virtualizer.measureElement : undefined}
+                  virtualIndex={virtualIndex}
+                />
+              ),
+            )}
+            {bottom > 0 && <tr aria-hidden style={{ height: bottom }} />}
+          </TableBody>
+        </Table>
+      </div>
+    </ListContextMenu>
   );
 }
