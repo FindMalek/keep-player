@@ -23,6 +23,8 @@ export interface Song {
   bitRate?: number;
   /** OpenSubsonic: bits per sample and sampling rate in Hz (lossless files mostly). */
   bitDepth?: number;
+  /** OpenSubsonic: beats per minute from the tags, when there are any. */
+  bpm?: number;
   samplingRate?: number;
   suffix?: string;
   size?: number;
