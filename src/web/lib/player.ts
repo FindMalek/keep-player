@@ -376,8 +376,13 @@ function preloadNext(): void {
     return;
   }
   nextLined = true;
-  precache(Q.peekUpcoming(state.queue, PRECACHE_AHEAD).map((song) => song.id));
   lineUpNextDeck(false);
+  // A song the idle deck already loads from the network isn't downloaded a second time.
+  precache(
+    Q.peekUpcoming(state.queue, PRECACHE_AHEAD)
+      .map((song) => song.id)
+      .filter((id) => id !== decks.preloadedId),
+  );
   // The player bar shows the next cover within minutes; have it cached by then.
   preloadCover(next?.song.coverArt, 42);
 }
@@ -386,7 +391,11 @@ function preloadNext(): void {
 function lineUpNextDeck(now: boolean): void {
   const next = upcoming();
   if (decks.preloadedId === (next?.song.id ?? null)) return;
-  if (next && !now && controlled() && !isCached(next.song.id)) return;
+  if (next && !now && controlled() && !isCached(next.song.id)) {
+    // Waiting for the cache: a deck still holding the old "next" would keep downloading it for nothing.
+    if (decks.preloadedId) decks.preload(null, null, 1);
+    return;
+  }
   decks.preload(next?.song.id ?? null, next ? streamUrl(next.song.id) : null, next?.factor ?? 1);
 }
 

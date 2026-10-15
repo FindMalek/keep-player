@@ -71,6 +71,7 @@ export class Decks {
     on("waiting", this.events.waiting);
     on("canplay", this.events.canPlay);
     on("progress", this.events.progress);
+    on("suspend", this.events.progress);
     on("canplaythrough", this.events.progress);
     on("durationchange", () => this.events.duration(Number.isFinite(element.duration) ? element.duration : 0));
     on("seeked", () => this.events.seeked(element.currentTime));
@@ -322,12 +323,14 @@ export class Decks {
   }
 
   /**
-   * Whether the playing song is far enough ahead that downloading the next ones can't starve it: the browser expects
-   * to play it through, or `seconds` past the playhead (or the rest of the song) are buffered.
+   * Whether the playing song is far enough ahead that downloading the next ones can't starve it: `seconds` past the
+   * playhead (or the rest of the song) are actually buffered, or the browser has stopped downloading it by itself
+   * (`suspend`: idle network with enough data), so nothing would compete. `HAVE_ENOUGH_DATA` alone isn't enough: it's
+   * the browser's guess at the current download rate, which another download would change.
    */
   bufferedAhead(seconds: number): boolean {
     const element = this.playing.element;
-    if (element.readyState >= HTMLMediaElement.HAVE_ENOUGH_DATA) return true;
+    if (element.networkState === HTMLMediaElement.NETWORK_IDLE && element.readyState >= HTMLMediaElement.HAVE_ENOUGH_DATA) return true;
     const end = this.buffered();
     return end - element.currentTime >= seconds || (element.duration > 0 && end >= element.duration - 0.5);
   }

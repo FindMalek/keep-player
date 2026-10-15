@@ -66,7 +66,8 @@ test.describe(() => {
     expect(requests.filter((request) => request.id === first)).toHaveLength(1);
     // The next song only starts downloading once the first one's stall is over and it is fully buffered.
     const firstOfNext = requests.find((request) => request.id === second);
-    expect(firstOfNext?.at ?? Number.POSITIVE_INFINITY).toBeGreaterThan(6000);
+    expect(firstOfNext).toBeDefined();
+    expect(firstOfNext?.at).toBeGreaterThan(6000);
   });
 });
 
