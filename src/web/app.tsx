@@ -20,6 +20,7 @@ import { PageScrollContext } from "@/lib/page-scroll";
 import { currentSong, player, usePlayer } from "@/lib/player";
 import { openPlaylistDialog, usePlaylistDialog } from "@/lib/playlist-dialogs";
 import { loadPrefs } from "@/lib/prefs";
+import { prefetchHome } from "@/lib/queries";
 import { useReachability } from "@/lib/reachability";
 import { go, usePath } from "@/lib/router";
 import { useSetting } from "@/lib/settings";
@@ -157,6 +158,10 @@ export function App() {
   const playlistDialog = usePlaylistDialog();
   const autoMini = useSetting("miniPlayerWhenHidden");
   useEffect(() => setAutoMiniPlayer(autoMini), [autoMini]);
+  // Opening on the home page: its rows load while its code does, not after.
+  useEffect(() => {
+    if (user && location.pathname === "/") prefetchHome();
+  }, [user]);
   useEffect(() => {
     document.documentElement.dataset.motion = reduceMotion ? "reduce" : "system";
   }, [reduceMotion]);
