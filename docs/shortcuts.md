@@ -45,6 +45,7 @@ rebound there (pencil icon); a rebound key shows everywhere the app shows the ke
 | `g` then `g` | go to genres |
 | `g` then `p` | go to history |
 | `g` then `m` | go to moments |
+| `g` then `t` | go to stats |
 | `g` then `l` | go to liked songs |
 | `g` then `f` | go to folders |
 | `g` then `q` | open the queue |

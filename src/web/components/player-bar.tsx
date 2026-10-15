@@ -31,9 +31,11 @@ import {
 } from "@/components/ui/audio-player";
 import { Button } from "@/components/ui/button";
 import { VolumeControlMute, VolumeControlSlider } from "@/components/ui/volume-control";
+import { dropTarget } from "@/lib/drag";
 import { useEngineController } from "@/lib/engine-controller";
 import { quality } from "@/lib/format";
 import { MINI_PLAYER_SUPPORTED, openMiniPlayer } from "@/lib/mini-player";
+import { notify } from "@/lib/notify";
 import { useCachedIds } from "@/lib/offline";
 import { currentSong, player, usePlayer, usePosition } from "@/lib/player";
 import { contextUpcoming } from "@/lib/queue";
@@ -155,6 +157,7 @@ function UpNextPeek() {
 }
 
 export function PlayerBar({ panel, onPanel }: { panel: Panel; onPanel: (panel: Panel) => void }) {
+  const [dropping, setDropping] = useState(false);
   const controller = useEngineController();
   const song = usePlayer(currentSong);
   const shuffle = usePlayer((state) => state.queue.shuffle);
@@ -175,7 +178,15 @@ export function PlayerBar({ panel, onPanel }: { panel: Panel; onPanel: (panel: P
   if (!song) return null;
 
   return (
-    <footer className="relative shrink-0 border-t bg-background">
+    <footer
+      className="relative shrink-0 border-t bg-background data-drop-target:bg-card data-drop-target:outline data-drop-target:outline-foreground data-drop-target:-outline-offset-1"
+      data-drop-target={dropping || undefined}
+      // Drop songs here to play them next.
+      {...dropTarget((songs) => {
+        player.playNext(songs);
+        notify({ message: songs.length === 1 ? `${songs[0]?.title} plays next` : `${songs.length} songs play next` });
+      }, setDropping)}
+    >
       <UpNextPeek />
       <AudioPlayer
         player={controller}

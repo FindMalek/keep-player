@@ -28,6 +28,7 @@ import {
   hiddenQuery,
   leafOf,
   moveInPlaylist,
+  moveToInPlaylist,
   removeFromPlaylist,
   reorderPlaylist,
   setHidden,
@@ -326,6 +327,7 @@ export function PlaylistPage({ id }: { id: string }) {
         ? {
             remove: (indexes) => void removeFromPlaylist(playlist, indexes),
             move: (index, delta) => moveInPlaylist(playlist, index, delta),
+            moveTo: (from, to) => moveToInPlaylist(playlist, from, to),
             hidden,
             toggleHidden: (song) => void setHidden(playlist.id, song.id, !hidden.has(song.id)),
           }

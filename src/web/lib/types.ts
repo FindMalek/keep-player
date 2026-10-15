@@ -12,6 +12,8 @@ export interface Song {
   albumId?: string;
   artist?: string;
   artistId?: string;
+  /** The folder the file sits in (Subsonic directory id), for "show in folder". */
+  parent?: string;
   track?: number;
   discNumber?: number;
   year?: number;

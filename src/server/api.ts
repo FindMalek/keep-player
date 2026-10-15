@@ -15,6 +15,7 @@ import type { LoginLimiter } from "./rate-limit";
 import { search } from "./search";
 import type { IndexSync } from "./search-index";
 import type { Session, SessionStore } from "./sessions";
+import { forgottenFavourites, listeningStats } from "./stats";
 import { subsonic, upstreamQuery } from "./subsonic";
 
 const COOKIE = "kp_session";
@@ -290,7 +291,17 @@ export function createApi({
     ).catch(() => null);
     if (!response) return json({ error: "server unreachable" }, 502);
     const out = new Headers(SECURITY_HEADERS);
-    for (const name of ["content-type", "content-length", "content-range", "accept-ranges", "etag", "last-modified", "cache-control"]) {
+    // content-disposition: a download keeps the file's own name.
+    for (const name of [
+      "content-type",
+      "content-length",
+      "content-range",
+      "accept-ranges",
+      "etag",
+      "last-modified",
+      "cache-control",
+      "content-disposition",
+    ]) {
       const value = response.headers.get(name);
       if (value) out.set(name, value);
     }
@@ -514,6 +525,30 @@ export function createApi({
     return updateMoment(library, account, id, body.note) ? json({ ok: true }) : json({ error: "not found" }, 404);
   }
 
+  /** `/api/stats?from=&to=&tz=`: your listening in a range (ms epoch, `tz` minutes east of UTC). At most ~400 days. */
+  async function stats(request: Request): Promise<Response> {
+    if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
+    const session = sessions.get(cookieValue(request));
+    if (!session) return json({ error: "signed out" }, 401);
+    const params = new URL(request.url).searchParams;
+    const to = Number(params.get("to")) || Date.now();
+    const from = Math.max(Number(params.get("from")) || to - 30 * 86_400_000, to - 400 * 86_400_000);
+    const tz = Math.max(-840, Math.min(840, Number(params.get("tz")) || 0));
+    if (from >= to) return json({ error: "from before to" }, 400);
+    return json(listeningStats(library, `${session.server}:${session.user}`, from, to, tz), 200, { "cache-control": "private, no-cache" });
+  }
+
+  /** `/api/stats/forgotten?days=`: songs you played a lot and not in that many days. */
+  async function forgotten(request: Request): Promise<Response> {
+    if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
+    const session = sessions.get(cookieValue(request));
+    if (!session) return json({ error: "signed out" }, 401);
+    const days = Math.min(3650, Math.max(1, Number(new URL(request.url).searchParams.get("days")) || 60));
+    return json({ songs: forgottenFavourites(library, `${session.server}:${session.user}`, days) }, 200, {
+      "cache-control": "private, no-cache",
+    });
+  }
+
   /** `/api/playlists/:id/hidden`: the songs you hid in a playlist (GET), hide or show one (PUT `{ songId, hidden }`). */
   async function playlistHidden(request: Request & { params: { id: string } }): Promise<Response> {
     if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
@@ -544,6 +579,8 @@ export function createApi({
     history,
     moments,
     moment,
+    stats,
+    forgotten,
     playlistHidden,
     login,
     logout,

@@ -11,6 +11,10 @@ test("b saves a moment: a tick on the seek bar, a note on the moments page, sear
   await page.locator("body").press("5");
   await page.locator("body").press("b");
   await expect(page.getByText(/^saved a moment at \d+:\d\d in /)).toBeVisible();
+  // The playing song's menu can copy a link at this point too.
+  await page.locator("[aria-label=tracks] tbody tr").first().click({ button: "right" });
+  await expect(page.getByRole("menu").getByRole("menuitem", { name: /^copy link at \d+:\d\d/ })).toBeVisible();
+  await page.keyboard.press("Escape");
   const ticks = page.getByRole("contentinfo").getByRole("group", { name: "moments" });
   await expect(ticks.getByRole("button", { name: /^moment at / })).toHaveCount(1);
 
