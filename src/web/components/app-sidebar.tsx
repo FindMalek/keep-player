@@ -2,13 +2,16 @@ import { useQuery } from "@tanstack/react-query";
 import {
   ChevronRightIcon,
   Disc3Icon,
+  EllipsisIcon,
   FolderIcon,
   HeartIcon,
+  HistoryIcon,
   HouseIcon,
   ListMusicIcon,
   MonitorIcon,
   MoonIcon,
   MusicIcon,
+  PlusIcon,
   SearchIcon,
   SunIcon,
   TagIcon,
@@ -22,6 +25,7 @@ import {
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
+  SidebarGroupAction,
   SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
@@ -31,6 +35,8 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
+import { useElsewhere } from "@/lib/elsewhere";
+import { openPlaylistDialog } from "@/lib/playlist-dialogs";
 import { queries } from "@/lib/queries";
 import { useUser } from "@/lib/subsonic";
 import type { Playlist } from "@/lib/types";
@@ -39,6 +45,7 @@ import { Link } from "./link";
 
 // Rarely opened; keeps the dialog code out of the first load.
 const StorageDialog = lazy(() => import("./storage-dialog").then((module) => ({ default: module.StorageDialog })));
+const ElsewhereBadge = lazy(() => import("./elsewhere-badge").then((module) => ({ default: module.ElsewhereBadge })));
 const IndexDialog = lazy(() => import("./index-dialog").then((module) => ({ default: module.IndexDialog })));
 const SessionsDialog = lazy(() => import("./sessions-dialog").then((module) => ({ default: module.SessionsDialog })));
 
@@ -48,6 +55,7 @@ const LIBRARY = [
   ["/artists", "artists", UsersIcon],
   ["/songs", "songs", MusicIcon],
   ["/liked", "liked songs", HeartIcon],
+  ["/history", "history", HistoryIcon],
   ["/genres", "genres", TagIcon],
   ["/folders", "folders", FolderIcon],
 ] as const;
@@ -82,6 +90,9 @@ function tree(playlists: Playlist[]): FolderNode {
   return root;
 }
 
+/** The tree's "/A/B" as the "A / B" that starts the playlist names inside. */
+const playlistPrefix = (path: string) => path.replace(/^\//, "").split("/").join(" / ");
+
 function SubTree({ node, path }: { node: FolderNode; path: string }) {
   return (
     <>
@@ -95,6 +106,14 @@ function SubTree({ node, path }: { node: FolderNode; path: string }) {
             <ChevronRightIcon className="transition-transform" />
             <span>{folder.name}</span>
           </SidebarMenuSubButton>
+          <button
+            type="button"
+            aria-label={`folder ${playlistPrefix(folder.path)}: rename or add a playlist`}
+            className="absolute top-1 right-1 grid size-5 place-items-center text-muted-foreground opacity-0 hover:text-foreground focus-visible:opacity-100 group-hover/menu-sub-item:opacity-100"
+            onClick={() => openPlaylistDialog({ kind: "folder", path: playlistPrefix(folder.path) })}
+          >
+            <EllipsisIcon className="size-3.5" />
+          </button>
           <CollapsibleContent>
             <SidebarMenuSub className="mr-0 pr-0">
               <SubTree node={folder} path={path} />
@@ -135,6 +154,7 @@ export function AppSidebar({ path, onSearch, onShortcuts }: { path: string; onSe
   const user = useUser() ?? "";
   const [sessionsOpen, setSessionsOpen] = useState(false);
   const [indexOpen, setIndexOpen] = useState(false);
+  const elsewhere = useElsewhere();
   const [menuWanted, setMenuWanted] = useState(false);
   const [storageOpen, setStorageOpen] = useState(false);
   const { data } = useQuery(queries.playlists());
@@ -182,6 +202,9 @@ export function AppSidebar({ path, onSearch, onShortcuts }: { path: string; onSe
 
           <SidebarGroup className="group-data-[collapsible=icon]:hidden">
             <SidebarGroupLabel className={LABEL}>playlists</SidebarGroupLabel>
+            <SidebarGroupAction title="new playlist" aria-label="new playlist" onClick={() => openPlaylistDialog({ kind: "new" })}>
+              <PlusIcon />
+            </SidebarGroupAction>
             <SidebarMenu>
               <SidebarMenuItem>
                 {playlists.length === 0 ? (
@@ -199,6 +222,11 @@ export function AppSidebar({ path, onSearch, onShortcuts }: { path: string; onSe
         </SidebarContent>
 
         <SidebarFooter className="border-t">
+          {elsewhere[0] && (
+            <Suspense>
+              <ElsewhereBadge playing={elsewhere[0]} />
+            </Suspense>
+          )}
           <SidebarMenu>
             <SidebarMenuItem>
               <Suspense fallback={<UserButton user={user} onClick={() => setMenuWanted(true)} />}>

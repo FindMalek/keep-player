@@ -1,4 +1,4 @@
-import { ListEndIcon, ListStartIcon, PlayIcon } from "lucide-react";
+import { EyeIcon, EyeOffIcon, ListEndIcon, ListStartIcon, MinusIcon, PlayIcon } from "lucide-react";
 import { memo, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Empty, EmptyDescription } from "@/components/ui/empty";
@@ -184,6 +184,10 @@ interface TrackRowProps {
   offline: boolean;
   /** Show the 1–5 rating column (a setting). */
   ratings: boolean;
+  /** Hidden in this playlist: dimmed, skipped when the playlist plays. */
+  hidden: boolean;
+  /** Playlist edits for this row, when the list is an editable playlist. */
+  editing: RowEditing | null;
   selected: boolean;
   /** ⌘/ctrl-click toggles the row, ⇧-click extends the selection to it. */
   onSelectClick: (index: number, extend: boolean) => void;
@@ -202,6 +206,8 @@ const TrackRow = memo(function TrackRow({
   onPlay,
   offline,
   ratings,
+  hidden,
+  editing,
   selected,
   onSelectClick,
   measure,
@@ -217,7 +223,8 @@ const TrackRow = memo(function TrackRow({
       aria-selected={selected}
       data-state={selected ? "selected" : undefined}
       data-playing={status ? true : undefined}
-      className="group/row h-[34px] scroll-my-12 border-muted outline-none hover:bg-card focus-visible:bg-card focus-visible:shadow-[inset_2px_0_0_var(--foreground)]"
+      data-hidden={hidden || undefined}
+      className="group/row h-[34px] data-hidden:opacity-45 scroll-my-12 border-muted outline-none hover:bg-card focus-visible:bg-card focus-visible:shadow-[inset_2px_0_0_var(--foreground)]"
       onDoubleClick={() => onPlay(index)}
       onClick={(event) => {
         if (event.metaKey || event.ctrlKey || event.shiftKey) onSelectClick(index, event.shiftKey);
@@ -280,6 +287,30 @@ const TrackRow = memo(function TrackRow({
               <ListEndIcon />
             </Button>
           </Hint>
+          {editing && (
+            <>
+              <Hint label={hidden ? "play it with the playlist again" : "skip it when this playlist plays"}>
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  onClick={() => editing.toggleHidden(song)}
+                  aria-label={hidden ? `show ${song.title} again` : `hide ${song.title} in this playlist`}
+                >
+                  {hidden ? <EyeIcon /> : <EyeOffIcon />}
+                </Button>
+              </Hint>
+              <Hint label="remove from this playlist" shortcut="list-remove">
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  onClick={() => editing.remove(index)}
+                  aria-label={`remove ${song.title} from the playlist`}
+                >
+                  <MinusIcon />
+                </Button>
+              </Hint>
+            </>
+          )}
         </div>
       </TableCell>
     </TableRow>
@@ -291,7 +322,23 @@ TrackRow.displayName = "TrackRow";
 
 type TrackItem = { kind: "disc"; disc: number } | { kind: "song"; song: Song; index: number };
 
-type TrackListOptions = TrackListProps & { onNearEnd?: () => void; source?: QueueSource };
+interface RowEditing {
+  remove: (index: number) => void;
+  toggleHidden: (song: Song) => void;
+}
+
+/** A playlist you can edit, in its real order: what the rows and keys may change. */
+export interface ListEditing {
+  /** Remove the songs at these positions. */
+  remove: (indexes: number[]) => void;
+  /** Move one song up or down; returns where it ended up. */
+  move: (index: number, delta: -1 | 1) => number;
+  /** Songs kept in the playlist but skipped when it plays. */
+  hidden: ReadonlySet<string>;
+  toggleHidden: (song: Song) => void;
+}
+
+type TrackListOptions = TrackListProps & { onNearEnd?: () => void; source?: QueueSource; editing?: ListEditing };
 
 /** A track list; `filterable` lets ⌘F filter it in place, while playing a match still plays the whole list from there. */
 export function TrackList({ filterable = false, ...props }: TrackListOptions & { filterable?: boolean }) {
@@ -308,7 +355,12 @@ export function TrackList({ filterable = false, ...props }: TrackListOptions & {
       {active && query && !shown.length ? (
         <EmptyState>nothing here matches “{query}”</EmptyState>
       ) : (
-        <TrackRows {...props} songs={shown} context={shown === props.songs ? undefined : props.songs} />
+        <TrackRows
+          {...props}
+          songs={shown}
+          context={shown === props.songs ? undefined : props.songs}
+          editing={shown === props.songs ? props.editing : undefined}
+        />
       )}
     </div>
   );
@@ -323,18 +375,37 @@ function TrackRows({
   asAlbum = false,
   source,
   onNearEnd,
+  editing,
 }: TrackListOptions & { context?: Song[] }) {
   const playingId = usePlayer((state) => currentSong(state)?.id);
   const playing = usePlayer((state) => state.playing);
   const cached = useCachedIds();
   const ratings = useSetting("ratings");
+  const hidden = editing?.hidden;
   const onPlay = useCallback(
     (index: number) => {
       const song = songs[index];
-      if (context && song) player.play(context, context.indexOf(song), { album: asAlbum, source });
-      else player.play(songs, index, { album: asAlbum, source });
+      if (!song) return;
+      // Hidden songs stay out of the play order; play one on purpose and it plays alone.
+      if (hidden?.has(song.id)) return player.play([song], 0, { source });
+      const all = (context ?? songs).filter((item) => !hidden?.has(item.id));
+      player.play(all, all.indexOf(song), { album: asAlbum, source });
     },
-    [songs, context, asAlbum, source],
+    [songs, context, asAlbum, source, hidden],
+  );
+  // Stable for the memoized rows; reads the latest editing through a ref.
+  const editingRef = useRef(editing);
+  editingRef.current = editing;
+  const canEdit = Boolean(editing);
+  const rowEditing = useMemo<RowEditing | null>(
+    () =>
+      canEdit
+        ? {
+            remove: (index) => editingRef.current?.remove([index]),
+            toggleHidden: (song) => editingRef.current?.toggleHidden(song),
+          }
+        : null,
+    [canEdit],
   );
   const items = useMemo<TrackItem[]>(() => {
     const multiDisc = asAlbum && new Set(songs.map((song) => song.discNumber ?? 1)).size > 1;
@@ -437,6 +508,20 @@ function TrackRows({
       case "queue":
         player.addToQueue(targets());
         return true;
+      case "remove": {
+        if (!editing) return false;
+        const indexes = selected.size ? [...selected] : current >= 0 ? [current] : [];
+        if (!indexes.length) return false;
+        editing.remove(indexes);
+        setSelected(new Set());
+        return true;
+      }
+      case "move-up":
+      case "move-down": {
+        if (!editing || current < 0) return false;
+        focusSong(editing.move(current, command === "move-up" ? -1 : 1));
+        return true;
+      }
       case "open": {
         const song = songs[current];
         if (!song) return false;
@@ -471,6 +556,14 @@ function TrackRows({
       {selected.size > 0 && (
         <SelectionBar
           songs={selectedSongs()}
+          onRemove={
+            editing
+              ? () => {
+                  editing.remove([...selected]);
+                  setSelected(new Set());
+                }
+              : undefined
+          }
           onPlay={() => player.play(selectedSongs(), 0, { source })}
           onClear={() => {
             setSelected(new Set());
@@ -537,6 +630,8 @@ function TrackRows({
                 onPlay={onPlay}
                 offline={cached.has(item.song.id)}
                 ratings={ratings}
+                hidden={hidden?.has(item.song.id) ?? false}
+                editing={rowEditing}
                 selected={selected.has(item.index)}
                 onSelectClick={onSelectClick}
                 measure={virtual ? virtualizer.measureElement : undefined}
