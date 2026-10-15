@@ -70,6 +70,11 @@ export function precache(ids: string[]): void {
   if (ids.length) post({ type: "precache", ids });
 }
 
+/** The page loads this song itself: the service worker shouldn't download it too. */
+export function dropPrecache(id: string): void {
+  post({ type: "drop", id });
+}
+
 /** Downloads wait while the playing song is still buffering, so they never compete with it. */
 export function pausePrecache(paused: boolean): void {
   post({ type: paused ? "pause" : "resume" });
