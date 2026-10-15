@@ -121,3 +121,25 @@ function listShortcuts(run: typeof runListCommand): Shortcut[] {
     list("move-down", ["alt+arrowdown"], "move down (queue)"),
   ];
 }
+
+/** While lyrics show: shift them earlier or later. `nudge` takes milliseconds; false lets the key fall through. */
+export function lyricsShortcuts(nudge: (ms: number) => boolean, stepMs: number): Shortcut[] {
+  return [
+    {
+      id: "lyrics-earlier",
+      keys: ["["],
+      label: `lyrics earlier (${stepMs / 1000} s)`,
+      group: "panels",
+      scope: "global",
+      run: () => nudge(-stepMs),
+    },
+    {
+      id: "lyrics-later",
+      keys: ["]"],
+      label: `lyrics later (${stepMs / 1000} s)`,
+      group: "panels",
+      scope: "global",
+      run: () => nudge(stepMs),
+    },
+  ];
+}

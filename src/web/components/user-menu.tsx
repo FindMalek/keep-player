@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import {
+  ArrowUpCircleIcon,
   DatabaseIcon,
   HardDriveDownloadIcon,
   KeyboardIcon,
@@ -58,6 +59,7 @@ export function UserMenu({
   const miniWhenHidden = useSetting("miniPlayerWhenHidden");
   const user = useUser() ?? "";
   const admin = useQuery(apiQueries.session()).data?.admin;
+  const version = useQuery(apiQueries.version()).data;
   return (
     <DropdownMenu defaultOpen={defaultOpen}>
       <DropdownMenuTrigger render={<SidebarMenuButton size="sm" className="font-mono" tooltip={user} />}>
@@ -128,6 +130,25 @@ export function UserMenu({
           <LogOutIcon />
           log out
         </DropdownMenuItem>
+        {version && (
+          <>
+            <DropdownMenuSeparator />
+            {version.updateAvailable ? (
+              <DropdownMenuItem
+                render={
+                  <a href={`https://github.com/FindMalek/keep-player/releases/tag/v${version.latest}`} target="_blank" rel="noreferrer" />
+                }
+              >
+                <ArrowUpCircleIcon />
+                update available · v{version.latest}
+              </DropdownMenuItem>
+            ) : null}
+            {/* Base UI labels must sit in a group. */}
+            <DropdownMenuGroup>
+              <DropdownMenuLabel className={LABEL}>keep music v{version.version}</DropdownMenuLabel>
+            </DropdownMenuGroup>
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );

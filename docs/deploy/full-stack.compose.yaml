@@ -1,0 +1,30 @@
+# Navidrome and keep music together, for a fresh setup. Your music goes in ./music.
+services:
+  navidrome:
+    image: deluan/navidrome:latest
+    restart: unless-stopped
+    environment:
+      ND_SCANSCHEDULE: 1h
+      ND_LYRICSPRIORITY: .lrc,embedded
+    volumes:
+      - navidrome-data:/data
+      - ./music:/music:ro
+    ports:
+      - "4533:4533" # Navidrome's own UI; optional
+
+  player:
+    image: ghcr.io/findmalek/keep-player:latest
+    restart: unless-stopped
+    depends_on: [navidrome]
+    environment:
+      NAVIDROME_URL: http://navidrome:4533
+    ports:
+      - "8080:8080"
+    volumes:
+      - player-data:/data
+    read_only: true
+    tmpfs: [/tmp]
+
+volumes:
+  navidrome-data:
+  player-data:

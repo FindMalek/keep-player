@@ -41,6 +41,21 @@ const subscribe = (listener: () => void) => {
   return () => listeners.delete(listener);
 };
 
+/** Whether a song is in the audio cache, so streaming it costs no network. */
+export function isCached(id: string): boolean {
+  return cached.has(id);
+}
+
+/** Whether a service worker serves this page's requests (it doesn't on a first visit or with workers blocked). */
+export function controlled(): boolean {
+  return !!navigator.serviceWorker?.controller;
+}
+
+/** Runs `listener` whenever what's cached changes. */
+export function onCacheChange(listener: () => void): () => void {
+  return subscribe(listener);
+}
+
 /** Song ids saved for offline (precached or kept). */
 export function useCachedIds(): Set<string> {
   return useSyncExternalStore(subscribe, () => cached);

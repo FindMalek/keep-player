@@ -9,10 +9,16 @@ import { SessionStore } from "./sessions";
 
 // A stand-in Navidrome that records what the proxy sent it.
 const seen: URL[] = [];
+let streamAborted: Promise<void> | null = null;
 const upstream = Bun.serve({
   port: 0,
   fetch(request) {
     seen.push(new URL(request.url));
+    if (new URL(request.url).searchParams.get("id") === "endless") {
+      // An audio stream that never ends on its own; resolves `streamAborted` when the proxy hangs up.
+      streamAborted = new Promise((resolve) => request.signal.addEventListener("abort", () => resolve()));
+      return new Response(new ReadableStream({ pull: (controller) => controller.enqueue(new Uint8Array(1024)) }));
+    }
     return Response.json({ "subsonic-response": { status: "ok" } });
   },
 });
@@ -54,6 +60,17 @@ test("the proxy refuses unlisted endpoints, missing sessions and non-media calls
   expect((await api.proxy(new Request("http://app/rest/getAlbum?id=1", { headers: { "x-keep-player": "1" } }))).status).toBe(401);
   expect((await api.proxy(request("/rest/star?id=1"))).status).toBe(403);
   expect((await api.proxy(request("/rest/stream?id=1"))).status).toBe(200);
+});
+
+test("a stream the browser drops is dropped upstream too", async () => {
+  const browser = new AbortController();
+  const response = await api.proxy(
+    new Request("http://app/rest/stream?id=endless", { headers: { cookie: `kp_session=${cookie}` }, signal: browser.signal }),
+  );
+  await response.body?.getReader().read();
+  browser.abort();
+  const aborted = await Promise.race([streamAborted?.then(() => true), Bun.sleep(2000).then(() => false)]);
+  expect(aborted).toBe(true);
 });
 
 test("only admins see or rebuild the search index", async () => {
