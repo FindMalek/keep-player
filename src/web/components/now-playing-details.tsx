@@ -1,6 +1,7 @@
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { quality } from "@/lib/format";
 import { appliedGain } from "@/lib/player";
+import { getSetting } from "@/lib/settings";
 import type { Song } from "@/lib/types";
 import { Cover } from "./cover";
 
@@ -14,7 +15,13 @@ function SongDetails({ song }: { song: Song }) {
       <dt className="text-muted-foreground">file</dt>
       <dd>{quality(song.suffix, song.bitRate) || "—"}</dd>
       <dt className="text-muted-foreground">gain</dt>
-      <dd>{gain ? `${gain.db > 0 ? "+" : ""}${gain.db.toFixed(1)} dB (${gain.mode})` : "none in the tags"}</dd>
+      <dd>
+        {gain
+          ? `${gain.db > 0 ? "+" : ""}${gain.db.toFixed(1)} dB (${gain.mode})`
+          : getSetting("normalization") === "off"
+            ? "normalization off"
+            : "none in the tags"}
+      </dd>
     </dl>
   );
 }

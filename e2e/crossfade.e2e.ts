@@ -62,6 +62,6 @@ test("the crossfade slider sets the setting", async ({ page, signedIn }) => {
   await expect(page.getByText("6 s")).toBeVisible();
   await slider.focus();
   await page.keyboard.press("Home");
-  await expect(page.getByText("off", { exact: true })).toBeVisible();
+  await expect(page.locator("span", { hasText: /^off$/ })).toBeVisible();
   await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("keep-player:settings") ?? "{}").crossfade)).toBe(0);
 });

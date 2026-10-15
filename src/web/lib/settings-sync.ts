@@ -1,4 +1,4 @@
-import { getSetting, type Settings, SYNCED, setSetting, subscribeSettings } from "./settings";
+import { getSetting, type Settings, SYNCED, sanitize, setSetting, subscribeSettings } from "./settings";
 import { HEADERS, onAccountChange } from "./subsonic";
 import { getTheme, setTheme, subscribeTheme, type Theme } from "./theme";
 
@@ -35,8 +35,9 @@ function apply(remote: Synced): void {
   applying = true;
   try {
     for (const key of SYNCED) {
-      const value = remote[key];
-      if (typeof value === typeof getSetting(key) && value !== getSetting(key)) setSetting(key, value as never);
+      const value = sanitize(key, remote[key]);
+      // Different from ours (lists compare by content); a wrong-shaped value from the server is ignored.
+      if (value !== undefined && JSON.stringify(value) !== JSON.stringify(getSetting(key))) setSetting(key, value as never);
     }
     if ((remote.theme === "system" || remote.theme === "dark" || remote.theme === "light") && remote.theme !== getTheme())
       setTheme(remote.theme);

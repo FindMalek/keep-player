@@ -3,6 +3,7 @@ import { useRef, useSyncExternalStore } from "react";
 import type { FrameSource } from "./audio/types";
 import { fadeBetween } from "./crossfade";
 import { Decks } from "./decks";
+import { fromDb } from "./eq";
 import { notify } from "./notify";
 import { controlled, dropPrecache, isCached, onCacheChange, pausePrecache, precache } from "./offline";
 import { isHidden, songPref } from "./prefs";
@@ -171,19 +172,32 @@ function replayGainFactor(song: Song | undefined, album: boolean): number {
   return peak ? Math.min(factor, 1 / peak) : factor;
 }
 
-/** What ReplayGain does to the playing song, for the "now playing" card: which gain and how many dB, or null. */
-export function appliedGain(): { mode: "album" | "track"; db: number } | null {
+/**
+ * The gain a song plays at: ReplayGain by the normalization setting (off, the song's, the album's, or the album's
+ * while an album plays in order), then the pre-amp. `album`: this song plays as part of an album in order.
+ */
+function gainFactor(song: Song | undefined, album: boolean): number {
+  const mode = getSetting("normalization");
+  const preamp = fromDb(getSetting("preamp"));
+  if (mode === "off") return preamp;
+  return replayGainFactor(song, mode === "album" ? true : mode === "track" ? false : album) * preamp;
+}
+
+/** What the gain settings do to the playing song, for the "now playing" card: which mode and how many dB, or null. */
+export function appliedGain(): { mode: "album" | "track" | "off"; db: number } | null {
   const song = current();
   const album = state.queue.context.album && state.queue.current?.from === "context";
+  const mode = getSetting("normalization");
+  const db = 20 * Math.log10(gainFactor(song, album));
+  if (mode === "off") return getSetting("preamp") === 0 ? null : { mode: "off", db };
   const rg = song?.replayGain;
-  if (!rg) return null;
-  const db = album ? (rg.albumGain ?? rg.trackGain) : (rg.trackGain ?? rg.albumGain);
-  if (db === undefined) return null;
-  return { mode: album && rg.albumGain !== undefined ? "album" : "track", db: 20 * Math.log10(replayGainFactor(song, album)) };
+  if (!rg || (rg.trackGain === undefined && rg.albumGain === undefined)) return getSetting("preamp") === 0 ? null : { mode: "off", db };
+  const useAlbum = mode === "album" ? true : mode === "track" ? false : album;
+  return { mode: useAlbum && rg.albumGain !== undefined ? "album" : "track", db };
 }
 
 /** Album gain only while an album plays in order from its context; queued songs in between use track gain. */
-const currentFactor = () => replayGainFactor(current(), state.queue.context.album && state.queue.current?.from === "context");
+const currentFactor = () => gainFactor(current(), state.queue.context.album && state.queue.current?.from === "context");
 
 const decks = new Decks({
   playing: () => {
@@ -358,7 +372,7 @@ function upcoming(): { song: Song; factor: number } | null {
   const song = Q.peekNext(queue);
   if (!song) return null;
   const fromContext = queue.upNext.length === 0;
-  return { song, factor: replayGainFactor(song, fromContext && queue.context.album) };
+  return { song, factor: gainFactor(song, fromContext && queue.context.album) };
 }
 
 /** True when the sleep timer ends playback with the current song (end of track, or the album's last track). */
@@ -432,8 +446,12 @@ function lineUpNextDeck(now: boolean): void {
 decks.setFadesSkips(getSetting("crossfade") > 0);
 subscribeSettings(() => {
   decks.setFadesSkips(getSetting("crossfade") > 0);
+  decks.setEq(getSetting("eqOn"), getSetting("eqGains"));
+  // Normalization and pre-amp change the playing song's gain at once, and the next song's when it is lined up.
+  decks.setFactor(currentFactor());
   if (nextLined) lineUpNextDeck(false);
 });
+decks.setEq(getSetting("eqOn"), getSetting("eqGains"));
 
 // The service worker saved another song: it may be the one the idle deck is waiting for.
 onCacheChange(() => nextLined && lineUpNextDeck(false));
