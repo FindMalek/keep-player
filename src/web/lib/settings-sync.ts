@@ -36,7 +36,7 @@ function apply(remote: Synced): void {
   try {
     for (const key of SYNCED) {
       const value = remote[key];
-      if (typeof value === "boolean" && value !== getSetting(key)) setSetting(key, value);
+      if (typeof value === typeof getSetting(key) && value !== getSetting(key)) setSetting(key, value as never);
     }
     if ((remote.theme === "system" || remote.theme === "dark" || remote.theme === "light") && remote.theme !== getTheme())
       setTheme(remote.theme);

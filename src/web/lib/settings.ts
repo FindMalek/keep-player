@@ -16,10 +16,18 @@ export interface Settings {
   queueSync: boolean;
   /** Take a newer queue from another device without asking (never while this one plays). */
   followOtherDevices: boolean;
+  /** Seconds the next song starts before the playing one ends (0 = off, up to 12); never inside an album played in order. */
+  crossfade: number;
 }
 
 /** Follow the user to every browser; the others (the mini player) depend on this device. */
-export const SYNCED = ["ratings", "reduceMotion", "queueSync", "followOtherDevices"] as const satisfies readonly (keyof Settings)[];
+export const SYNCED = [
+  "ratings",
+  "reduceMotion",
+  "queueSync",
+  "followOtherDevices",
+  "crossfade",
+] as const satisfies readonly (keyof Settings)[];
 
 const KEY = "keep-player:settings";
 const DEFAULTS: Settings = {
@@ -28,6 +36,7 @@ const DEFAULTS: Settings = {
   miniPlayerWhenHidden: false,
   queueSync: true,
   followOtherDevices: false,
+  crossfade: 0,
 };
 
 /** Read outside React (the queue sync). */
