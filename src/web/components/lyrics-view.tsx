@@ -13,6 +13,7 @@ import { useShortcuts } from "@/lib/shortcuts";
 import type { Song } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import type { LyricLine } from "../../shared/lyrics";
+import { lyricsShortcuts } from "../app-shortcuts";
 import { Hint } from "./hint";
 import { KeyCombo } from "./key-combo";
 import { EmptyState } from "./library";
@@ -168,10 +169,7 @@ export function LyricsView({ song, size }: { song: Song; size: Size }) {
     });
     return true;
   };
-  useShortcuts(() => [
-    { id: "lyrics-earlier", keys: ["["], label: "lyrics earlier (0.25 s)", group: "panels", scope: "global", run: () => nudge(-NUDGE_MS) },
-    { id: "lyrics-later", keys: ["]"], label: "lyrics later (0.25 s)", group: "panels", scope: "global", run: () => nudge(NUDGE_MS) },
-  ]);
+  useShortcuts(() => lyricsShortcuts(nudge, NUDGE_MS));
 
   const active = usePosition((seconds) => (synced ? activeLine(synced, seconds * 1000 - offset) : -1));
 
