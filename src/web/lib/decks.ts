@@ -1,4 +1,5 @@
 import { equalPower, fitFade, SKIP_FADE_SECONDS } from "./crossfade";
+import { BANDS, FLAT, headroom } from "./eq";
 
 /*
  * Two audio decks for gapless playback. One plays; the other holds the next song, preloaded. A few milliseconds before
@@ -6,7 +7,7 @@ import { equalPower, fitFade, SKIP_FADE_SECONDS } from "./crossfade";
  * clicks) and the decks swap roles. The engine (player.ts) only talks songs; this module owns elements and the graph:
  *
  *   deck A ─ MediaElementSource ─ gain (ReplayGain) ─┐
- *   deck B ─ MediaElementSource ─ gain (ReplayGain) ─┴─ master (volume) ─ destination
+ *   deck B ─ MediaElementSource ─ gain (ReplayGain) ─┴─ bus ─ 10 EQ filters ─ master (volume) ─ destination
  *
  * With a crossfade the idle deck starts `fade` seconds early and the two gains follow equal-power curves; a manual
  * skip fades the old song out over 300 ms instead.
@@ -52,6 +53,10 @@ export class Decks {
   private active = 0;
   private context: AudioContext | null = null;
   private master: GainNode | null = null;
+  /** Where both decks meet, ahead of the equalizer: takes the loudest boost off so boosted bands don't clip. */
+  private bus: GainNode | null = null;
+  private filters: BiquadFilterNode[] = [];
+  private eq = { on: false, gains: FLAT };
   private timer: ReturnType<typeof setTimeout> | undefined;
   private sinkId = "";
   private volume = 1;
@@ -115,14 +120,27 @@ export class Decks {
       const context = new AudioContext();
       const master = context.createGain();
       master.connect(context.destination);
+      const bus = context.createGain();
+      // Peaking bands between a low shelf and a high shelf; all at 0 dB (a straight wire) until the equalizer is on.
+      this.filters = BANDS.map((frequency, index) => {
+        const filter = context.createBiquadFilter();
+        filter.type = index === 0 ? "lowshelf" : index === BANDS.length - 1 ? "highshelf" : "peaking";
+        filter.frequency.value = frequency;
+        filter.Q.value = 1.1;
+        return filter;
+      });
+      this.bus = bus;
+      bus.connect(this.filters[0] as BiquadFilterNode);
+      this.filters.reduce((from, to) => (from.connect(to), to)).connect(master);
       for (const deck of this.decks) {
         deck.gain = context.createGain();
-        context.createMediaElementSource(deck.element).connect(deck.gain).connect(master);
+        context.createMediaElementSource(deck.element).connect(deck.gain).connect(bus);
         this.setGain(deck, deck === this.playing ? deck.factor : 0);
         deck.element.volume = 1;
       }
       this.context = context;
       this.master = master;
+      this.applyEq();
       this.applyVolume();
       void this.setSink(this.sinkId);
     } catch {
@@ -141,6 +159,19 @@ export class Decks {
   /** Whether a manual skip should fade out rather than cut (true while a crossfade is set). */
   setFadesSkips(on: boolean): void {
     this.fadesSkips = on;
+  }
+
+  /** The equalizer: on or off, and each band's gain in dB. Off is the same graph with every band at 0 dB. */
+  setEq(on: boolean, gains: number[]): void {
+    this.eq = { on, gains };
+    this.applyEq();
+  }
+
+  private applyEq(): void {
+    const { on, gains } = this.eq;
+    const time = this.context?.currentTime ?? 0;
+    for (const [index, filter] of this.filters.entries()) filter.gain.setTargetAtTime(on ? (gains[index] ?? 0) : 0, time, 0.01);
+    this.bus?.gain.setTargetAtTime(on ? headroom(gains) : 1, time, 0.01);
   }
 
   /** Volume 0..1 (already 0 when muted). Through the master gain once the graph exists, else on the element. */

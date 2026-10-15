@@ -21,6 +21,9 @@ export interface Song {
   coverArt?: string;
   duration?: number;
   bitRate?: number;
+  /** OpenSubsonic: bits per sample and sampling rate in Hz (lossless files mostly). */
+  bitDepth?: number;
+  samplingRate?: number;
   suffix?: string;
   size?: number;
   starred?: string;

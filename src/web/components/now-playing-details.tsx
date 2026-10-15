@@ -1,6 +1,9 @@
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
-import { quality } from "@/lib/format";
+import { fileFormat } from "@/lib/format";
 import { appliedGain } from "@/lib/player";
+import { getSetting } from "@/lib/settings";
+import { QUALITIES } from "@/lib/stream-quality";
+import { qualityOf } from "@/lib/subsonic";
 import type { Song } from "@/lib/types";
 import { Cover } from "./cover";
 
@@ -12,9 +15,21 @@ function SongDetails({ song }: { song: Song }) {
       <dt className="text-muted-foreground">album</dt>
       <dd className="truncate">{[song.album, song.year].filter(Boolean).join(" · ") || "—"}</dd>
       <dt className="text-muted-foreground">file</dt>
-      <dd>{quality(song.suffix, song.bitRate) || "—"}</dd>
+      <dd>{fileFormat(song) || "—"}</dd>
+      {qualityOf(song.id) !== "original" && (
+        <>
+          <dt className="text-muted-foreground">playing as</dt>
+          <dd>{QUALITIES.find(([name]) => name === qualityOf(song.id))?.[1]}</dd>
+        </>
+      )}
       <dt className="text-muted-foreground">gain</dt>
-      <dd>{gain ? `${gain.db > 0 ? "+" : ""}${gain.db.toFixed(1)} dB (${gain.mode})` : "none in the tags"}</dd>
+      <dd>
+        {gain
+          ? `${gain.db > 0 ? "+" : ""}${gain.db.toFixed(1)} dB (${gain.mode})`
+          : getSetting("normalization") === "off"
+            ? "normalization off"
+            : "none in the tags"}
+      </dd>
     </dl>
   );
 }

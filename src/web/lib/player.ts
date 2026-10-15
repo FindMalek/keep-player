@@ -3,13 +3,14 @@ import { useRef, useSyncExternalStore } from "react";
 import type { FrameSource } from "./audio/types";
 import { fadeBetween } from "./crossfade";
 import { Decks } from "./decks";
+import { fromDb } from "./eq";
 import { notify } from "./notify";
 import { controlled, dropPrecache, isCached, onCacheChange, pausePrecache, precache } from "./offline";
 import { isHidden, songPref } from "./prefs";
 import { queries, queryClient } from "./queries";
 import * as Q from "./queue";
 import { getSetting, subscribeSettings } from "./settings";
-import { api, coverUrl, onAccountChange, preloadCover, scrobble, streamUrl } from "./subsonic";
+import { api, coverUrl, fallBackToTranscode, onAccountChange, preloadCover, qualityOf, scrobble, streamUrl } from "./subsonic";
 import type { Song } from "./types";
 import { done, record } from "./undo";
 
@@ -171,19 +172,32 @@ function replayGainFactor(song: Song | undefined, album: boolean): number {
   return peak ? Math.min(factor, 1 / peak) : factor;
 }
 
-/** What ReplayGain does to the playing song, for the "now playing" card: which gain and how many dB, or null. */
-export function appliedGain(): { mode: "album" | "track"; db: number } | null {
+/**
+ * The gain a song plays at: ReplayGain by the normalization setting (off, the song's, the album's, or the album's
+ * while an album plays in order), then the pre-amp. `album`: this song plays as part of an album in order.
+ */
+function gainFactor(song: Song | undefined, album: boolean): number {
+  const mode = getSetting("normalization");
+  const preamp = fromDb(getSetting("preamp"));
+  if (mode === "off") return preamp;
+  return replayGainFactor(song, mode === "album" ? true : mode === "track" ? false : album) * preamp;
+}
+
+/** What the gain settings do to the playing song, for the "now playing" card: which mode and how many dB, or null. */
+export function appliedGain(): { mode: "album" | "track" | "off"; db: number } | null {
   const song = current();
   const album = state.queue.context.album && state.queue.current?.from === "context";
+  const mode = getSetting("normalization");
+  const db = 20 * Math.log10(gainFactor(song, album));
+  if (mode === "off") return getSetting("preamp") === 0 ? null : { mode: "off", db };
   const rg = song?.replayGain;
-  if (!rg) return null;
-  const db = album ? (rg.albumGain ?? rg.trackGain) : (rg.trackGain ?? rg.albumGain);
-  if (db === undefined) return null;
-  return { mode: album && rg.albumGain !== undefined ? "album" : "track", db: 20 * Math.log10(replayGainFactor(song, album)) };
+  if (!rg || (rg.trackGain === undefined && rg.albumGain === undefined)) return getSetting("preamp") === 0 ? null : { mode: "off", db };
+  const useAlbum = mode === "album" ? true : mode === "track" ? false : album;
+  return { mode: useAlbum && rg.albumGain !== undefined ? "album" : "track", db };
 }
 
 /** Album gain only while an album plays in order from its context; queued songs in between use track gain. */
-const currentFactor = () => replayGainFactor(current(), state.queue.context.album && state.queue.current?.from === "context");
+const currentFactor = () => gainFactor(current(), state.queue.context.album && state.queue.current?.from === "context");
 
 const decks = new Decks({
   playing: () => {
@@ -258,15 +272,31 @@ async function onMediaError(): Promise<void> {
   const song = current();
   const code = decks.errorCode;
   if (!song || code === null) return;
-  if (code === MediaError.MEDIA_ERR_DECODE) return skipBroken("the file can't be decoded");
+  if (code === MediaError.MEDIA_ERR_DECODE) return unplayable(song, "the file can't be decoded");
   if (code === MediaError.MEDIA_ERR_NETWORK) return recover();
   const { verdict, type } = await probe(streamUrl(song.id));
   if (song !== current()) return;
   if (verdict === "missing") skipBroken("the server doesn't have the file");
   // Only call it the format when the browser says so for the type the server sends; a slow or dropped connection
   // looks the same to Chrome, and that is retried (and skipped as "couldn't load" if it never comes through).
-  else if (verdict === "ok" && type && decks.element.canPlayType(type) === "") skipBroken("it's in a format this browser can't play");
+  else if (verdict === "ok" && type && decks.element.canPlayType(type) === "") unplayable(song, "it's in a format this browser can't play");
   else recover();
+}
+
+/**
+ * A song this browser can't play as it is (ALAC in Firefox, say) is asked for as a transcode instead, from where it
+ * was; only a song that fails that way too is skipped.
+ */
+function unplayable(song: Song, reason: string): void {
+  if (qualityOf(song.id) !== "original") {
+    skipBroken(reason);
+    return;
+  }
+  fallBackToTranscode(song.id);
+  notify({ message: `${song.title} plays transcoded: this browser can't play its format` });
+  set({ buffering: true, error: null });
+  decks.reload(streamUrl(song.id), position);
+  watchStall();
 }
 
 /** What the server says about a song's stream, from its first two bytes. */
@@ -358,7 +388,7 @@ function upcoming(): { song: Song; factor: number } | null {
   const song = Q.peekNext(queue);
   if (!song) return null;
   const fromContext = queue.upNext.length === 0;
-  return { song, factor: replayGainFactor(song, fromContext && queue.context.album) };
+  return { song, factor: gainFactor(song, fromContext && queue.context.album) };
 }
 
 /** True when the sleep timer ends playback with the current song (end of track, or the album's last track). */
@@ -398,7 +428,7 @@ function preloadNext(): void {
   precache(
     Q.peekUpcoming(state.queue, PRECACHE_AHEAD)
       .map((song) => song.id)
-      .filter((id) => id !== decks.preloadedId),
+      .filter((id) => id !== decks.preloadedId && qualityOf(id) === "original"),
   );
   // The player bar shows the next cover within minutes; have it cached by then.
   preloadCover(next?.song.coverArt, 42);
@@ -412,13 +442,15 @@ function lineUpNextDeck(now: boolean): void {
     if (next) decks.preload(next.song.id, null, next.factor, 0, fadeBetween(getSetting("crossfade"), current(), next.song));
     return;
   }
-  if (next && !now && controlled() && !isCached(next.song.id)) {
+  // Only the original file comes from the service worker's cache; a transcode always streams from the network.
+  const cacheable = next ? qualityOf(next.song.id) === "original" : false;
+  if (next && !now && controlled() && cacheable && !isCached(next.song.id)) {
     // Waiting for the cache: a deck still holding the old "next" would keep downloading it for nothing.
     if (decks.preloadedId) decks.preload(null, null, 1);
     return;
   }
   // Straight from the network: if the service worker is fetching the same song, it stops (one download, not two).
-  if (next && controlled() && !isCached(next.song.id)) dropPrecache(next.song.id);
+  if (next && controlled() && cacheable && !isCached(next.song.id)) dropPrecache(next.song.id);
   decks.preload(
     next?.song.id ?? null,
     next ? streamUrl(next.song.id) : null,
@@ -430,10 +462,21 @@ function lineUpNextDeck(now: boolean): void {
 
 // Changing the crossfade applies to the song already lined up, and decides whether a skip fades.
 decks.setFadesSkips(getSetting("crossfade") > 0);
+let lastQuality = getSetting("streamQuality");
 subscribeSettings(() => {
   decks.setFadesSkips(getSetting("crossfade") > 0);
+  // A new stream quality applies from the next song: what is lined up in the idle deck was asked for the old way.
+  if (getSetting("streamQuality") !== lastQuality) {
+    lastQuality = getSetting("streamQuality");
+    decks.preload(null, null, 1);
+    if (nextLined) lineUpNextDeck(true);
+  }
+  decks.setEq(getSetting("eqOn"), getSetting("eqGains"));
+  // Normalization and pre-amp change the playing song's gain at once, and the next song's when it is lined up.
+  decks.setFactor(currentFactor());
   if (nextLined) lineUpNextDeck(false);
 });
+decks.setEq(getSetting("eqOn"), getSetting("eqGains"));
 
 // The service worker saved another song: it may be the one the idle deck is waiting for.
 onCacheChange(() => nextLined && lineUpNextDeck(false));

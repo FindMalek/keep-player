@@ -21,6 +21,13 @@ export interface Settings {
   crossfade: number;
   /** What to stream: the original file, or a transcode for slow or metered connections. This device only. */
   streamQuality: StreamQuality;
+  /** Which ReplayGain to apply: none, the song's, the album's, or the album's while an album plays in order (auto). */
+  normalization: "off" | "track" | "album" | "auto";
+  /** Extra gain on top of the normalization, in dB (-12 to +12). */
+  preamp: number;
+  /** The ten-band equalizer, off by default; its gains in dB per band (lib/eq.ts). */
+  eqOn: boolean;
+  eqGains: number[];
 }
 
 /** Follow the user to every browser; the others (the mini player) depend on this device. */
@@ -30,6 +37,10 @@ export const SYNCED = [
   "queueSync",
   "followOtherDevices",
   "crossfade",
+  "normalization",
+  "preamp",
+  "eqOn",
+  "eqGains",
 ] as const satisfies readonly (keyof Settings)[];
 
 const KEY = "keep-player:settings";
@@ -41,7 +52,27 @@ const DEFAULTS: Settings = {
   followOtherDevices: false,
   crossfade: 0,
   streamQuality: "original",
+  normalization: "auto",
+  preamp: 0,
+  eqOn: false,
+  eqGains: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
 };
+
+const NORMALIZATIONS = ["off", "track", "album", "auto"];
+
+/** A value from another browser, made safe: the right type and range, or undefined to ignore it. */
+export function sanitize<K extends keyof Settings>(key: K, value: unknown): Settings[K] | undefined {
+  const fallback = DEFAULTS[key];
+  if (typeof value !== typeof fallback) return undefined;
+  if (key === "normalization") return (NORMALIZATIONS.includes(value as string) ? value : undefined) as Settings[K] | undefined;
+  if (key === "crossfade") return Math.max(0, Math.min(12, Number(value) || 0)) as Settings[K];
+  if (key === "preamp") return Math.max(-12, Math.min(12, Number(value) || 0)) as Settings[K];
+  if (key === "eqGains")
+    return Array.isArray(value)
+      ? (value.slice(0, 10).map((gain) => Math.max(-12, Math.min(12, Number(gain) || 0))) as Settings[K])
+      : undefined;
+  return value as Settings[K];
+}
 
 /** Read outside React (the queue sync). */
 export function getSetting<K extends keyof Settings>(key: K): Settings[K] {

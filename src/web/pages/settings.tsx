@@ -15,9 +15,11 @@ import { MAX_CROSSFADE } from "@/lib/crossfade";
 import { install, useInstallState } from "@/lib/install";
 import { MINI_PLAYER_SUPPORTED } from "@/lib/mini-player";
 import { type Settings, setSetting, useSetting } from "@/lib/settings";
+import { isStreamQuality, QUALITIES } from "@/lib/stream-quality";
 import { logout, useUser } from "@/lib/subsonic";
 import { setTheme, type Theme, useTheme } from "@/lib/theme";
 
+const EqualizerSheet = lazy(() => import("@/components/equalizer-sheet").then((module) => ({ default: module.EqualizerSheet })));
 const StorageDialog = lazy(() => import("@/components/storage-dialog").then((module) => ({ default: module.StorageDialog })));
 const SessionsDialog = lazy(() => import("@/components/sessions-dialog").then((module) => ({ default: module.SessionsDialog })));
 
@@ -47,6 +49,76 @@ function Toggle({ setting, label, hint }: { setting: BooleanSetting; label: stri
   return (
     <Row id={id} label={label} hint={hint}>
       <Switch id={id} checked={value} onCheckedChange={(checked) => setSetting(setting, checked === true)} />
+    </Row>
+  );
+}
+
+const NORMALIZATIONS = [
+  ["off", "off"],
+  ["track", "track"],
+  ["album", "album"],
+  ["auto", "auto"],
+] as const;
+
+/** ReplayGain mode and a pre-amp on top (#24). Auto uses the album's gain while an album plays in order. */
+function Loudness() {
+  const mode = useSetting("normalization");
+  const preamp = useSetting("preamp");
+  return (
+    <>
+      <Row
+        label="normalization"
+        hint={<>even out loudness with the replaygain in your files · auto: album gain while an album plays in order · {SYNCED}</>}
+      >
+        <ToggleGroup
+          variant="outline"
+          size="sm"
+          aria-label="normalization"
+          value={[mode]}
+          onValueChange={(value: string[]) => value[0] && setSetting("normalization", value[0] as Settings["normalization"])}
+        >
+          {NORMALIZATIONS.map(([value, name]) => (
+            <ToggleGroupItem key={value} value={value} className="font-mono font-normal">
+              {name}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
+      </Row>
+      <Row label="pre-amp" hint={<>extra gain on top of normalization · {SYNCED}</>}>
+        <div className="flex w-56 items-center gap-3">
+          <Slider
+            thumbLabel="pre-amp decibels"
+            min={-12}
+            max={12}
+            step={1}
+            value={[preamp]}
+            onValueChange={(value) => setSetting("preamp", Array.isArray(value) ? (value[0] ?? 0) : value)}
+          />
+          <span className="w-14 text-right font-mono text-xs tabular-nums">{preamp > 0 ? `+${preamp}` : preamp} dB</span>
+        </div>
+      </Row>
+    </>
+  );
+}
+
+/** What to stream (#24): the original file, or a transcode for a slow or metered connection. Kept per device. */
+function StreamQualityRow() {
+  const quality = useSetting("streamQuality");
+  return (
+    <Row label="stream quality" hint={<>original plays your files as they are · a transcode saves data on a slow connection · {DEVICE}</>}>
+      <ToggleGroup
+        variant="outline"
+        size="sm"
+        aria-label="stream quality"
+        value={[quality]}
+        onValueChange={(value: string[]) => isStreamQuality(value[0]) && setSetting("streamQuality", value[0])}
+      >
+        {QUALITIES.map(([value, name]) => (
+          <ToggleGroupItem key={value} value={value} className="font-mono font-normal">
+            {name}
+          </ToggleGroupItem>
+        ))}
+      </ToggleGroup>
     </Row>
   );
 }
@@ -89,6 +161,8 @@ export function SettingsPage({ section }: { section: string | null }) {
   const version = useQuery(apiQueries.version()).data;
   const installState = useInstallState();
   const [storageOpen, setStorageOpen] = useState(false);
+  const [eqOpen, setEqOpen] = useState(false);
+  const eqOn = useSetting("eqOn");
   const [sessionsOpen, setSessionsOpen] = useState(false);
 
   return (
@@ -123,6 +197,16 @@ export function SettingsPage({ section }: { section: string | null }) {
               />
             )}
             <Crossfade />
+            <Loudness />
+            <StreamQualityRow />
+            <Row label="equalizer" hint={<>ten bands with presets, off by default · {SYNCED}</>}>
+              <div className="flex items-center gap-3">
+                <Switch aria-label="equalizer on" checked={eqOn} onCheckedChange={(checked) => setSetting("eqOn", checked === true)} />
+                <Button variant="outline" size="sm" onClick={() => setEqOpen(true)}>
+                  adjust
+                </Button>
+              </div>
+            </Row>
             <p className="py-3 text-muted-foreground text-xs">
               songs play gapless with replaygain from your tags. equalizer and quality settings come next.
             </p>
@@ -253,6 +337,11 @@ export function SettingsPage({ section }: { section: string | null }) {
       {storageOpen && (
         <Suspense>
           <StorageDialog open={storageOpen} onOpenChange={setStorageOpen} />
+        </Suspense>
+      )}
+      {eqOpen && (
+        <Suspense>
+          <EqualizerSheet open={eqOpen} onOpenChange={setEqOpen} />
         </Suspense>
       )}
       {sessionsOpen && (
