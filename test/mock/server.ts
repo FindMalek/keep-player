@@ -157,13 +157,16 @@ function wav(seconds: number): Uint8Array<ArrayBuffer> {
 }
 
 /** `mockPause=<s>` (tests): the first 3 s of audio at once, then nothing for that long, then the rest. A slow link. */
-function pausedStream(body: Uint8Array<ArrayBuffer>, seconds: number): Response {
+function pausedStream(body: Uint8Array<ArrayBuffer>, seconds: number, onDone = () => {}): Response {
   const head = 44 + 8000 * 3;
   const chunks = [body.subarray(0, head), body.subarray(head)];
   const stream = new ReadableStream({
     async pull(controller) {
       const chunk = chunks.shift();
-      if (!chunk) return controller.close();
+      if (!chunk) {
+        onDone();
+        return controller.close();
+      }
       if (chunk.byteOffset > 0) await Bun.sleep(seconds * 1000);
       controller.enqueue(chunk);
     },
@@ -171,8 +174,35 @@ function pausedStream(body: Uint8Array<ArrayBuffer>, seconds: number): Response 
   return new Response(stream, { headers: { "content-type": "audio/wav", "content-length": String(body.length) } });
 }
 
+/*
+ * Test controls for streams the page can't route itself (the service worker's): `POST /mock/slow?id=&seconds=` makes the
+ * next stream of that song stall like `mockPause`; `GET /mock/streams?id=` lists every stream of it and whether the
+ * client hung up before it finished.
+ */
+const slowNext = new Map<string, number>();
+const streamLog: { id: string; aborted: boolean; finished: boolean }[] = [];
+
+function control(url: URL, request: Request): Response {
+  const id = url.searchParams.get("id") ?? "";
+  if (url.pathname === "/mock/slow" && request.method === "POST") {
+    slowNext.set(id, Number(url.searchParams.get("seconds") ?? 10));
+    return Response.json({ ok: true });
+  }
+  if (url.pathname === "/mock/streams") return Response.json(streamLog.filter((entry) => entry.id === id));
+  return new Response("not found", { status: 404 });
+}
+
 function stream(song: Song, request: Request): Response {
   const body = wav(song.duration ?? 180);
+  const entry = { id: song.id, aborted: false, finished: false };
+  streamLog.push(entry);
+  // A hang-up before the last byte; the connection closing after a finished stream doesn't count.
+  request.signal.addEventListener("abort", () => (entry.aborted ||= !entry.finished));
+  const slow = slowNext.get(song.id);
+  if (slow) {
+    slowNext.delete(song.id);
+    return pausedStream(body, slow, () => (entry.finished = true));
+  }
   const pause = Number(new URL(request.url).searchParams.get("mockPause") ?? 0);
   if (pause) return pausedStream(body, pause);
   const range = /^bytes=(\d*)-(\d*)$/.exec(request.headers.get("range") ?? "");
@@ -459,6 +489,7 @@ const server = Bun.serve({
   async fetch(request) {
     const url = new URL(request.url);
     if (url.pathname.startsWith("/lrclib/")) return lrclib(url);
+    if (url.pathname.startsWith("/mock/")) return control(url, request);
     const match = /^\/rest\/(\w+?)(?:\.view)?$/.exec(url.pathname);
     if (!match?.[1]) return new Response("not found", { status: 404 });
     const params = new URLSearchParams(url.search);

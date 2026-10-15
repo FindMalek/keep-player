@@ -1,12 +1,14 @@
 import type { Database } from "bun:sqlite";
 import { createHash, randomBytes } from "node:crypto";
 import type { Server } from "bun";
+import type { LyricsCoverage } from "../shared/lyrics";
 import type { LyricsSearch } from "../shared/search";
 import type { Upstream } from "./config";
 import { type CoverCache, snapCoverSize } from "./covers";
 import { UpdateCheck } from "./health";
 import { type NewPlay, readPlays, recordPlay } from "./history";
 import type { LyricsService } from "./lyrics";
+import { forgetMisses, lyricsCoverageReport, missingLyrics } from "./lyrics-coverage";
 import { lyricsCoverage, queryLyrics } from "./lyrics-search";
 import type { LoginLimiter } from "./rate-limit";
 import { search } from "./search";
@@ -121,6 +123,10 @@ export interface ApiOptions {
   trustProxy: boolean;
   /** Release check for admins (off unless `UPDATE_CHECK=on`). */
   updates?: UpdateCheck;
+  /** Lyrics backfill per upstream id (absent when `LYRICS_BACKFILL=off`). */
+  backfills?: Map<string, { restart(): void }>;
+  /** The .lrc sidecar writer, when `LYRICS_WRITE_LRC=on`. */
+  lrc?: { count(server: string): number; undoAll(server: string): { removed: number; kept: number } } | null;
 }
 
 export function createApi({
@@ -134,6 +140,8 @@ export function createApi({
   idleSeconds,
   trustProxy,
   updates = new UpdateCheck(false),
+  backfills = new Map(),
+  lrc = null,
 }: ApiOptions) {
   const upstreamFor = (id: string) => upstreams.find((upstream) => upstream.id === id);
 
@@ -351,6 +359,54 @@ export function createApi({
     return json({ ok: true });
   }
 
+  /** `/api/lyrics/coverage`: how much of what this user may see has lyrics, and the albums missing the most. */
+  async function lyricsCoverageRoute(request: Request): Promise<Response> {
+    if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
+    const session = sessions.get(cookieValue(request));
+    if (!session) return json({ error: "signed out" }, 401);
+    const upstream = upstreamFor(session.server);
+    if (!upstream) return json({ error: "server removed from config" }, 401);
+    const report: LyricsCoverage = lyricsCoverageReport(library, upstream.id, await foldersFor(session, upstream));
+    if (session.admin && lrc) report.written = lrc.count(upstream.id);
+    return json(report, 200, { "cache-control": "private, no-cache" });
+  }
+
+  /** `/api/lyrics/missing?offset=&limit=`: songs nobody found lyrics for, a page at a time. */
+  async function lyricsMissing(request: Request): Promise<Response> {
+    if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
+    const session = sessions.get(cookieValue(request));
+    if (!session) return json({ error: "signed out" }, 401);
+    const upstream = upstreamFor(session.server);
+    if (!upstream) return json({ error: "server removed from config" }, 401);
+    const params = new URL(request.url).searchParams;
+    const offset = Math.max(0, Number(params.get("offset")) || 0);
+    const limit = Math.min(500, Math.max(1, Number(params.get("limit")) || 100));
+    const songs = missingLyrics(library, upstream.id, await foldersFor(session, upstream), offset, limit);
+    return json({ songs }, 200, { "cache-control": "private, no-cache" });
+  }
+
+  /** `POST /api/lyrics/refetch`: forget the misses and walk the library again now. Admins only. */
+  async function lyricsRefetch(request: Request): Promise<Response> {
+    if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
+    const session = sessions.get(cookieValue(request));
+    if (!session) return json({ error: "signed out" }, 401);
+    if (!session.admin) return json({ error: "admins only" }, 403);
+    const forgotten = forgetMisses(library, session.server);
+    const backfill = backfills.get(session.server);
+    backfill?.restart();
+    return json({ forgotten, backfill: Boolean(backfill) });
+  }
+
+  /** `DELETE /api/lyrics/written`: remove every .lrc keep music wrote that is still as written. Admins only. */
+  async function lyricsWritten(request: Request): Promise<Response> {
+    if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
+    const session = sessions.get(cookieValue(request));
+    if (!session) return json({ error: "signed out" }, 401);
+    if (!session.admin) return json({ error: "admins only" }, 403);
+    if (!lrc) return json({ error: "LYRICS_WRITE_LRC is off" }, 404);
+    return json(lrc.undoAll(session.server));
+  }
+
   /** `/api/index`: the search index's counts and last sync (GET), or a rebuild now (POST). Admins only. */
   async function searchIndex(request: Request): Promise<Response> {
     if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
@@ -491,6 +547,10 @@ export function createApi({
     cover,
     songLyrics,
     lyricsOffset,
+    lyricsCoverage: lyricsCoverageRoute,
+    lyricsMissing,
+    lyricsRefetch,
+    lyricsWritten,
     searchIndex,
     searchLyrics,
     searchLibrary,
