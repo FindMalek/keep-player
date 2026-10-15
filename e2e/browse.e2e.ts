@@ -10,9 +10,9 @@ test("albums: sort, list view and genre filter, remembered after a reload", asyn
   await page.getByRole("option", { name: "year" }).click();
   await page.getByRole("group", { name: "layout" }).getByLabel("list", { exact: true }).click();
   await expect(page.locator("[data-album-index]").first()).toBeVisible();
-  const years = await page.locator("[data-album-index]").evaluateAll((rows) =>
-    rows.slice(0, 8).map((row) => Number(row.querySelector("span:nth-of-type(3)")?.textContent ?? 0)),
-  );
+  const years = await page
+    .locator("[data-album-index]")
+    .evaluateAll((rows) => rows.slice(0, 8).map((row) => Number(row.querySelector("span:nth-of-type(3)")?.textContent ?? 0)));
   expect(years).toEqual([...years].sort((a, b) => b - a));
 
   await page.reload();
