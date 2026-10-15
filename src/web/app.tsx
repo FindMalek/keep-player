@@ -39,10 +39,12 @@ import {
   HomePage,
   LikedPage,
   LyricsPage,
+  MomentsPage,
   PlaylistPage,
   preloadAllRoutes,
   SearchPage,
   SettingsPage,
+  SongLink,
   SongsPage,
   StatsPage,
 } from "@/routes";
@@ -131,6 +133,10 @@ function Page({ path }: { path: string }) {
       return <LyricsPage />;
     case "settings":
       return <SettingsPage section={param} />;
+    case "moments":
+      return <MomentsPage />;
+    case "song":
+      return param ? <SongLink key={param} id={param} /> : null;
     default:
       return <HomePage />;
   }
@@ -183,6 +189,8 @@ export function App() {
       openMiniPlayer: () => void openMiniPlayer(),
       newPlaylist: () => openPlaylistDialog({ kind: "new" }),
       undo: () => void undo(),
+      saveMoment: () => void import("@/lib/moments").then((moments) => moments.saveMoment()),
+      copyLink: () => void import("@/lib/moments").then((moments) => moments.copyCurrentLink()),
       redo: () => void redo(),
       likeCurrent: () => {
         const song = currentSong(player.getState());

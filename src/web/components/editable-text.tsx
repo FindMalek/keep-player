@@ -9,6 +9,7 @@ export function EditableText({
   editable,
   placeholder,
   className,
+  reserve = false,
 }: {
   value: string;
   onSave: (value: string) => void;
@@ -16,9 +17,14 @@ export function EditableText({
   editable: boolean;
   placeholder?: string;
   className?: string;
+  /** Not editable yet but will be (still loading): show the placeholder as plain text so nothing moves when it is. */
+  reserve?: boolean;
 }) {
   const [draft, setDraft] = useState<string | null>(null);
-  if (!editable) return value ? <span className={className}>{value}</span> : null;
+  if (!editable) {
+    if (value) return <span className={className}>{value}</span>;
+    return reserve && placeholder ? <span className={cn("text-faint", className)}>{placeholder}</span> : null;
+  }
   if (draft === null)
     return (
       <button

@@ -9,7 +9,10 @@ import tailwind from "bun-plugin-tailwind";
 // two-deck gapless, resilience) a few more; the rest is Base UI (sidebar tooltips need floating-ui on the first screen)
 // and the app. Lighthouse ≥ 95 (e2e/lighthouse.e2e.ts) is the real gate.
 // Tooltips (Base UI + floating-ui, ~28 KB) load after the first screen since #99, hence 175 → 155.
-const BUDGET_KB = { js: 155, css: 30 };
+// 155 → 160 with #119: nine features landed in one stretch (undo, drag and drop, stats, lyrics, radio, moments, settings),
+// each adding its shortcuts, route table entry and a little shared code to the first screen: 151.5 → 155.3 KB in all.
+// Everything big stays lazy (charts, recap, radio controls, the pages); Lighthouse (e2e) still gates the real speed.
+const BUDGET_KB = { js: 160, css: 30 };
 
 const result = await Bun.build({
   entrypoints: ["src/web/index.html"],

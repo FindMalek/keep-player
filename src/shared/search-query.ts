@@ -17,6 +17,8 @@ export interface Filters {
   format?: string;
   liked?: boolean;
   unplayed?: boolean;
+  /** `moment:note` (songs with a moment whose note matches) or `is:moment` (""): songs you saved a moment in. */
+  moment?: string;
 }
 
 export interface Chip {
@@ -26,7 +28,7 @@ export interface Chip {
   raw: string;
 }
 
-const OPERATOR = /(?:^|\s)(artist|album|genre|year|format|is):("[^"]*"|\S+)/gi;
+const OPERATOR = /(?:^|\s)(artist|album|genre|year|format|is|moment):("[^"]*"|\S+)/gi;
 
 function year(value: string): [number, number] | undefined {
   const range = /^(\d{4})?\.\.(\d{4})?$/.exec(value);
@@ -51,8 +53,10 @@ export function parseQuery(raw: string): ParsedQuery {
       } else if (key === "is") {
         if (value === "liked") filters.liked = true;
         else if (value === "unplayed") filters.unplayed = true;
+        else if (value === "moment") filters.moment = "";
         else return match;
       } else if (key === "format") filters.format = value.toLowerCase();
+      else if (key === "moment") filters.moment = value;
       else filters[key as "artist" | "album" | "genre"] = value;
       chips.push({ key, value, raw: match.trim() });
       return " ";

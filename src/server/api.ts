@@ -10,6 +10,7 @@ import { type NewPlay, readPlays, recordPlay } from "./history";
 import type { LyricsService } from "./lyrics";
 import { forgetMisses, lyricsCoverageReport, missingLyrics } from "./lyrics-coverage";
 import { lyricsCoverage, queryLyrics } from "./lyrics-search";
+import { addMoment, deleteMoment, listMoments, momentNotes, updateMoment } from "./moments";
 import { ban, listBans, unban } from "./radio";
 import type { LoginLimiter } from "./rate-limit";
 import { search } from "./search";
@@ -455,7 +456,8 @@ export function createApi({
     const query = (params.get("q") ?? "").slice(0, 200);
     const limit = Math.min(50, Math.max(1, Number(params.get("limit")) || 8));
     const [folders, liked] = await Promise.all([foldersFor(session, upstream), likesFor(session, upstream)]);
-    return json(search(library, upstream.id, query, { folders, liked }, limit), 200, { "cache-control": "private, no-cache" });
+    const moments = /\b(moment:|is:moment)/i.test(query) ? momentNotes(library, `${session.server}:${session.user}`) : undefined;
+    return json(search(library, upstream.id, query, { folders, liked, moments }, limit), 200, { "cache-control": "private, no-cache" });
   }
 
   /** `/api/version`: the running version, and for admins whether a newer release is out. */
@@ -491,6 +493,37 @@ export function createApi({
     if (!valid) return json({ error: "song, started, listened" }, 400);
     recordPlay(library, account, request.headers.get(CLIENT_HEADER) ?? "", { ...(body as NewPlay), finished: Boolean(body.finished) });
     return json({ ok: true });
+  }
+
+  /** `/api/moments`: your moments (GET, `?song=` for one song's), or save one (POST `{ song, at, note }`). */
+  async function moments(request: Request): Promise<Response> {
+    if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
+    const session = sessions.get(cookieValue(request));
+    if (!session) return json({ error: "signed out" }, 401);
+    const account = `${session.server}:${session.user}`;
+    if (request.method === "GET")
+      return json({ moments: listMoments(library, account, new URL(request.url).searchParams.get("song") ?? undefined) }, 200, {
+        "cache-control": "private, no-cache",
+      });
+    const body = (await request.json().catch(() => null)) as { song?: { id?: unknown }; at?: unknown; note?: unknown } | null;
+    if (typeof body?.song?.id !== "string" || typeof body.at !== "number" || !Number.isFinite(body.at) || body.at < 0 || body.at > 86_400)
+      return json({ error: "song, at" }, 400);
+    const moment = addMoment(library, account, body.song as { id: string }, body.at, typeof body.note === "string" ? body.note : "");
+    return json(moment, 201);
+  }
+
+  /** `/api/moments/:id`: change its note (PATCH `{ note }`) or delete it. */
+  async function moment(request: Request & { params: { id: string } }): Promise<Response> {
+    if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
+    const session = sessions.get(cookieValue(request));
+    if (!session) return json({ error: "signed out" }, 401);
+    const account = `${session.server}:${session.user}`;
+    const id = Number(request.params.id);
+    if (!Number.isInteger(id)) return json({ error: "not found" }, 404);
+    if (request.method === "DELETE") return deleteMoment(library, account, id) ? json({ ok: true }) : json({ error: "not found" }, 404);
+    const body = (await request.json().catch(() => null)) as { note?: unknown } | null;
+    if (typeof body?.note !== "string") return json({ error: "note" }, 400);
+    return updateMoment(library, account, id, body.note) ? json({ ok: true }) : json({ error: "not found" }, 404);
   }
 
   /** `/api/settings`: your synced preferences (GET), or replace them (PUT, a JSON object under 8 KB). */
@@ -594,6 +627,8 @@ export function createApi({
     history,
     radioBans,
     userSettings,
+    moments,
+    moment,
     stats,
     forgotten,
     playlistHidden,

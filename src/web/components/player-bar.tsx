@@ -64,6 +64,7 @@ function Elapsed() {
 const OutputDevice = lazy(() => import("./output-device").then((module) => ({ default: module.OutputDevice })));
 
 // The sleep menu (a dropdown) also loads after first paint.
+const MomentTicks = lazy(() => import("./moment-ticks").then((module) => ({ default: module.MomentTicks })));
 const SleepMenu = lazy(() => import("./sleep-menu").then((module) => ({ default: module.SleepMenu })));
 
 function SleepFallback() {
@@ -162,6 +163,7 @@ export function PlayerBar({ panel, onPanel }: { panel: Panel; onPanel: (panel: P
   const shuffle = usePlayer((state) => state.queue.shuffle);
   const repeat = usePlayer((state) => state.queue.repeat);
   const buffering = usePlayer((state) => state.buffering);
+  const duration = usePlayer((state) => state.duration);
   // A spinner only when buffering drags on; short waits just pulse the seek track.
   const [slow, setSlow] = useState(false);
   useEffect(() => {
@@ -233,7 +235,12 @@ export function PlayerBar({ panel, onPanel }: { panel: Panel; onPanel: (panel: P
           </AudioPlayerControls>
           <div className="flex items-center gap-2.5">
             <Elapsed />
-            <AudioPlayerSeek aria-label="seek" className={cn(buffering && "animate-pulse motion-reduce:animate-none")} />
+            <div className="relative flex flex-1 items-center">
+              <AudioPlayerSeek aria-label="seek" className={cn(buffering && "animate-pulse motion-reduce:animate-none")} />
+              <Suspense>
+                <MomentTicks songId={song?.id} duration={duration} />
+              </Suspense>
+            </div>
             <AudioPlayerTime type="duration" className="w-11 text-left text-[11px]" />
           </div>
         </div>

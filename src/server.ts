@@ -88,6 +88,8 @@ const server = Bun.serve({
     "/api/playlists/:id/hidden": { GET: api.playlistHidden, PUT: api.playlistHidden },
     "/api/history": { GET: api.history, POST: api.history },
     "/api/settings": { GET: api.userSettings, PUT: api.userSettings },
+    "/api/moments": { GET: api.moments, POST: api.moments },
+    "/api/moments/:id": { PATCH: api.moment, DELETE: api.moment },
     "/api/radio/bans": { GET: api.radioBans, POST: api.radioBans, DELETE: api.radioBans },
     "/api/stats": { GET: api.stats },
     "/api/stats/forgotten": { GET: api.forgotten },
