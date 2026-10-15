@@ -726,6 +726,14 @@ export const player = {
       redo: () => restoreQueue(after, () => state.queue),
     });
   },
+  /** A radio refilling: more songs at the end of the context, no toast, not an undo step. */
+  appendToContext(songs: Song[]): void {
+    if (songs.length) edit(Q.appendContext(state.queue, songs));
+  },
+  /** Take an upcoming song out without a toast (a radio dropping what you said no to). */
+  removeQuietly(entry: Q.Entry): void {
+    edit(Q.remove(state.queue, entry));
+  },
   /** Take over a queue from another device, paused at `seconds` in its current song (the queue hand-off). */
   adopt(songs: Song[], index: number, seconds: number): void {
     if (!songs.length) return;

@@ -147,6 +147,20 @@ export function playContext(
   return { ...next, current: contextEntry(next, next.context.cursor) };
 }
 
+/** Add songs to the end of the context's play order (an endless radio refilling), shuffle or not. */
+export function appendContext(queue: Queue, songs: Song[]): Queue {
+  if (!songs.length) return queue;
+  const start = queue.context.songs.length;
+  return {
+    ...queue,
+    context: {
+      ...queue.context,
+      songs: [...queue.context.songs, ...songs],
+      order: [...queue.context.order, ...songs.map((_, index) => start + index)],
+    },
+  };
+}
+
 /** What `next` would play, without changing anything (gapless preloading uses this). */
 export function peekNext(queue: Queue): Song | null {
   if (queue.upNext[0]) return queue.upNext[0].song;
