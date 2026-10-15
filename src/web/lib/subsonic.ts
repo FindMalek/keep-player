@@ -118,13 +118,14 @@ async function setAccount(next: string | null): Promise<void> {
   if (changed) await Promise.all([...accountListeners].map((listener) => listener()));
 }
 
-export async function login(name: string, password: string): Promise<void> {
+/** Signs in to `server` (an id from NAVIDROME_SERVERS; the first one when omitted). */
+export async function login(name: string, password: string, server?: string): Promise<void> {
   const response = await fetch("/auth/login", {
     method: "POST",
     headers: { ...HEADERS, "content-type": "application/json" },
-    body: JSON.stringify({ user: name, password }),
+    body: JSON.stringify({ user: name, password, server }),
   }).catch(() => null);
-  if (!response) throw new Error("server unreachable");
+  if (!response) throw new Error("can't reach keep music: check your connection");
   const body = (await response.json().catch(() => ({}))) as { user?: string; server?: string; error?: string };
   if (!response.ok || !body.user) throw new Error(body.error ?? "login failed");
   await setAccount(`${body.server ?? ""}/${body.user}`);

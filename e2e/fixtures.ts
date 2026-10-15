@@ -16,6 +16,8 @@ export const test = base.extend<{ signedIn: Page }>({
       const key = "keep-player:settings";
       const settings = JSON.parse(localStorage.getItem(key) ?? "{}") as Record<string, unknown>;
       if (!("queueSync" in settings)) localStorage.setItem(key, JSON.stringify({ ...settings, queueSync: false }));
+      // The first-run setup is its own test (onboarding.e2e.ts); everywhere else it's done.
+      if (localStorage.getItem("keep-player:onboarded") === null) localStorage.setItem("keep-player:onboarded", "test");
     });
     await use(page);
   },
