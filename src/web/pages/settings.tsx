@@ -216,6 +216,14 @@ export function SettingsPage({ section }: { section: string | null }) {
             <p className="pb-2 text-muted-foreground text-xs">
               your rules for songs and albums, on every browser. <span className="font-mono">follows you to every browser</span>
             </p>
+            <Row
+              label="import from spotify"
+              hint="rebuild your playlists and liked songs from a Spotify export, with a screen to check each match"
+            >
+              <Button variant="outline" size="sm" render={<Link href="/import" />}>
+                open
+              </Button>
+            </Row>
             <LibraryRules />
           </TabsContent>
 

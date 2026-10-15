@@ -3,10 +3,12 @@ import { createHash, randomBytes } from "node:crypto";
 import type { Server } from "bun";
 import type { LyricsCoverage } from "../shared/lyrics";
 import type { LyricsSearch } from "../shared/search";
+import { readTrack } from "../shared/spotify-import";
 import type { Upstream } from "./config";
 import { type CoverCache, snapCoverSize } from "./covers";
 import { UpdateCheck } from "./health";
 import { type NewPlay, readPlays, recordPlay } from "./history";
+import { matchTrack } from "./import-match";
 import type { LyricsService } from "./lyrics";
 import { forgetMisses, lyricsCoverageReport, missingLyrics } from "./lyrics-coverage";
 import { lyricsCoverage, queryLyrics } from "./lyrics-search";
@@ -461,6 +463,21 @@ export function createApi({
     return json(search(library, upstream.id, query, { folders, liked, moments }, limit), 200, { "cache-control": "private, no-cache" });
   }
 
+  /** `/api/import/match`: POST up to 200 tracks from a Spotify export; each comes back with its best library match. */
+  async function importMatch(request: Request): Promise<Response> {
+    if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
+    const session = sessions.get(cookieValue(request));
+    if (!session) return json({ error: "signed out" }, 401);
+    const upstream = upstreamFor(session.server);
+    if (!upstream) return json({ error: "server removed from config" }, 401);
+    const body = (await request.json().catch(() => null)) as { tracks?: unknown } | null;
+    if (!Array.isArray(body?.tracks) || body.tracks.length > 200) return json({ error: "send up to 200 tracks" }, 400);
+    const tracks = body.tracks.map((raw) => readTrack(raw));
+    const folders = await foldersFor(session, upstream);
+    const matches = tracks.map((track) => (track ? matchTrack(library, upstream.id, folders, track) : { best: null, alternatives: [] }));
+    return json({ matches }, 200, { "cache-control": "private, no-store" });
+  }
+
   /** `/api/version`: the running version, and for admins whether a newer release is out. */
   async function version(request: Request): Promise<Response> {
     const session = sessions.get(cookieValue(request));
@@ -692,5 +709,6 @@ export function createApi({
     searchIndex,
     searchLyrics,
     searchLibrary,
+    importMatch,
   };
 }

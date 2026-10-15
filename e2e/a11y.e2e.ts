@@ -10,6 +10,7 @@ const PAGES = [
   "/artist/ar-2",
   "/songs",
   "/genres",
+  "/import",
   "/genre/Rock",
   "/folders",
   "/folders/ar-2",

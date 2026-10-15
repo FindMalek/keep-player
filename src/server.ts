@@ -97,6 +97,7 @@ const server = Bun.serve({
     "/api/stats/forgotten": { GET: api.forgotten },
     "/api/index": { GET: api.searchIndex, POST: api.searchIndex },
     "/api/search": { GET: api.searchLibrary },
+    "/api/import/match": { POST: api.importMatch },
     "/api/search/lyrics": { GET: api.searchLyrics },
     "/fonts/:name": font,
     ...pwaRoutes,
