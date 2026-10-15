@@ -6,10 +6,12 @@ import { LibraryRules } from "@/components/library-rules";
 import { Link } from "@/components/link";
 import { OutputDevice } from "@/components/output-device";
 import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { apiQueries } from "@/lib/api-queries";
+import { MAX_CROSSFADE } from "@/lib/crossfade";
 import { install, useInstallState } from "@/lib/install";
 import { MINI_PLAYER_SUPPORTED } from "@/lib/mini-player";
 import { type Settings, setSetting, useSetting } from "@/lib/settings";
@@ -37,12 +39,39 @@ function Row({ label, hint, children, id }: { label: string; hint?: ReactNode; c
   );
 }
 
-function Toggle({ setting, label, hint }: { setting: keyof Settings; label: string; hint?: ReactNode }) {
+type BooleanSetting = { [K in keyof Settings]: Settings[K] extends boolean ? K : never }[keyof Settings];
+
+function Toggle({ setting, label, hint }: { setting: BooleanSetting; label: string; hint?: ReactNode }) {
   const value = useSetting(setting);
   const id = `setting-${setting}`;
   return (
     <Row id={id} label={label} hint={hint}>
       <Switch id={id} checked={value} onCheckedChange={(checked) => setSetting(setting, checked === true)} />
+    </Row>
+  );
+}
+
+/** Crossfade length: off to 12 s. Songs that follow each other on an album never fade, so live records stay whole. */
+function Crossfade() {
+  const seconds = useSetting("crossfade");
+  return (
+    <Row
+      id="setting-crossfade"
+      label="crossfade"
+      hint={<>the next song starts before this one ends · never between album tracks played in order · {SYNCED}</>}
+    >
+      <div className="flex w-56 items-center gap-3">
+        <Slider
+          id="setting-crossfade"
+          thumbLabel="crossfade seconds"
+          min={0}
+          max={MAX_CROSSFADE}
+          step={1}
+          value={[seconds]}
+          onValueChange={(value) => setSetting("crossfade", Array.isArray(value) ? (value[0] ?? 0) : value)}
+        />
+        <span className="w-10 text-right font-mono text-xs tabular-nums">{seconds ? `${seconds} s` : "off"}</span>
+      </div>
     </Row>
   );
 }
@@ -93,8 +122,9 @@ export function SettingsPage({ section }: { section: string | null }) {
                 hint={<>an always-on-top window while music plays · {DEVICE}</>}
               />
             )}
+            <Crossfade />
             <p className="py-3 text-muted-foreground text-xs">
-              songs play gapless with replaygain from your tags. crossfade, equalizer and quality settings come next.
+              songs play gapless with replaygain from your tags. equalizer and quality settings come next.
             </p>
           </TabsContent>
 

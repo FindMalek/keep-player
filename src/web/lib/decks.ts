@@ -1,3 +1,5 @@
+import { equalPower, fitFade, SKIP_FADE_SECONDS } from "./crossfade";
+
 /*
  * Two audio decks for gapless playback. One plays; the other holds the next song, preloaded. A few milliseconds before
  * the playing song ends, the idle deck starts (each deck has its own gain node, ramped over 5 ms so the handover never
@@ -5,6 +7,9 @@
  *
  *   deck A ─ MediaElementSource ─ gain (ReplayGain) ─┐
  *   deck B ─ MediaElementSource ─ gain (ReplayGain) ─┴─ master (volume) ─ destination
+ *
+ * With a crossfade the idle deck starts `fade` seconds early and the two gains follow equal-power curves; a manual
+ * skip fades the old song out over 300 ms instead.
  */
 
 /** How early the next song starts: covers the element's start-up latency so the two meet without a gap. */
@@ -38,6 +43,8 @@ interface Deck {
   songId: string | null;
   /** ReplayGain factor for that song. */
   factor: number;
+  /** Crossfade into this song when it takes over (0: gapless). */
+  fade: number;
 }
 
 export class Decks {
@@ -52,6 +59,8 @@ export class Decks {
   private tailUntil = 0;
   /** The deck whose handover timer is set, so per-frame checks don't re-arm it. */
   private armed: Deck | null = null;
+  /** A crossfade is set, so a manual skip fades (300 ms) instead of cutting. */
+  private fadesSkips = false;
 
   constructor(private readonly events: DeckEvents) {
     this.decks = [this.createDeck(), this.createDeck()];
@@ -60,7 +69,7 @@ export class Decks {
   private createDeck(): Deck {
     const element = new Audio();
     element.preload = "auto";
-    const deck: Deck = { element, gain: null, songId: null, factor: 1 };
+    const deck: Deck = { element, gain: null, songId: null, factor: 1, fade: 0 };
     // Only the playing deck reports; the idle one is silently preloading.
     const on = (name: string, handler: () => void) =>
       element.addEventListener(name, () => {
@@ -109,7 +118,7 @@ export class Decks {
       for (const deck of this.decks) {
         deck.gain = context.createGain();
         context.createMediaElementSource(deck.element).connect(deck.gain).connect(master);
-        deck.gain.gain.value = deck === this.playing ? deck.factor : 0;
+        this.setGain(deck, deck === this.playing ? deck.factor : 0);
         deck.element.volume = 1;
       }
       this.context = context;
@@ -120,6 +129,18 @@ export class Decks {
       this.context = null;
     }
     void this.context?.resume();
+  }
+
+  /** Set a deck's gain outright, dropping any fade still scheduled on it (a value set inside a curve would throw). */
+  private setGain(deck: Deck, value: number): void {
+    if (!deck.gain) return;
+    deck.gain.gain.cancelScheduledValues(0);
+    deck.gain.gain.value = value;
+  }
+
+  /** Whether a manual skip should fade out rather than cut (true while a crossfade is set). */
+  setFadesSkips(on: boolean): void {
+    this.fadesSkips = on;
   }
 
   /** Volume 0..1 (already 0 when muted). Through the master gain once the graph exists, else on the element. */
@@ -136,7 +157,7 @@ export class Decks {
   /** ReplayGain for the playing song (shuffle toggles can change album vs track gain mid-song). */
   setFactor(factor: number): void {
     this.playing.factor = factor;
-    if (this.playing.gain) this.playing.gain.gain.value = factor;
+    this.setGain(this.playing, factor);
   }
 
   async setSink(id: string): Promise<void> {
@@ -156,10 +177,23 @@ export class Decks {
   load(songId: string, url: string, factor: number, startAt: number, autoplay: boolean): void {
     clearTimeout(this.timer);
     this.armed = null;
+    let faded = false;
     // A preload that failed (silently: the idle deck doesn't report) is loaded afresh rather than handed the error.
     if (this.idle.songId === songId && this.idle.element.src && !this.idle.element.error) {
-      this.playing.element.pause();
+      const from = this.playing;
       this.active = 1 - this.active;
+      const to = this.playing;
+      // Skipping with a crossfade set: the old song fades out over 300 ms under the new one instead of being cut.
+      if (this.fadesSkips && autoplay && !from.element.paused && from.gain && to.gain && this.context) {
+        const { incoming, outgoing } = equalPower(factor, from.factor);
+        const time = this.context.currentTime;
+        from.gain.gain.cancelScheduledValues(time);
+        from.gain.gain.setValueCurveAtTime(outgoing, time, SKIP_FADE_SECONDS);
+        to.gain.gain.cancelScheduledValues(time);
+        to.gain.gain.setValueCurveAtTime(incoming, time, SKIP_FADE_SECONDS);
+        this.parkAfter(from, SKIP_FADE_SECONDS * 1000 + 50);
+        faded = true;
+      } else from.element.pause();
     } else {
       this.playing.element.pause();
       this.playing.songId = songId;
@@ -167,8 +201,10 @@ export class Decks {
     }
     const deck = this.playing;
     deck.factor = factor;
-    if (deck.gain) deck.gain.gain.value = factor;
-    if (this.idle.gain) this.idle.gain.gain.value = 0;
+    if (!faded) {
+      this.setGain(deck, factor);
+      this.setGain(this.idle, 0);
+    }
     this.events.duration(Number.isFinite(deck.element.duration) ? deck.element.duration : 0);
     if (startAt) {
       // Seeking before metadata is loaded is ignored by some browsers.
@@ -179,15 +215,16 @@ export class Decks {
   }
 
   /** Put the song that comes next into the idle deck (null clears it, e.g. at the end of the queue). */
-  preload(songId: string | null, url: string | null, factor: number, startAt = 0): void {
+  preload(songId: string | null, url: string | null, factor: number, startAt = 0, fade = 0): void {
     const wait = this.tailUntil - performance.now();
     if (wait > 0) {
-      setTimeout(() => this.preload(songId, url, factor, startAt), wait);
+      setTimeout(() => this.preload(songId, url, factor, startAt, fade), wait);
       return;
     }
     const idle = this.idle;
     if (idle.songId === songId) {
       idle.factor = factor;
+      idle.fade = fade;
       return;
     }
     clearTimeout(this.timer);
@@ -195,6 +232,7 @@ export class Decks {
     idle.element.pause();
     idle.songId = songId;
     idle.factor = factor;
+    idle.fade = fade;
     if (url) {
       idle.element.src = url;
       idle.element.load();
@@ -269,21 +307,38 @@ export class Decks {
     this.armHandover();
   }
 
-  /** Arm a timer for the handover once the playing song is within ARM_SECONDS of its end. */
+  /** The crossfade the next takeover uses: what was lined up for it, no longer than half of either song. */
+  private fadeNow(): number {
+    return fitFade(this.idle.fade, this.playing.element.duration, this.idle.element.duration || Number.POSITIVE_INFINITY);
+  }
+
+  /** Arm a timer for the handover once the playing song is within ARM_SECONDS (plus the crossfade) of its end. */
   private armHandover(): void {
     const element = this.playing.element;
     const remaining = element.duration - element.currentTime;
-    if (element.paused || !Number.isFinite(remaining) || remaining > ARM_SECONDS || !this.idle.songId || this.armed === this.playing)
+    const fade = this.fadeNow();
+    if (element.paused || !Number.isFinite(remaining) || remaining > ARM_SECONDS + fade || !this.idle.songId || this.armed === this.playing)
       return;
     clearTimeout(this.timer);
     this.armed = this.playing;
     const expected = this.playing;
     this.timer = setTimeout(
       () => {
-        if (this.playing === expected) this.handover();
+        // The next song may still be loading (a crossfade starts early): ask again on the next frame, until it is
+        // ready or the song ends and the plain path takes over.
+        if (this.playing === expected && !this.handover()) this.armed = null;
       },
-      Math.max(0, (remaining - LEAD_SECONDS) * 1000),
+      Math.max(0, (remaining - LEAD_SECONDS - fade) * 1000),
     );
+  }
+
+  /** Let the old deck play out `milliseconds` (under the fade), then park it; `preload` waits until it has. */
+  private parkAfter(from: Deck, milliseconds: number): void {
+    this.tailUntil = performance.now() + milliseconds;
+    setTimeout(() => {
+      if (from !== this.playing) from.element.pause();
+    }, milliseconds);
+    from.songId = null;
   }
 
   /** Start the idle deck and swap roles. False when there's nothing ready to take over. */
@@ -292,23 +347,28 @@ export class Decks {
     const to = this.idle;
     if (!to.songId || to.element.readyState < HTMLMediaElement.HAVE_FUTURE_DATA) return false;
     const time = this.context?.currentTime ?? 0;
+    // Only while the old song still has the fade left; a song that ended on its own hands over with the 5 ms ramp.
+    const left = from.element.duration - from.element.currentTime;
+    const fade = this.context && left > 0.05 ? Math.min(this.fadeNow(), left) : 0;
     if (to.gain && from.gain) {
       to.gain.gain.cancelScheduledValues(time);
-      to.gain.gain.setValueAtTime(0, time);
-      to.gain.gain.linearRampToValueAtTime(to.factor, time + RAMP_SECONDS);
       from.gain.gain.cancelScheduledValues(time);
-      from.gain.gain.setValueAtTime(from.factor, time + LEAD_SECONDS);
-      from.gain.gain.linearRampToValueAtTime(0, time + LEAD_SECONDS + RAMP_SECONDS);
+      if (fade > RAMP_SECONDS) {
+        const { incoming, outgoing } = equalPower(to.factor, from.factor);
+        to.gain.gain.setValueCurveAtTime(incoming, time, fade);
+        from.gain.gain.setValueCurveAtTime(outgoing, time, fade);
+      } else {
+        to.gain.gain.setValueAtTime(0, time);
+        to.gain.gain.linearRampToValueAtTime(to.factor, time + RAMP_SECONDS);
+        from.gain.gain.setValueAtTime(from.factor, time + LEAD_SECONDS);
+        from.gain.gain.linearRampToValueAtTime(0, time + LEAD_SECONDS + RAMP_SECONDS);
+      }
     }
-    to.element.currentTime = 0;
     this.armed = null;
     this.active = 1 - this.active;
     void to.element.play().catch((error) => this.rejected(error));
-    // Let the last few milliseconds of the old song play out under the ramp, then park it.
-    const tail = (LEAD_SECONDS + RAMP_SECONDS) * 1000 + 50;
-    this.tailUntil = performance.now() + tail;
-    setTimeout(() => from.element.pause(), tail);
-    from.songId = null;
+    // Let the old song play out under the fade (or its last few milliseconds under the ramp), then park it.
+    this.parkAfter(from, fade > RAMP_SECONDS ? fade * 1000 + 50 : (LEAD_SECONDS + RAMP_SECONDS) * 1000 + 50);
     this.events.handover();
     return true;
   }

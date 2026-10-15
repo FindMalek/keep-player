@@ -1,12 +1,14 @@
 import { del, get, set as setStored } from "idb-keyval";
 import { useRef, useSyncExternalStore } from "react";
 import type { FrameSource } from "./audio/types";
+import { fadeBetween } from "./crossfade";
 import { Decks } from "./decks";
 import { notify } from "./notify";
 import { controlled, dropPrecache, isCached, onCacheChange, pausePrecache, precache } from "./offline";
 import { isHidden, songPref } from "./prefs";
 import { queries, queryClient } from "./queries";
 import * as Q from "./queue";
+import { getSetting, subscribeSettings } from "./settings";
 import { api, coverUrl, onAccountChange, preloadCover, scrobble, streamUrl } from "./subsonic";
 import type { Song } from "./types";
 import { done, record } from "./undo";
@@ -405,7 +407,11 @@ function preloadNext(): void {
 /** Put the next song in the idle deck, from the cache when the service worker has it (or `now`: from the network). */
 function lineUpNextDeck(now: boolean): void {
   const next = upcoming();
-  if (decks.preloadedId === (next?.song.id ?? null)) return;
+  if (decks.preloadedId === (next?.song.id ?? null)) {
+    // Already there: only the crossfade into it may have changed (the setting, or what plays before it).
+    if (next) decks.preload(next.song.id, null, next.factor, 0, fadeBetween(getSetting("crossfade"), current(), next.song));
+    return;
+  }
   if (next && !now && controlled() && !isCached(next.song.id)) {
     // Waiting for the cache: a deck still holding the old "next" would keep downloading it for nothing.
     if (decks.preloadedId) decks.preload(null, null, 1);
@@ -418,8 +424,16 @@ function lineUpNextDeck(now: boolean): void {
     next ? streamUrl(next.song.id) : null,
     next?.factor ?? 1,
     (next && songPref(next.song.id)?.trimStart) || 0,
+    fadeBetween(getSetting("crossfade"), current(), next?.song),
   );
 }
+
+// Changing the crossfade applies to the song already lined up, and decides whether a skip fades.
+decks.setFadesSkips(getSetting("crossfade") > 0);
+subscribeSettings(() => {
+  decks.setFadesSkips(getSetting("crossfade") > 0);
+  if (nextLined) lineUpNextDeck(false);
+});
 
 // The service worker saved another song: it may be the one the idle deck is waiting for.
 onCacheChange(() => nextLined && lineUpNextDeck(false));
