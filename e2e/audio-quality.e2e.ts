@@ -36,3 +36,18 @@ test("the equalizer opens, presets set the bands and turn it on, reset flattens 
   await sheet.getByRole("button", { name: "reset" }).click();
   await expect.poll(async () => ((await stored(page)).eqGains as number[]).every((gain) => gain === 0)).toBe(true);
 });
+
+test("a transcode stream quality is requested for new plays, and the original stays the default", async ({ page, signedIn }) => {
+  await signedIn.goto("/settings/playback");
+  const group = page.getByRole("group", { name: "stream quality" });
+  await expect(group.getByRole("button", { name: "original" })).toHaveAttribute("aria-pressed", "true");
+  await group.getByRole("button", { name: "opus 96" }).click();
+  await expect.poll(async () => (await stored(page)).streamQuality).toBe("opus-96");
+
+  await signedIn.goto("/album/al-3");
+  const request = page.waitForRequest((candidate) => candidate.url().includes("/rest/stream") && candidate.url().includes("format=opus"));
+  await page.getByRole("button", { name: "play", exact: true }).first().click();
+  const url = new URL((await request).url());
+  expect(url.searchParams.get("maxBitRate")).toBe("96");
+  expect(url.searchParams.get("estimateContentLength")).toBe("true");
+});

@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from "react";
+import type { StreamQuality } from "./stream-quality";
 
 /*
  * Preferences in localStorage, shown on the settings page (#53). The ones in SYNCED also follow you to every browser
@@ -18,6 +19,8 @@ export interface Settings {
   followOtherDevices: boolean;
   /** Seconds the next song starts before the playing one ends (0 = off, up to 12); never inside an album played in order. */
   crossfade: number;
+  /** What to stream: the original file, or a transcode for slow or metered connections. This device only. */
+  streamQuality: StreamQuality;
   /** Which ReplayGain to apply: none, the song's, the album's, or the album's while an album plays in order (auto). */
   normalization: "off" | "track" | "album" | "auto";
   /** Extra gain on top of the normalization, in dB (-12 to +12). */
@@ -34,6 +37,10 @@ export const SYNCED = [
   "queueSync",
   "followOtherDevices",
   "crossfade",
+  "normalization",
+  "preamp",
+  "eqOn",
+  "eqGains",
 ] as const satisfies readonly (keyof Settings)[];
 
 const KEY = "keep-player:settings";
@@ -44,6 +51,7 @@ const DEFAULTS: Settings = {
   queueSync: true,
   followOtherDevices: false,
   crossfade: 0,
+  streamQuality: "original",
   normalization: "auto",
   preamp: 0,
   eqOn: false,

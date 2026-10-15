@@ -15,6 +15,7 @@ import { MAX_CROSSFADE } from "@/lib/crossfade";
 import { install, useInstallState } from "@/lib/install";
 import { MINI_PLAYER_SUPPORTED } from "@/lib/mini-player";
 import { type Settings, setSetting, useSetting } from "@/lib/settings";
+import { isStreamQuality, QUALITIES } from "@/lib/stream-quality";
 import { logout, useUser } from "@/lib/subsonic";
 import { setTheme, type Theme, useTheme } from "@/lib/theme";
 
@@ -100,6 +101,28 @@ function Loudness() {
   );
 }
 
+/** What to stream (#24): the original file, or a transcode for a slow or metered connection. Kept per device. */
+function StreamQualityRow() {
+  const quality = useSetting("streamQuality");
+  return (
+    <Row label="stream quality" hint={<>original plays your files as they are · a transcode saves data on a slow connection · {DEVICE}</>}>
+      <ToggleGroup
+        variant="outline"
+        size="sm"
+        aria-label="stream quality"
+        value={[quality]}
+        onValueChange={(value: string[]) => isStreamQuality(value[0]) && setSetting("streamQuality", value[0])}
+      >
+        {QUALITIES.map(([value, name]) => (
+          <ToggleGroupItem key={value} value={value} className="font-mono font-normal">
+            {name}
+          </ToggleGroupItem>
+        ))}
+      </ToggleGroup>
+    </Row>
+  );
+}
+
 /** Crossfade length: off to 12 s. Songs that follow each other on an album never fade, so live records stay whole. */
 function Crossfade() {
   const seconds = useSetting("crossfade");
@@ -175,6 +198,7 @@ export function SettingsPage({ section }: { section: string | null }) {
             )}
             <Crossfade />
             <Loudness />
+            <StreamQualityRow />
             <Row label="equalizer" hint={<>ten bands with presets, off by default · {SYNCED}</>}>
               <div className="flex items-center gap-3">
                 <Switch aria-label="equalizer on" checked={eqOn} onCheckedChange={(checked) => setSetting("eqOn", checked === true)} />

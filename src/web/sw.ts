@@ -240,7 +240,9 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
   if (url.origin !== self.location.origin || event.request.method !== "GET") return;
   if (event.request.mode === "navigate") event.respondWith(navigation(event.request));
-  else if (url.pathname === "/rest/stream") event.respondWith(audioResponse(event.request, url.searchParams.get("id") ?? ""));
+  // A transcode (another format) is never cached: it goes to the network.
+  else if (url.pathname === "/rest/stream" && url.searchParams.get("format") === "raw")
+    event.respondWith(audioResponse(event.request, url.searchParams.get("id") ?? ""));
   else if (url.pathname.startsWith("/cover/")) event.respondWith(coverResponse(event.request));
   else if (__SHELL__.includes(url.pathname))
     event.respondWith(caches.match(event.request).then((cached) => cached ?? fetch(event.request)));
