@@ -290,7 +290,17 @@ export function createApi({
     ).catch(() => null);
     if (!response) return json({ error: "server unreachable" }, 502);
     const out = new Headers(SECURITY_HEADERS);
-    for (const name of ["content-type", "content-length", "content-range", "accept-ranges", "etag", "last-modified", "cache-control"]) {
+    // content-disposition: a download keeps the file's own name.
+    for (const name of [
+      "content-type",
+      "content-length",
+      "content-range",
+      "accept-ranges",
+      "etag",
+      "last-modified",
+      "cache-control",
+      "content-disposition",
+    ]) {
       const value = response.headers.get(name);
       if (value) out.set(name, value);
     }

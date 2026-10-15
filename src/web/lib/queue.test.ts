@@ -8,6 +8,7 @@ import {
   EMPTY_QUEUE,
   jumpTo,
   move,
+  moveTo,
   next,
   peekNext,
   playContext,
@@ -124,5 +125,16 @@ describe("queue", () => {
     queue = move(queue, upcoming[0] as never, 1);
     expect(contextUpcoming(queue).map((entry) => entry.song.id)).toEqual(["3", "2", "4"]);
     expect(move(queue, contextUpcoming(queue)[0] as never, -1)).toBe(queue);
+  });
+
+  test("dragging an entry onto another takes its place, only within the same part of the queue", () => {
+    let queue = addToQueue(playContext(EMPTY_QUEUE, album, 0), [song("q1"), song("q2"), song("q3")]);
+    queue = moveTo(queue, queue.upNext[2] as never, queue.upNext[0] as never);
+    expect(queue.upNext.map((entry) => entry.song.id)).toEqual(["q3", "q1", "q2"]);
+    const upcoming = contextUpcoming(queue);
+    queue = moveTo(queue, upcoming[2] as never, upcoming[0] as never);
+    expect(contextUpcoming(queue).map((entry) => entry.song.id)).toEqual(["4", "2", "3"]);
+    // Your queue and the album don't mix by dragging.
+    expect(moveTo(queue, queue.upNext[0] as never, contextUpcoming(queue)[0] as never)).toBe(queue);
   });
 });
