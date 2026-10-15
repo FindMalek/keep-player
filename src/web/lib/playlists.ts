@@ -240,6 +240,15 @@ export function moveInPlaylist(playlist: Full, index: number, delta: -1 | 1): nu
   return target;
 }
 
+/** Drag and drop: the song at `from` takes the place of the one at `to`. */
+export function moveToInPlaylist(playlist: Full, from: number, to: number): void {
+  const songs = [...(playlist.entry ?? [])];
+  if (from === to || !songs[from] || !songs[to]) return;
+  const [song] = songs.splice(from, 1);
+  if (song) songs.splice(to, 0, song);
+  reorderPlaylist(playlist.id, songs);
+}
+
 /** Songs you hid in a playlist (kept in it, skipped when it plays). */
 export const hiddenQuery = (id: string) => ({
   queryKey: ["playlistHidden", id],

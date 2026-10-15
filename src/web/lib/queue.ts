@@ -268,6 +268,30 @@ export function move(queue: Queue, target: Entry, delta: -1 | 1): Queue {
   return { ...queue, context: { ...queue.context, order } };
 }
 
+/**
+ * Move an upcoming entry to where another one is (drag and drop): it takes `to`'s place and the rest shift. Only within
+ * the same part of the queue (your queue, or what's left of the context); anything else returns the queue unchanged.
+ */
+export function moveTo(queue: Queue, target: Entry, to: Entry): Queue {
+  if (target.uid === to.uid || target.from !== to.from) return queue;
+  if (target.from === "user") {
+    const from = queue.upNext.findIndex((entry) => entry.uid === target.uid);
+    const at = queue.upNext.findIndex((entry) => entry.uid === to.uid);
+    if (from < 0 || at < 0) return queue;
+    const upNext = [...queue.upNext];
+    const [moved] = upNext.splice(from, 1);
+    upNext.splice(at, 0, moved as Entry);
+    return { ...queue, upNext };
+  }
+  const from = target.orderIndex ?? -1;
+  const at = to.orderIndex ?? -1;
+  if (from <= queue.context.cursor || at <= queue.context.cursor) return queue;
+  const order = [...queue.context.order];
+  const [moved] = order.splice(from, 1);
+  order.splice(at, 0, moved as number);
+  return { ...queue, context: { ...queue.context, order } };
+}
+
 export const clearUpNext = (queue: Queue): Queue => ({ ...queue, upNext: [] });
 
 /** Drop the rest of the context; the current song keeps playing. */
