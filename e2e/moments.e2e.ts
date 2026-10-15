@@ -1,4 +1,17 @@
+import type { Page } from "@playwright/test";
 import { expect, fakeMediaClock, test, trackTitles } from "./fixtures";
+
+// Moments belong to the account every test shares, and these two read the whole list: they run one after the other
+// (never next to each other), and each starts from none, so a retry or a repeat sees the same page.
+test.describe.configure({ mode: "serial" });
+
+async function clearMoments(page: Page): Promise<void> {
+  await page.evaluate(async () => {
+    const headers = { "x-keep-player": "1" };
+    const { moments } = (await (await fetch("/api/moments", { headers })).json()) as { moments: { id: number }[] };
+    for (const moment of moments) await fetch(`/api/moments/${moment.id}`, { method: "DELETE", headers });
+  });
+}
 
 test("b saves a moment: a tick on the seek bar, a note on the moments page, search finds it, a link opens it there", async ({
   page,
@@ -6,6 +19,7 @@ test("b saves a moment: a tick on the seek bar, a note on the moments page, sear
 }) => {
   await page.addInitScript(fakeMediaClock);
   await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
+  await clearMoments(signedIn);
   await signedIn.goto("/album/al-12");
   await page.getByRole("button", { name: "play", exact: true }).first().click();
   await page.locator("body").press("5");
@@ -54,6 +68,7 @@ test("b saves a moment: a tick on the seek bar, a note on the moments page, sear
 
 test("the highlight reel plays each moment in turn", async ({ page, signedIn }) => {
   await page.addInitScript(fakeMediaClock);
+  await clearMoments(signedIn);
   await signedIn.goto("/album/al-13");
   const titles = await trackTitles(page);
   const rows = page.locator("[aria-label=tracks] tbody tr");
@@ -67,10 +82,8 @@ test("the highlight reel plays each moment in turn", async ({ page, signedIn }) 
   await page.goto("/moments");
   await page.getByRole("button", { name: "play the highlight reel" }).click();
   const bar = page.getByRole("contentinfo");
-  const title = bar.getByRole("link").first();
-  // Other tests save moments too, so which song comes first isn't known: 30 s on, the next one starts.
-  await expect(bar.getByRole("button", { name: "pause" })).toBeVisible();
-  const first = await title.textContent();
+  // Newest song first; 30 s later the next moment starts.
+  await expect(bar.getByRole("link", { name: titles[1] as string, exact: true })).toBeVisible();
   await page.locator("body").press("Shift+ArrowRight");
-  await expect(title).not.toHaveText(first ?? "");
+  await expect(bar.getByRole("link", { name: titles[0] as string, exact: true })).toBeVisible();
 });
