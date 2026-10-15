@@ -39,6 +39,7 @@ import {
   GenresPage,
   HistoryPage,
   HomePage,
+  ImportPage,
   LikedPage,
   LyricsPage,
   MomentsPage,
@@ -137,6 +138,8 @@ function Page({ path }: { path: string }) {
       return <SettingsPage section={param} />;
     case "moments":
       return <MomentsPage />;
+    case "import":
+      return <ImportPage />;
     case "song":
       return param ? <SongLink key={param} id={param} /> : null;
     default:
