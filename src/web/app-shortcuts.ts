@@ -21,7 +21,13 @@ export interface AppActions {
   likeCurrent: () => void;
   openMiniPlayer: () => void;
   newPlaylist: () => void;
+  undo: () => void;
+  redo: () => void;
 }
+
+/** In a text field ⌘Z undoes the typing, not the app. */
+const inField = (event: KeyboardEvent) =>
+  event.target instanceof HTMLElement && (event.target.isContentEditable || ["INPUT", "TEXTAREA"].includes(event.target.tagName));
 
 /** The default map. Everything it calls is passed in, so a unit test can check it for conflicts without a browser. */
 export function appShortcuts(actions: AppActions): Shortcut[] {
@@ -73,6 +79,8 @@ export function appShortcuts(actions: AppActions): Shortcut[] {
     global("find-in-list", ["mod+f"], "filter this list", "lists", () => actions.findInList()),
     // ⌘N is the browser's new window: pages never receive it.
     global("new-playlist", ["shift+n"], "new playlist", "navigation", () => actions.newPlaylist()),
+    global("undo", ["mod+z"], "undo (queue, playlists, likes)", "navigation", (event) => (inField(event) ? false : actions.undo())),
+    global("redo", ["mod+shift+z"], "redo", "navigation", (event) => (inField(event) ? false : actions.redo())),
     global("cheat-sheet", ["?"], "keyboard shortcuts", "navigation", () => actions.openCheatSheet()),
     global("go-home", ["g h"], "go to home", "navigation", () => go("/")),
     global("go-albums", ["g a"], "go to albums", "navigation", () => go("/albums")),
