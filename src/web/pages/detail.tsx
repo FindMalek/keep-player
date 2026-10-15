@@ -428,6 +428,7 @@ export function PlaylistPage({ id }: { id: string }) {
           label="description"
           value={playlist.comment ?? ""}
           editable={editable}
+          reserve={canEdit(playlist)}
           placeholder="add a description"
           onSave={(comment) => void updatePlaylist(playlist.id, { comment })}
           className="max-w-[72ch] text-[12.5px] text-muted-foreground"
