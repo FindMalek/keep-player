@@ -43,6 +43,7 @@ import {
   preloadAllRoutes,
   SearchPage,
   SongsPage,
+  StatsPage,
 } from "@/routes";
 import { appShortcuts } from "./app-shortcuts";
 
@@ -123,6 +124,8 @@ function Page({ path }: { path: string }) {
       return <SearchPage />;
     case "history":
       return <HistoryPage />;
+    case "stats":
+      return <StatsPage />;
     case "lyrics":
       return <LyricsPage />;
     default:

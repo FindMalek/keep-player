@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import {
+  ChartColumnIcon,
   ChevronRightIcon,
   Disc3Icon,
   EllipsisIcon,
@@ -59,6 +60,7 @@ const LIBRARY = [
   ["/songs", "songs", MusicIcon],
   ["/liked", "liked songs", HeartIcon],
   ["/history", "history", HistoryIcon],
+  ["/stats", "stats", ChartColumnIcon],
   ["/genres", "genres", TagIcon],
   ["/folders", "folders", FolderIcon],
 ] as const;
