@@ -16,6 +16,8 @@ boot with a message naming the variable.
 | `COVER_CACHE_MB` | `1024` | Disk for resized covers; least recently used are deleted first. |
 | `LRCLIB_URL` | `https://lrclib.net` | Where lyrics Navidrome doesn't have are looked up. Empty turns LRCLIB off. |
 | `LYRICS_BACKFILL` | `on` | `on`: walk the library in the background (about one song a second) to fetch lyrics nobody opened yet. `off` to disable. |
+| `LYRICS_WRITE_LRC` | `off` | `on`: lyrics found on LRCLIB are also saved as `<track>.lrc` next to the audio file, so other clients get them. Needs `MUSIC_DIR` and Navidrome's "Report Real Path". Never overwrites; undo from the lyrics page. |
+| `MUSIC_DIR` | — | Navidrome's music folder mounted writable here, for `LYRICS_WRITE_LRC`. Unused otherwise. |
 | `INDEX_USER` | — | Navidrome account for background jobs (search index, lyrics backfill). Unset: the admin who signed in most recently. |
 | `INDEX_PASSWORD` | — | Password for `INDEX_USER`. |
 | `TRUST_PROXY` | `false` | `true` behind a reverse proxy: client IPs come from `X-Real-IP` / `X-Forwarded-For` (login rate limits). |

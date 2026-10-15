@@ -30,3 +30,26 @@ Run against the real server; the automated tests (`e2e/queue-sync.e2e.ts`) cover
 | 6 | queue 600+ songs on the desktop, pause, open Arpeggi | the full queue arrives (form POST, no URL limit) | pending |
 
 Fill in the results after a run and note the Navidrome and Arpeggi versions used.
+
+## Lyrics in Arpeggi and other clients
+
+keep music looks up lyrics Navidrome doesn't have on LRCLIB and keeps them in its own database, so by default only
+keep music shows them. The lyrics page (user menu → lyrics coverage) shows how much of the library has synced, plain
+or no lyrics, the albums missing the most, and every song nothing was found for. Admins can ask LRCLIB again for all
+misses at once.
+
+To give every Subsonic client the same lyrics, turn on `.lrc` sidecars:
+
+1. Mount Navidrome's music folder into keep music **writable**, and set `MUSIC_DIR` to where it is mounted
+   (for example `- /srv/music:/music` and `MUSIC_DIR=/music`).
+2. Set `LYRICS_WRITE_LRC=on`.
+3. In Navidrome, enable **Report Real Path** for the keep music player (Settings → Players), so songs carry their file
+   path. keep music matches Navidrome's path to the mount even when the two mount points differ.
+4. Navidrome picks the `.lrc` files up on its next scan (`ND_LYRICSPRIORITY` must include `.lrc`, which it does by
+   default).
+
+keep music never overwrites a file: a `.lrc` that is already there wins. Each write is logged, and "remove N .lrc
+files" on the lyrics page deletes them again, except files someone edited since.
+
+The trade-off: with it off (the default), keep music never writes to your library, and other clients only see lyrics
+Navidrome already had.

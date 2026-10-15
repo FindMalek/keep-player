@@ -5,6 +5,7 @@ import {
   HardDriveDownloadIcon,
   KeyboardIcon,
   LogOutIcon,
+  MicVocalIcon,
   MonitorIcon,
   MonitorSmartphoneIcon,
   MoonIcon,
@@ -26,6 +27,7 @@ import {
 import { SidebarMenuButton } from "@/components/ui/sidebar";
 import { apiQueries } from "@/lib/api-queries";
 import { MINI_PLAYER_SUPPORTED } from "@/lib/mini-player";
+import { go } from "@/lib/router";
 import { setSetting, useSetting } from "@/lib/settings";
 import { logout, useUser } from "@/lib/subsonic";
 import { setTheme, type Theme, useTheme } from "@/lib/theme";
@@ -115,6 +117,10 @@ export function UserMenu({
         <DropdownMenuItem onClick={onStorage}>
           <HardDriveDownloadIcon />
           offline storage
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => go("/lyrics")}>
+          <MicVocalIcon />
+          lyrics coverage
         </DropdownMenuItem>
         {admin && (
           <DropdownMenuItem onClick={onIndex}>
