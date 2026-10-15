@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ExternalLinkIcon, PlayIcon, RadioIcon, Trash2Icon } from "lucide-react";
 import { Fragment, type ReactNode, useEffect, useMemo, useState } from "react";
 import { ArtistCard } from "@/components/artist-card";
+import { Aura, exportAura } from "@/components/aura";
 import { Cover } from "@/components/cover";
 import { EditableText } from "@/components/editable-text";
 import { Hint } from "@/components/hint";
@@ -17,6 +18,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { discStarts, groupByRelease, topArtists, topSongs } from "@/lib/album-browse";
+import { auraParams, vibe } from "@/lib/aura";
 import { cachedSummary } from "@/lib/cached";
 import { length, plural, quality } from "@/lib/format";
 import type { LikeKind } from "@/lib/likes";
@@ -51,6 +53,7 @@ function Hero({
   extra,
   like,
   morph = false,
+  backdrop,
 }: {
   cover?: string;
   kind: ReactNode;
@@ -67,9 +70,12 @@ function Hero({
   like?: { kind: LikeKind; id: string };
   /** Take over the clicked card's cover in the page transition. */
   morph?: boolean;
+  /** A picture behind the header (a playlist's aura). */
+  backdrop?: ReactNode;
 }) {
   return (
-    <header className="flex items-end gap-5 border-b px-5 pt-[18px] pb-4">
+    <header className="relative isolate flex items-end gap-5 border-b px-5 pt-[18px] pb-4">
+      {backdrop && <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden opacity-20">{backdrop}</div>}
       <div className="shrink-0" style={morph ? { viewTransitionName: "album-cover" } : undefined}>
         <Cover id={cover} size={160} className="w-[152px]" priority />
       </div>
@@ -408,6 +414,7 @@ export function PlaylistPage({ id }: { id: string }) {
   const path = usePath();
   const songs = playlist?.entry ?? [];
   const shown = useMemo(() => sortSongs(songs, sort), [songs, sort]);
+  const vibeWords = useMemo(() => (playlist && songs.length ? vibe(auraParams(playlist.id, songs)) : []), [playlist, songs]);
   const editable = Boolean(playlist && canEdit(playlist) && !isPlaceholderData);
   const editing = useMemo<ListEditing | undefined>(
     () =>
@@ -466,12 +473,20 @@ export function PlaylistPage({ id }: { id: string }) {
             onSave={(name) => name && void updatePlaylist(playlist.id, { name: folder ? `${folder} / ${name}` : name })}
           />
         }
+        backdrop={songs.length > 0 ? <Aura id={playlist.id} songs={songs} className="size-full" /> : undefined}
         onPlay={() => player.play(playable, 0, { shuffle: false, source })}
         onShuffle={() => player.play(playable, -1, { shuffle: true, source })}
         onQueue={() => player.addToQueue(playable)}
         extra={
           <>
             <KeepOffline group={`playlist:${playlist.id}`} songs={playable} />
+            {songs.length > 0 && (
+              <Hint label="save this playlist's aura as a PNG (a cover for other apps)">
+                <Button variant="outline" onClick={() => exportAura(playlist.id, songs, leafOf(playlist.name))}>
+                  aura png
+                </Button>
+              </Hint>
+            )}
             {editable ? (
               <>
                 <Hint label={playlist.public ? "others on this server can see it" : "only you can see it"}>
@@ -519,6 +534,17 @@ export function PlaylistPage({ id }: { id: string }) {
         ) : (
           <>
             <div className="mb-2 flex flex-wrap items-center gap-2">
+              {vibeWords.length > 0 && (
+                <ul aria-label="vibe" className="flex gap-1.5">
+                  {vibeWords.map((word) => (
+                    <li key={word}>
+                      <Badge variant="outline" className="font-mono font-normal text-muted-foreground">
+                        {word}
+                      </Badge>
+                    </li>
+                  ))}
+                </ul>
+              )}
               <ToggleGroup
                 variant="outline"
                 size="sm"
