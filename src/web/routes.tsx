@@ -6,6 +6,7 @@ import { lazy } from "react";
  */
 const chunks = {
   browse: () => import("@/pages/browse"),
+  albums: () => import("@/pages/albums"),
   detail: () => import("@/pages/detail"),
   folders: () => import("@/pages/folders"),
   search: () => import("@/pages/search"),
@@ -18,7 +19,7 @@ const chunks = {
 
 const SECTIONS: Record<string, keyof typeof chunks> = {
   "": "browse",
-  albums: "browse",
+  albums: "albums",
   artists: "browse",
   songs: "browse",
   genres: "browse",
@@ -52,7 +53,7 @@ export function preloadAllRoutes(extra: (() => Promise<unknown>)[] = []): void {
 }
 
 export const HomePage = lazy(() => chunks.browse().then((module) => ({ default: module.HomePage })));
-export const AlbumsPage = lazy(() => chunks.browse().then((module) => ({ default: module.AlbumsPage })));
+export const AlbumsPage = lazy(() => chunks.albums().then((module) => ({ default: module.AlbumsPage })));
 export const ArtistsPage = lazy(() => chunks.browse().then((module) => ({ default: module.ArtistsPage })));
 export const SongsPage = lazy(() => chunks.browse().then((module) => ({ default: module.SongsPage })));
 export const LikedPage = lazy(() => chunks.browse().then((module) => ({ default: module.LikedPage })));

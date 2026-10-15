@@ -45,6 +45,9 @@ export interface Album {
   starred?: string;
   recordLabels?: { name: string }[];
   musicBrainzId?: string;
+  /** OpenSubsonic: "album", "ep", "single", "live", "compilation"… (lowercase, any number). */
+  releaseTypes?: string[];
+  isCompilation?: boolean;
   song?: Song[];
 }
 

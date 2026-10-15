@@ -105,16 +105,8 @@ export function HomePage() {
   );
 }
 
-const SORTS = [
-  ["newest", "recently added"],
-  ["alphabeticalByName", "a–z"],
-  ["alphabeticalByArtist", "artist"],
-  ["frequent", "most played"],
-] as const;
-type Sort = (typeof SORTS)[number][0];
-
 /** Pages of an infinite list as one array, plus a callback that loads the next page once (no duplicate requests). */
-function useAllPages<T>(query: {
+export function useAllPages<T>(query: {
   data?: { pages: T[][] };
   hasNextPage: boolean;
   isFetchingNextPage: boolean;
@@ -128,52 +120,8 @@ function useAllPages<T>(query: {
   return { items, loadMore };
 }
 
-export function AlbumsPage() {
-  const [sort, setSort] = useState<Sort>("newest");
-  const [likedOnly, setLikedOnly] = useState(false);
-  const pages = useInfiniteQuery(queries.albumPages(sort));
-  const { items: all, loadMore } = useAllPages(pages);
-  const starred = useQuery({ ...queries.starred(), enabled: likedOnly });
-  const albums = likedOnly ? (starred.data?.album ?? []) : all;
-  const totals = useQuery(queries.totals());
-
-  return (
-    <>
-      <PageHeader title="albums" meta={totals.data ? plural(totals.data.albums, "album") : undefined}>
-        <ToggleGroup
-          variant="outline"
-          size="sm"
-          aria-label="sort"
-          value={[sort]}
-          onValueChange={(value: string[]) => {
-            const next = value[0] as Sort | undefined;
-            if (next) setSort(next);
-          }}
-        >
-          {SORTS.map(([value, label]) => (
-            <ToggleGroupItem key={value} value={value} className="font-mono font-normal">
-              {label}
-            </ToggleGroupItem>
-          ))}
-        </ToggleGroup>
-        <LikedToggle pressed={likedOnly} onPressedChange={setLikedOnly} />
-      </PageHeader>
-      <Content>
-        {likedOnly && starred.data && !albums.length && <EmptyState>no liked albums yet: the heart on an album page adds one</EmptyState>}
-        {(likedOnly ? starred.isPending : pages.isPending) ? (
-          <Delayed>
-            <AlbumGridSkeleton count={24} />
-          </Delayed>
-        ) : (
-          <AlbumGrid albums={albums} onNearEnd={likedOnly ? undefined : loadMore} priority={16} />
-        )}
-      </Content>
-    </>
-  );
-}
-
 /** "Only what I liked" on the albums and artists pages. */
-function LikedToggle({ pressed, onPressedChange }: { pressed: boolean; onPressedChange: (pressed: boolean) => void }) {
+export function LikedToggle({ pressed, onPressedChange }: { pressed: boolean; onPressedChange: (pressed: boolean) => void }) {
   return (
     <Toggle variant="outline" size="sm" pressed={pressed} onPressedChange={onPressedChange} className="font-mono font-normal">
       <HeartIcon className={cn(pressed && "fill-current")} />
