@@ -103,6 +103,13 @@ export const queries = {
         api<{ randomSongs: { song?: Song[] } }>("getRandomSongs", { size }).then((response) => response.randomSongs.song ?? []),
       staleTime: 0,
     }),
+  songsByGenre: (genre: string, count: number) =>
+    queryOptions({
+      queryKey: ["songsByGenre", genre, count],
+      queryFn: () =>
+        api<{ songsByGenre: { song?: Song[] } }>("getSongsByGenre", { genre, count }).then((response) => response.songsByGenre.song ?? []),
+      staleTime: 5 * MINUTE,
+    }),
   album: (id: string) =>
     queryOptions({
       queryKey: ["album", id],

@@ -65,3 +65,28 @@ describe("discStarts", () => {
     ]);
   });
 });
+
+describe("genre page helpers", () => {
+  test("topArtists ranks by album count, then name, and skips albums without an artist", async () => {
+    const { topArtists } = await import("./album-browse");
+    const albums = [
+      album("1", { artistId: "b", artist: "B" }),
+      album("2", { artistId: "a", artist: "A" }),
+      album("3", { artistId: "b", artist: "B" }),
+      album("4"),
+      album("5", { artistId: "c", artist: "C" }),
+    ];
+    expect(topArtists(albums).map((artist) => [artist.id, artist.albums])).toEqual([
+      ["b", 2],
+      ["a", 1],
+      ["c", 1],
+    ]);
+    expect(topArtists(albums, 1)).toHaveLength(1);
+  });
+  test("topSongs ranks by plays and keeps order for ties", async () => {
+    const { topSongs } = await import("./album-browse");
+    const songs = [{ id: "a", playCount: 1 }, { id: "b", playCount: 5 }, { id: "c" }, { id: "d" }];
+    expect(topSongs(songs).map((song) => song.id)).toEqual(["b", "a", "c", "d"]);
+    expect(topSongs(songs, 2)).toHaveLength(2);
+  });
+});

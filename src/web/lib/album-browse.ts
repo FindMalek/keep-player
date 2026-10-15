@@ -116,3 +116,20 @@ export function discStarts(songs: { discNumber?: number }[]): { disc: number; in
   });
   return starts.length > 1 ? starts : [];
 }
+
+/** The artists with the most albums in a list (a genre's albums), most first; ties by name. */
+export function topArtists(albums: Album[], limit = 12): { id: string; name: string; albums: number }[] {
+  const byArtist = new Map<string, { id: string; name: string; albums: number }>();
+  for (const album of albums) {
+    if (!album.artistId) continue;
+    const entry = byArtist.get(album.artistId) ?? { id: album.artistId, name: album.artist ?? "", albums: 0 };
+    entry.albums += 1;
+    byArtist.set(album.artistId, entry);
+  }
+  return [...byArtist.values()].sort((a, b) => b.albums - a.albums || byText(a.name, b.name)).slice(0, limit);
+}
+
+/** The most played songs of a list; a list nobody has played keeps its own order. */
+export function topSongs<T extends { playCount?: number }>(songs: T[], limit = 20): T[] {
+  return [...songs].sort((a, b) => (b.playCount ?? 0) - (a.playCount ?? 0)).slice(0, limit);
+}
