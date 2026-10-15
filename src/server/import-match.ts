@@ -45,6 +45,15 @@ const candidate = (song: Record<string, unknown>, score: number): Candidate => (
 
 export function matchTrack(db: Database, server: string, folders: string[] | null, track: ImportTrack): ImportMatch {
   const found = new Map<string, Record<string, unknown>>();
+  // An ISRC is an exact key: look it up first, so the free-text searches below can't crowd the right song out.
+  const isrc = track.isrc?.toUpperCase();
+  if (isrc && /^[A-Z0-9]{12}$/.test(isrc))
+    for (const row of db
+      .query<{ id: string; folder: string; data: string }, [string, string]>(
+        "select id, folder, data from idx_items where server = ? and kind = 'song' and upper(data) like ? limit 20",
+      )
+      .all(server, `%"${isrc}"%`))
+      if (!folders || folders.includes(row.folder)) found.set(row.id, JSON.parse(row.data));
   // By title, then by "artist title" (the typo-tolerant path searches everything indexed about a song).
   for (const text of [track.title, `${track.artist} ${track.title}`])
     for (const hit of queryIndex(db, server, text, "song", 30, folders)) found.set(hit.id, hit.data);

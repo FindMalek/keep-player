@@ -57,4 +57,7 @@ describe("dedupe and csv", () => {
       'artist,title,album,isrc\nPink Floyd,"Hey, ""You""",The Wall,\n',
     );
   });
+  test("formula-looking cells are defused and CRs quoted", () => {
+    expect(missingCsv([{ title: "=SUM(A1)", artist: "@x", album: "a\rb" }])).toBe("artist,title,album,isrc\n'@x,'=SUM(A1),\"a\rb\",\n");
+  });
 });
