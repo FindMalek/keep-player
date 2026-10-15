@@ -61,3 +61,9 @@ test("folders the user may not see are never offered", () => {
   const db = library();
   expect(matchTrack(db, "default", ["2"], { title: "Creep", artist: "Radiohead" }).best).toBeNull();
 });
+
+test("an ISRC finds the song even when the title is unrelated", () => {
+  const match = matchTrack(library(), "default", null, { title: "Completely different name", artist: "Nobody", isrc: "gbaaa9800001" });
+  expect(match.best?.id).toBe("s1");
+  expect(match.best?.confidence).toBe(1);
+});

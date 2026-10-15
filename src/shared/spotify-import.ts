@@ -80,8 +80,10 @@ export function dedupe(tracks: ImportTrack[]): ImportTrack[] {
 }
 
 const csvCell = (value: string | number | undefined): string => {
-  const cell = String(value ?? "");
-  return /[",\n]/.test(cell) ? `"${cell.replace(/"/g, '""')}"` : cell;
+  // A cell starting with = + - @ (or a tab / CR) runs as a formula in a spreadsheet, so prefix those with a quote.
+  const raw = String(value ?? "");
+  const cell = /^[=+\-@\t\r]/.test(raw) ? `'${raw}` : raw;
+  return /[",\r\n]/.test(cell) ? `"${cell.replace(/"/g, '""')}"` : cell;
 };
 
 /** The tracks nothing matched, as CSV for whatever fetches music (beets, Lidarr, a person with a list). */

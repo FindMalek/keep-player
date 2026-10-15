@@ -67,6 +67,7 @@ function ReviewRow({ row, onChange }: { row: ImportRow; onChange: (row: ImportRo
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
   const [found, setFound] = useState<Candidate[]>([]);
+  const latest = useRef("");
   const choose = (song: Candidate) => {
     onChange(pick(row, song));
     setOpen(false);
@@ -102,8 +103,16 @@ function ReviewRow({ row, onChange }: { row: ImportRow; onChange: (row: ImportRo
                 value={text}
                 onChange={(event) => {
                   setText(event.target.value);
-                  if (event.target.value.trim().length > 1) void searchSongs(event.target.value).then(setFound);
-                  else setFound([]);
+                  if (event.target.value.trim().length > 1) {
+                    const asked = event.target.value;
+                    latest.current = asked;
+                    void searchSongs(asked).then((songs) => {
+                      if (latest.current === asked) setFound(songs);
+                    });
+                  } else {
+                    latest.current = "";
+                    setFound([]);
+                  }
                 }}
               />
             </div>
