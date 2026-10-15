@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
   addToQueue,
+  appendContext,
   balancedShuffle,
   clearContext,
   clearUpNext,
@@ -11,6 +12,7 @@ import {
   moveTo,
   next,
   peekNext,
+  peekUpcoming,
   playContext,
   playNext,
   previous,
@@ -137,4 +139,13 @@ describe("queue", () => {
     // Your queue and the album don't mix by dragging.
     expect(moveTo(queue, queue.upNext[0] as never, contextUpcoming(queue)[0] as never)).toBe(queue);
   });
+});
+
+test("a radio refills by appending to the context: the new songs play after the old ones, shuffle or not", () => {
+  const start = playContext(EMPTY_QUEUE, [song("a"), song("b")], 0, { shuffle: true }, () => 0.5);
+  const more = appendContext(start, [song("c"), song("d")]);
+  expect(more.context.songs.map((item) => item.id)).toEqual(["a", "b", "c", "d"]);
+  expect(more.context.order.slice(2)).toEqual([2, 3]);
+  expect(peekUpcoming(more, 3).map((item) => item.id)).toEqual(["b", "c", "d"]);
+  expect(appendContext(start, [])).toBe(start);
 });

@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { ExternalLinkIcon, Trash2Icon } from "lucide-react";
+import { ExternalLinkIcon, RadioIcon, Trash2Icon } from "lucide-react";
 import { Fragment, type ReactNode, useEffect, useMemo, useState } from "react";
 import { ArtistCard } from "@/components/artist-card";
 import { Cover } from "@/components/cover";
@@ -275,7 +275,16 @@ export function GenrePage({ name }: { name: string }) {
   const { data } = useQuery(queries.albumList("byGenre", 200, { genre: name }));
   return (
     <>
-      <PageHeader title={name.toLowerCase()} meta={data ? plural(data.length, "album") : "genre"} />
+      <PageHeader title={name.toLowerCase()} meta={data ? plural(data.length, "album") : "genre"}>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => void import("@/lib/radio").then((radio) => radio.startRadio({ kind: "genre", genre: name }))}
+        >
+          <RadioIcon />
+          {name.toLowerCase()} radio
+        </Button>
+      </PageHeader>
       <Content>
         {data ? (
           <AlbumGrid albums={data} />

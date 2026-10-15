@@ -12,6 +12,7 @@ import {
   MoreHorizontalIcon,
   PlayIcon,
   PlusIcon,
+  RadioIcon,
   ShuffleIcon,
   UserIcon,
 } from "lucide-react";
@@ -103,6 +104,9 @@ export function ItemActions({ target }: { target: MenuTarget }) {
         <ListEndIcon /> add to queue
       </DropdownMenuItem>
       <AddToPlaylist target={target} />
+      <DropdownMenuItem onClick={run(() => import("@/lib/radio").then((radio) => radio.startRadio(target)))}>
+        <RadioIcon /> start radio
+      </DropdownMenuItem>
       <DropdownMenuSeparator />
       {like && (
         <DropdownMenuItem onClick={run(() => setLiked(like.kind, like.id, !liked, like.label))}>

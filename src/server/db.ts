@@ -1,6 +1,7 @@
 import { Database } from "bun:sqlite";
 import { createHistoryTables } from "./history";
 import { createMomentTables } from "./moments";
+import { createRadioTables } from "./radio";
 
 /**
  * The server's library database (`$DATA_DIR/library.db`): the lyrics cache and per-user lyric offsets now, the search
@@ -25,6 +26,7 @@ export function openLibraryDb(path: string): Database {
   )`);
   createHistoryTables(db);
   createMomentTables(db);
+  createRadioTables(db);
   // Songs you keep in a playlist but don't want to hear from it (#46): per user, the playlist itself is untouched.
   db.run(`create table if not exists playlist_hidden (
     account text not null,
