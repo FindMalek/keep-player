@@ -5,13 +5,31 @@ import { api } from "@/lib/subsonic";
 import { cn } from "@/lib/utils";
 
 /*
- * Ratings you set this session win over what cached song objects say (their userRating is from before), so a rating
- * never looks undone when you come back to a list.
+ * Ratings you set win over what cached song objects say (their userRating is from before), so a rating never looks
+ * undone when you come back to a list, or after a reload: the persisted cache keeps old song objects for up to an hour
+ * (album staleTime) before they're refetched, so what you set is kept here for that long.
  */
-const rated = new Map<string, number>();
+const KEY = "keep-player:ratings";
+const KEEP_MS = 60 * 60_000;
+
+function load(): Map<string, { rating: number; at: number }> {
+  try {
+    const stored = JSON.parse(localStorage.getItem(KEY) ?? "{}") as Record<string, { rating: number; at: number }>;
+    return new Map(Object.entries(stored).filter(([, entry]) => Date.now() - entry.at < KEEP_MS));
+  } catch {
+    return new Map();
+  }
+}
+
+const rated = load();
 const listeners = new Set<() => void>();
 function setRated(id: string, rating: number): void {
-  rated.set(id, rating);
+  rated.set(id, { rating, at: Date.now() });
+  try {
+    localStorage.setItem(KEY, JSON.stringify(Object.fromEntries(rated)));
+  } catch {
+    // Kept for this session only.
+  }
   for (const listener of listeners) listener();
 }
 function useRated(id: string, fallback: number): number {
@@ -20,7 +38,7 @@ function useRated(id: string, fallback: number): number {
       listeners.add(listener);
       return () => listeners.delete(listener);
     },
-    () => rated.get(id) ?? fallback,
+    () => rated.get(id)?.rating ?? fallback,
   );
 }
 
