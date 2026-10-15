@@ -1,0 +1,27 @@
+/*
+ * Stream quality (#24): play the original file (the default), or have Navidrome transcode it for a slow or metered
+ * connection. A song the browser can't decode (ALAC in Firefox, say) falls back to a transcode by itself.
+ */
+
+export const QUALITIES = [
+  ["original", "original"],
+  ["mp3-320", "mp3 320"],
+  ["opus-192", "opus 192"],
+  ["opus-96", "opus 96"],
+] as const;
+export type StreamQuality = (typeof QUALITIES)[number][0];
+
+/** What the browser plays when it can't play a song's own format: widely supported and still good. */
+export const FALLBACK: StreamQuality = "mp3-320";
+
+export function isStreamQuality(value: unknown): value is StreamQuality {
+  return QUALITIES.some(([name]) => name === value);
+}
+
+/** The `stream` parameters for a quality: raw bytes, or a format at a bit rate. */
+export function streamParams(quality: StreamQuality): Record<string, string> {
+  if (quality === "original") return { format: "raw" };
+  const [format, bitRate] = quality.split("-") as [string, string];
+  // The estimate gives the browser a length to seek in; Navidrome can't know a transcode's size up front.
+  return { format, maxBitRate: bitRate, estimateContentLength: "true" };
+}

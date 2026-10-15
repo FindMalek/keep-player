@@ -1,6 +1,8 @@
 import { useSyncExternalStore } from "react";
 import { snapCoverSize } from "../../shared/cover-sizes";
 import { markUnreachable, noteResponse } from "./reachability";
+import { getSetting } from "./settings";
+import { FALLBACK, type StreamQuality, streamParams } from "./stream-quality";
 
 /*
  * The browser never holds credentials: the server keeps them in a session behind an httpOnly cookie and adds them to
@@ -191,8 +193,20 @@ export function preloadCover(id: string | undefined, cssSize: number): void {
   if (url) new Image().src = url;
 }
 
+/** Songs this browser couldn't play as they are: they stream as a transcode from then on. */
+const transcoded = new Set<string>();
+
+export function fallBackToTranscode(id: string): void {
+  transcoded.add(id);
+}
+
+/** The quality a song streams at: the setting, or the fallback for a song the browser can't decode. */
+export function qualityOf(id: string): StreamQuality {
+  return transcoded.has(id) ? FALLBACK : getSetting("streamQuality");
+}
+
 export function streamUrl(id: string): string {
-  return `/rest/stream?${new URLSearchParams({ id, format: "raw" })}`;
+  return `/rest/stream?${new URLSearchParams({ id, ...streamParams(qualityOf(id)) })}`;
 }
 
 export function scrobble(id: string, submission: boolean): void {

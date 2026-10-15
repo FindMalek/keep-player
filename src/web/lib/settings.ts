@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from "react";
+import type { StreamQuality } from "./stream-quality";
 
 /*
  * Preferences in localStorage, shown on the settings page (#53). The ones in SYNCED also follow you to every browser
@@ -18,6 +19,8 @@ export interface Settings {
   followOtherDevices: boolean;
   /** Seconds the next song starts before the playing one ends (0 = off, up to 12); never inside an album played in order. */
   crossfade: number;
+  /** What to stream: the original file, or a transcode for slow or metered connections. This device only. */
+  streamQuality: StreamQuality;
 }
 
 /** Follow the user to every browser; the others (the mini player) depend on this device. */
@@ -37,6 +40,7 @@ const DEFAULTS: Settings = {
   queueSync: true,
   followOtherDevices: false,
   crossfade: 0,
+  streamQuality: "original",
 };
 
 /** Read outside React (the queue sync). */
