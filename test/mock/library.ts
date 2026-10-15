@@ -92,8 +92,6 @@ export function createLibrary(trackCount = 10_000, seed = 7): Library {
         genres: [{ name: genre }],
         created: new Date(created + albums.length * 3_600_000).toISOString(),
         playCount: Math.floor(next() * 50),
-        // Release types and a second disc, by position (no random draws, so every other fixture stays as it was).
-        releaseTypes: [albums.length % 4 === 1 ? "ep" : albums.length % 7 === 3 ? "single" : "album"],
         song: [],
       };
       const trackTotal = 6 + Math.floor(next() * 10);
@@ -106,7 +104,7 @@ export function createLibrary(trackCount = 10_000, seed = 7): Library {
           artist: artist.name,
           artistId: artist.id,
           track: t,
-          discNumber: album.id === "al-5" && t > trackTotal / 2 ? 2 : 1,
+          discNumber: 1,
           parent: album.id,
           path: `${artist.name}/${album.name}/${String(t).padStart(2, "0")}.mp3`,
           samplingRate: 44100,
