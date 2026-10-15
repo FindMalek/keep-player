@@ -22,6 +22,7 @@ import { openPlaylistDialog, usePlaylistDialog } from "@/lib/playlist-dialogs";
 import { useReachability } from "@/lib/reachability";
 import { go, usePath } from "@/lib/router";
 import { useSetting } from "@/lib/settings";
+import { startSettingsSync } from "@/lib/settings-sync";
 import { installShortcuts, useShortcuts } from "@/lib/shortcuts";
 import { useCheckingSession, useUser } from "@/lib/subsonic";
 import { isOnboarded, welcomeTip } from "@/lib/tips";
@@ -41,6 +42,7 @@ import {
   PlaylistPage,
   preloadAllRoutes,
   SearchPage,
+  SettingsPage,
   SongsPage,
 } from "@/routes";
 import { appShortcuts } from "./app-shortcuts";
@@ -124,6 +126,8 @@ function Page({ path }: { path: string }) {
       return <HistoryPage />;
     case "lyrics":
       return <LyricsPage />;
+    case "settings":
+      return <SettingsPage section={param} />;
     default:
       return <HomePage />;
   }
@@ -182,10 +186,18 @@ export function App() {
     }),
   );
 
+  // The settings page's "show shortcuts" button.
+  useEffect(() => {
+    const open = () => setCheatSheet(true);
+    window.addEventListener("keep:cheat-sheet", open);
+    return () => window.removeEventListener("keep:cheat-sheet", open);
+  }, []);
+
   useEffect(() => {
     if (!user) return;
     void loadLikes();
     startListeningHistory();
+    void startSettingsSync();
     // The queue hand-off (Arpeggi, other browsers) waits until the first screen is done.
     const id = setTimeout(() => {
       void import("@/lib/queue-sync").then((sync) => sync.startQueueSync());

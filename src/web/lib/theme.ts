@@ -37,6 +37,13 @@ export function setTheme(next: Theme): void {
   for (const listener of listeners) listener();
 }
 
+export const getTheme = (): Theme => theme;
+
+export function subscribeTheme(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
 export function useTheme(): Theme {
   return useSyncExternalStore(
     (listener) => {

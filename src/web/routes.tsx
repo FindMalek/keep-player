@@ -11,6 +11,7 @@ const chunks = {
   search: () => import("@/pages/search"),
   history: () => import("@/pages/history"),
   lyrics: () => import("@/pages/lyrics"),
+  settings: () => import("@/pages/settings"),
 };
 
 const SECTIONS: Record<string, keyof typeof chunks> = {
@@ -28,6 +29,7 @@ const SECTIONS: Record<string, keyof typeof chunks> = {
   search: "search",
   history: "history",
   lyrics: "lyrics",
+  settings: "settings",
 };
 
 export function preloadRoute(path: string): void {
@@ -58,3 +60,4 @@ export const FoldersPage = lazy(() => chunks.folders().then((module) => ({ defau
 export const SearchPage = lazy(() => chunks.search().then((module) => ({ default: module.SearchPage })));
 export const HistoryPage = lazy(() => chunks.history().then((module) => ({ default: module.HistoryPage })));
 export const LyricsPage = lazy(() => chunks.lyrics().then((module) => ({ default: module.LyricsPage })));
+export const SettingsPage = lazy(() => chunks.settings().then((module) => ({ default: module.SettingsPage })));

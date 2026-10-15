@@ -481,6 +481,35 @@ export function createApi({
     return json({ ok: true });
   }
 
+  /** `/api/settings`: your synced preferences (GET), or replace them (PUT, a JSON object under 8 KB). */
+  async function userSettings(request: Request): Promise<Response> {
+    if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
+    const session = sessions.get(cookieValue(request));
+    if (!session) return json({ error: "signed out" }, 401);
+    const account = `${session.server}:${session.user}`;
+    if (request.method === "PUT") {
+      const text = await request.text();
+      if (text.length > 8192) return json({ error: "too large" }, 413);
+      const body = (() => {
+        try {
+          return JSON.parse(text) as unknown;
+        } catch {
+          return null;
+        }
+      })();
+      if (!body || typeof body !== "object" || Array.isArray(body)) return json({ error: "an object" }, 400);
+      library
+        .query("insert or replace into user_settings (account, body, updated) values (?, ?, ?)")
+        .run(account, JSON.stringify(body), Date.now());
+    }
+    const row = library
+      .query<{ body: string; updated: number }, [string]>("select body, updated from user_settings where account = ?")
+      .get(account);
+    return json(row ? { settings: JSON.parse(row.body), updated: row.updated } : { settings: null, updated: 0 }, 200, {
+      "cache-control": "private, no-cache",
+    });
+  }
+
   /** `/api/playlists/:id/hidden`: the songs you hid in a playlist (GET), hide or show one (PUT `{ songId, hidden }`). */
   async function playlistHidden(request: Request & { params: { id: string } }): Promise<Response> {
     if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
@@ -509,6 +538,7 @@ export function createApi({
 
   return {
     history,
+    userSettings,
     playlistHidden,
     login,
     logout,

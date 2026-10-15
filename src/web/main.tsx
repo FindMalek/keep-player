@@ -1,6 +1,7 @@
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { createRoot } from "react-dom/client";
 import { App } from "./app";
+import "./lib/install";
 import { registerServiceWorker } from "./lib/offline";
 import { CACHE_MAX_AGE, CACHE_VERSION, persister, queryClient, shouldPersist } from "./lib/queries";
 
