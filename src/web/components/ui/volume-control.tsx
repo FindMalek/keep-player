@@ -22,7 +22,8 @@ import { cn } from "@/lib/utils";
 const PERCENT = 100;
 const LOW_LEVEL = 0.34;
 const MEDIUM_LEVEL = 0.67;
-const PERCEPTUAL_EXPONENT = 2;
+// Cubic, so the bottom half of the slider is usable (loudness is roughly logarithmic).
+const PERCEPTUAL_EXPONENT = 3;
 
 export type VolumeLevel = "muted" | "low" | "medium" | "high";
 
