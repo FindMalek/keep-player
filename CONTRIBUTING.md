@@ -65,7 +65,7 @@ downloads the next three songs into an LRU audio cache it serves Range requests 
 side). Albums and playlists can be kept offline (pinned, never evicted).
 
 Pages are separate chunks (`src/web/routes.tsx`), preloaded when a link is hovered or focused and all fetched once the
-browser is idle. The first screen is budgeted (`bun run size`) and the home page must score ≥ 95 on Lighthouse
+browser is idle. The first screen is budgeted (`bun run size`) and the home page must score ≥ 93 on Lighthouse
 (`e2e/lighthouse.e2e.ts`).
 
 ## Deploys
