@@ -7,23 +7,7 @@ import { expect, fakeMediaClock, test, trackTitles } from "./fixtures";
  * so new shortcuts can't ship untested.
  */
 const noop = () => undefined;
-const stub = new Proxy({}, { get: () => noop }) as never;
-const SHORTCUTS = appShortcuts({
-  player: stub,
-  go: stub,
-  notify: stub,
-  runListCommand: stub,
-  togglePanel: noop,
-  closeTopLayer: noop,
-  openSearch: noop,
-  toggleSearch: noop,
-  openCheatSheet: noop,
-  toggleFullScreen: noop,
-  findInList: () => true,
-  likeCurrent: noop,
-  openMiniPlayer: noop,
-  newPlaylist: noop,
-});
+const SHORTCUTS = appShortcuts(new Proxy({}, { get: () => noop }) as never);
 
 /** "shift+arrowright" → "Shift+ArrowRight", "mod+k" → "ControlOrMeta+k", chords → one press per step. */
 function keystrokes(binding: string): string[] {
@@ -223,6 +207,23 @@ const CHECKS: Record<string, Check> = {
     await press();
     await expect(page.getByRole("dialog", { name: "new playlist" })).toBeVisible();
     await page.keyboard.press("Escape");
+  },
+  undo: async (page, press) => {
+    // The like is recorded once the server took it.
+    const starred = page.waitForResponse(/\/rest\/star/);
+    await page.locator("body").press("f");
+    await starred;
+    await press();
+    await expect(page.getByText(/^undid: liked /)).toBeVisible();
+  },
+  redo: async (page, press) => {
+    const starred = page.waitForResponse(/\/rest\/star/);
+    await page.locator("body").press("f");
+    await starred;
+    await page.locator("body").press("ControlOrMeta+z");
+    await expect(page.getByText(/^undid: liked /)).toBeVisible();
+    await press();
+    await expect(page.getByText(/^redid: liked /)).toBeVisible();
   },
   "cheat-sheet": async (page, press) => {
     await press();
