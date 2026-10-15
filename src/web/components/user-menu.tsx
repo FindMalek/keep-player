@@ -88,7 +88,7 @@ export function UserMenu({
           reduce motion
         </DropdownMenuCheckboxItem>
         <DropdownMenuCheckboxItem checked={queueSync} onCheckedChange={(checked) => setSetting("queueSync", checked === true)}>
-          sync the queue with your other devices
+          sync with your other devices (queue, now playing)
         </DropdownMenuCheckboxItem>
         {queueSync && (
           <DropdownMenuCheckboxItem

@@ -31,7 +31,7 @@ export const persister = createAsyncStoragePersister({
 /** Search results change with every keystroke and offsets must be fresh: neither is kept across reloads. */
 export const shouldPersist = (query: Query) =>
   query.state.status === "success" &&
-  !["search", "lyricsSearch", "lyricsOffset", "session", "searchIndex"].includes(query.queryKey[0] as string);
+  !["search", "lyricsSearch", "lyricsOffset", "session", "searchIndex", "history", "playlistHidden"].includes(query.queryKey[0] as string);
 
 /** Long lists load this many items at a time, the next page fetched when the reader is 80% down. */
 export const PAGE_SIZE = 200;
@@ -155,13 +155,15 @@ export const queries = {
     queryOptions({
       queryKey: ["playlists"],
       queryFn: () => api<{ playlists: { playlist?: Playlist[] } }>("getPlaylists").then((response) => response.playlists.playlist ?? []),
-      staleTime: 30_000,
+      // Cheap and edited from every device: painted from cache, checked again whenever it's shown anew.
+      staleTime: 0,
     }),
   playlist: (id: string) =>
     queryOptions({
       queryKey: ["playlist", id],
       queryFn: () => api<{ playlist: Playlist }>("getPlaylist", { id }).then((response) => response.playlist),
-      staleTime: 30_000,
+      // Edited here and on other devices: shown from cache at once, always checked when the page opens.
+      staleTime: 0,
     }),
   folders: () =>
     queryOptions({

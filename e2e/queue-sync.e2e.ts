@@ -69,3 +69,14 @@ test("playing here saves the queue as this browser, and keep mine is remembered"
   await page.waitForTimeout(2000);
   await expect(page.getByText(/^continue from Arpeggi/)).toHaveCount(0);
 });
+
+test("your phone playing shows in the sidebar, and starting here says it's also playing", async ({ page }) => {
+  await syncOn(page);
+  await page.request.get(`${MOCK}/rest/scrobble?${AUTH}&id=so-60&submission=false&c=Arpeggi`);
+  const { signIn } = await import("./fixtures");
+  await signIn(page);
+  await expect(page.getByText("playing on Arpeggi")).toBeVisible({ timeout: 10_000 });
+  await page.goto("/album/al-26");
+  await page.getByRole("button", { name: "play", exact: true }).first().click();
+  await expect(page.getByText("Arpeggi is also playing · it can't be paused from here")).toBeVisible({ timeout: 10_000 });
+});

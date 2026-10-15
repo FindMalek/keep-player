@@ -76,6 +76,11 @@ function subscribe(listener: () => void): () => void {
   return () => listeners.delete(listener);
 }
 
+/** The signed-in username outside React. */
+export function getUser(): string | null {
+  return user;
+}
+
 /** The signed-in username, or null; re-renders when the session ends (logout, expiry, revoked elsewhere). */
 export function useUser(): string | null {
   return useSyncExternalStore(subscribe, () => user);

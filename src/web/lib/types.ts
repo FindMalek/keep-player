@@ -65,6 +65,9 @@ export interface ArtistInfo {
 export interface Playlist {
   id: string;
   name: string;
+  public?: boolean;
+  /** Smart playlists (Navidrome `.nsp` rules) can't be edited through Subsonic. */
+  readonly?: boolean;
   songCount: number;
   duration: number;
   owner?: string;

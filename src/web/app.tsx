@@ -8,14 +8,17 @@ import { PageSlot, usePageHost } from "@/components/page-host";
 import { type Panel, PlayerBar } from "@/components/player-bar";
 import { RouteBoundary } from "@/components/route-boundary";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { startElsewhere } from "@/lib/elsewhere";
 import { loadLikes, toggleLiked } from "@/lib/likes";
 import { openListFilter } from "@/lib/list-filter";
 import { runListCommand } from "@/lib/list-nav";
+import { startListeningHistory } from "@/lib/listening";
 import { openMiniPlayer, setAutoMiniPlayer, useMiniWindow } from "@/lib/mini-player";
 import { transition } from "@/lib/motion";
 import { notify } from "@/lib/notify";
 import { PageScrollContext } from "@/lib/page-scroll";
 import { currentSong, player, usePlayer } from "@/lib/player";
+import { openPlaylistDialog, usePlaylistDialog } from "@/lib/playlist-dialogs";
 import { useReachability } from "@/lib/reachability";
 import { go, usePath } from "@/lib/router";
 import { useSetting } from "@/lib/settings";
@@ -31,6 +34,7 @@ import {
   FoldersPage,
   GenrePage,
   GenresPage,
+  HistoryPage,
   HomePage,
   LikedPage,
   PlaylistPage,
@@ -54,6 +58,7 @@ const CheatSheet = lazy(() => import("@/components/cheat-sheet").then((module) =
 // Only loaded on the first ⌘K (cmdk + dialog stay out of the first paint), then kept mounted.
 const SearchPalette = lazy(() => import("@/components/search-palette").then((module) => ({ default: module.SearchPalette })));
 
+const PlaylistDialogs = lazy(() => import("@/components/playlist-dialogs").then((module) => ({ default: module.PlaylistDialogs })));
 const MiniPlayerPortal = lazy(() => import("@/components/mini-player").then((module) => ({ default: module.MiniPlayerPortal })));
 const OfflineBanner = lazy(() => import("@/components/offline-banner").then((module) => ({ default: module.OfflineBanner })));
 const TopProgressLine = lazy(() => import("@/components/top-progress").then((module) => ({ default: module.TopProgressLine })));
@@ -114,6 +119,8 @@ function Page({ path }: { path: string }) {
       return param ? <PlaylistPage key={param} id={param} /> : null;
     case "search":
       return <SearchPage />;
+    case "history":
+      return <HistoryPage />;
     default:
       return <HomePage />;
   }
@@ -130,6 +137,7 @@ export function App() {
   const setPanel = (update: Panel | ((value: Panel) => Panel)) => transition(() => setPanelNow(update));
   const reduceMotion = useSetting("reduceMotion");
   const miniWindow = useMiniWindow();
+  const playlistDialog = usePlaylistDialog();
   const autoMini = useSetting("miniPlayerWhenHidden");
   useEffect(() => setAutoMiniPlayer(autoMini), [autoMini]);
   useEffect(() => {
@@ -163,6 +171,7 @@ export function App() {
       toggleFullScreen: () => setFullScreen((value) => !value),
       findInList: openListFilter,
       openMiniPlayer: () => void openMiniPlayer(),
+      newPlaylist: () => openPlaylistDialog({ kind: "new" }),
       likeCurrent: () => {
         const song = currentSong(player.getState());
         if (song) void toggleLiked("song", song.id, song.title);
@@ -173,8 +182,12 @@ export function App() {
   useEffect(() => {
     if (!user) return;
     void loadLikes();
+    startListeningHistory();
     // The queue hand-off (Arpeggi, other browsers) waits until the first screen is done.
-    const id = setTimeout(() => void import("@/lib/queue-sync").then((sync) => sync.startQueueSync()), 1500);
+    const id = setTimeout(() => {
+      void import("@/lib/queue-sync").then((sync) => sync.startQueueSync());
+      startElsewhere();
+    }, 1500);
     return () => clearTimeout(id);
   }, [user]);
 
@@ -215,6 +228,14 @@ export function App() {
   return (
     <>
       <TopProgress />
+      {playlistDialog && (
+        <Suspense>
+          <PlaylistDialogs
+            key={playlistDialog.kind === "new" ? `new:${playlistDialog.folder ?? ""}` : `folder:${playlistDialog.path}`}
+            dialog={playlistDialog}
+          />
+        </Suspense>
+      )}
       {miniWindow && (
         <Suspense>
           <MiniPlayerPortal target={miniWindow} />

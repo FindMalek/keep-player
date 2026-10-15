@@ -100,10 +100,17 @@ async function evict(): Promise<void> {
   }
 }
 
-// Downloads: one at a time, low priority, paused while the playing song is still buffering.
+// Downloads: one at a time, low priority, paused while the playing song is still buffering. Pausing also cancels the
+// download in progress (it goes back to the front of the line): a 40 MB file finishing first would starve the song.
 const wanted: string[] = [];
 let paused = false;
 let downloading = false;
+let inflight: AbortController | null = null;
+
+function pauseDownloads(): void {
+  paused = true;
+  inflight?.abort();
+}
 
 async function drain(): Promise<void> {
   if (downloading) return;
@@ -113,13 +120,25 @@ async function drain(): Promise<void> {
       const id = wanted.shift() as string;
       const current = await loadIndex();
       if (current.songs[id]) continue;
-      const response = await fetch(audioKey(id), { credentials: "same-origin", priority: "low" } as RequestInit).catch(() => null);
-      if (!response?.ok || response.status !== 200) continue;
-      const blob = await response.blob();
-      await (await caches.open(AUDIO)).put(
-        audioKey(id),
-        new Response(blob, { headers: { "content-type": response.headers.get("content-type") ?? "audio/mpeg" } }),
-      );
+      const controller = new AbortController();
+      inflight = controller;
+      const download = async () => {
+        const response = await fetch(audioKey(id), {
+          credentials: "same-origin",
+          priority: "low",
+          signal: controller.signal,
+        } as RequestInit);
+        return response.ok && response.status === 200 ? { blob: await response.blob(), type: response.headers.get("content-type") } : null;
+      };
+      const result = await download().catch(() => null);
+      inflight = null;
+      if (controller.signal.aborted) {
+        wanted.unshift(id);
+        continue;
+      }
+      if (!result) continue;
+      const { blob } = result;
+      await (await caches.open(AUDIO)).put(audioKey(id), new Response(blob, { headers: { "content-type": result.type ?? "audio/mpeg" } }));
       current.songs[id] = { bytes: blob.size, used: Date.now() };
       await evict();
       await saveIndex();
@@ -225,7 +244,7 @@ self.addEventListener("message", (event) => {
           queueDownloads(message.ids, true);
           break;
         case "pause":
-          paused = true;
+          pauseDownloads();
           break;
         case "resume":
           paused = false;
