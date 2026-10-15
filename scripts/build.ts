@@ -76,7 +76,11 @@ await Bun.write(
 try {
   const server = await Bun.build({
     entrypoints: ["src/server.ts"],
-    compile: { outfile: "dist/keep-player" },
+    // BUN_TARGET (e.g. bun-linux-arm64-musl) cross-compiles: the image builds every architecture on the CI's own CPU.
+    compile: {
+      outfile: "dist/keep-player",
+      ...(process.env.BUN_TARGET ? { target: process.env.BUN_TARGET as Bun.Build.CompileTarget } : {}),
+    },
     target: "bun",
     minify: true,
     define,
