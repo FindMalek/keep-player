@@ -266,8 +266,10 @@ export function createApi({
           headers: { ...Object.fromEntries(headers), "content-type": "application/x-www-form-urlencoded" },
           body: query,
           redirect: "manual",
+          signal: request.signal,
         })
-      : fetch(`${upstream.url}/rest/${endpoint}?${query}`, { headers, redirect: "manual" })
+      : // A stream the browser drops (skip, reload, preload change) must stop at Navidrome too, or it keeps serving it.
+        fetch(`${upstream.url}/rest/${endpoint}?${query}`, { headers, redirect: "manual", signal: request.signal })
     ).catch(() => null);
     if (!response) return json({ error: "server unreachable" }, 502);
     const out = new Headers(SECURITY_HEADERS);

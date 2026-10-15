@@ -146,8 +146,25 @@ function wav(seconds: number): Uint8Array<ArrayBuffer> {
   return bytes;
 }
 
+/** `mockPause=<s>` (tests): the first 3 s of audio at once, then nothing for that long, then the rest. A slow link. */
+function pausedStream(body: Uint8Array<ArrayBuffer>, seconds: number): Response {
+  const head = 44 + 8000 * 3;
+  const chunks = [body.subarray(0, head), body.subarray(head)];
+  const stream = new ReadableStream({
+    async pull(controller) {
+      const chunk = chunks.shift();
+      if (!chunk) return controller.close();
+      if (chunk.byteOffset > 0) await Bun.sleep(seconds * 1000);
+      controller.enqueue(chunk);
+    },
+  });
+  return new Response(stream, { headers: { "content-type": "audio/wav", "content-length": String(body.length) } });
+}
+
 function stream(song: Song, request: Request): Response {
   const body = wav(song.duration ?? 180);
+  const pause = Number(new URL(request.url).searchParams.get("mockPause") ?? 0);
+  if (pause) return pausedStream(body, pause);
   const range = /^bytes=(\d*)-(\d*)$/.exec(request.headers.get("range") ?? "");
   if (!range || (!range[1] && !range[2])) return new Response(body, { headers: { "content-type": "audio/wav", "accept-ranges": "bytes" } });
   // "bytes=-500" is a suffix range: the last 500 bytes.
