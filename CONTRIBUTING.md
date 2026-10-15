@@ -21,6 +21,8 @@ CI runs the same steps on every PR, and `main` only takes green PRs.
 | `bun run e2e` | Playwright against the mock server (`e2e/*.e2e.ts`) |
 | `bun run size` | production bundle vs the gzip budget in `scripts/bundle-size.ts` |
 | `bun run config-docs` | regenerate `docs/configuration.md` after changing `src/server/settings.ts` |
+| `bun run shortcuts-docs` | regenerate `docs/shortcuts.md` after changing `src/web/app-shortcuts.ts` |
+| `bun run screenshots` | refresh the README screenshots from a running instance (`SCREENSHOT_URL`, `_USER`, `_PASSWORD`) |
 | `bun run check` | everything except e2e |
 
 ## UI components
