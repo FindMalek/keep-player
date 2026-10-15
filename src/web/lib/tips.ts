@@ -62,3 +62,24 @@ export function welcomeTip(openCheatSheet: () => void): void {
   write({ ...state, welcomed: true });
   notify({ message: "press ? anytime to see every keyboard shortcut", action: { label: "show", onClick: openCheatSheet } });
 }
+
+const ONBOARDED_KEY = "keep-player:onboarded";
+
+/** Whether this browser went through (or skipped) the first-run setup. */
+export function isOnboarded(): boolean {
+  try {
+    return localStorage.getItem(ONBOARDED_KEY) !== null;
+  } catch {
+    return true;
+  }
+}
+
+/** First run done: it already pointed at "?", so the welcome tip doesn't repeat it. */
+export function markOnboarded(): void {
+  try {
+    localStorage.setItem(ONBOARDED_KEY, String(Date.now()));
+  } catch {
+    // Shown again next time; harmless.
+  }
+  write({ ...read(), welcomed: true });
+}

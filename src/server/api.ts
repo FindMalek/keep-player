@@ -185,11 +185,19 @@ export function createApi({
     const query = upstreamQuery({ user, token, salt });
     query.set("f", "json");
     const ping = await fetch(`${upstream.url}/rest/ping?${query}`, { signal: AbortSignal.timeout(8000) }).catch(() => null);
-    if (!ping) return json({ error: "server unreachable" }, 502);
-    const result = ping.ok ? ((await ping.json().catch(() => null)) as { "subsonic-response"?: { status?: string } } | null) : null;
-    if (result?.["subsonic-response"]?.status !== "ok") {
+    if (!ping) return json({ error: "can't reach the music server", reason: "unreachable" }, 502);
+    const result = (await ping.json().catch(() => null)) as {
+      "subsonic-response"?: { status?: string; error?: { code?: number } };
+    } | null;
+    const answer = result?.["subsonic-response"];
+    // Something answered, but not a Subsonic API: usually NAVIDROME_URL points at the wrong port or a web page.
+    if (!answer)
+      return json({ error: "the server answered, but it isn't Navidrome or another Subsonic server", reason: "not-subsonic" }, 502);
+    if (answer.status !== "ok") {
+      // 50: the account exists but may not use the API (disabled, or no access to this server).
+      if (answer.error?.code === 50) return json({ error: "this account isn't allowed to sign in here", reason: "forbidden" }, 403);
       limiter.fail(keys);
-      return json({ error: "wrong username or password" }, 401);
+      return json({ error: "wrong username or password", reason: "credentials" }, 401);
     }
     limiter.succeed(keys);
     // Admins' sessions can run the background jobs (lyrics backfill, search index) when no service account is set.
