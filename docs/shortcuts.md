@@ -32,12 +32,14 @@ rebound there (pencil icon); a rebound key shows everywhere the app shows the ke
 | keys | action |
 |---|---|
 | `⌘/ctrl` `k` or `/` | search |
+| `⇧` `n` | new playlist |
 | `?` | keyboard shortcuts |
 | `g` then `h` | go to home |
 | `g` then `a` | go to albums |
 | `g` then `r` | go to artists |
 | `g` then `s` | go to songs |
 | `g` then `g` | go to genres |
+| `g` then `p` | go to history |
 | `g` then `l` | go to liked songs |
 | `g` then `f` | go to folders |
 | `g` then `q` | open the queue |

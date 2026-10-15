@@ -3,26 +3,9 @@ import type { Shortcut, ShortcutGroup } from "../src/web/lib/shortcuts";
 
 // Regenerates docs/shortcuts.md from the shortcut registry (the same list the `?` sheet shows); `--check` fails when
 // the file is out of date (CI).
-const noop = () => undefined;
-const stub = new Proxy({}, { get: () => noop }) as never;
-const shortcuts: Shortcut[] = [
-  ...appShortcuts({
-    player: stub,
-    go: stub,
-    runListCommand: stub,
-    notify: stub,
-    togglePanel: noop,
-    closeTopLayer: noop,
-    openSearch: noop,
-    toggleSearch: noop,
-    openCheatSheet: noop,
-    toggleFullScreen: noop,
-    findInList: () => true,
-    likeCurrent: noop,
-    openMiniPlayer: noop,
-  }),
-  ...lyricsShortcuts(() => true, 250),
-];
+// Every action is a no-op: only the list matters here, so a new action never needs adding.
+const stub = new Proxy({}, { get: () => () => undefined }) as never;
+const shortcuts: Shortcut[] = [...appShortcuts(stub), ...lyricsShortcuts(() => true, 250)];
 
 const SYMBOLS: Record<string, string> = {
   mod: "⌘/ctrl",
