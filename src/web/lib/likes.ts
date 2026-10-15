@@ -2,6 +2,7 @@ import { useSyncExternalStore } from "react";
 import { notify } from "./notify";
 import { queries, queryClient } from "./queries";
 import { api, onAccountChange } from "./subsonic";
+import { done, record } from "./undo";
 
 /*
  * Likes (Subsonic stars), the ones Arpeggi and every other client see. One set of ids for songs, albums and artists,
@@ -63,8 +64,8 @@ export function isLiked(id: string): boolean {
 
 const PARAM: Record<LikeKind, string> = { song: "id", album: "albumId", artist: "artistId" };
 
-/** Like or unlike; unliking offers an undo. */
-export async function setLiked(kind: LikeKind, id: string, value: boolean, label: string): Promise<void> {
+/** Like or unlike, undoable with ⌘Z; unliking also offers an undo button. `replay`: an undo or redo doing it again. */
+export async function setLiked(kind: LikeKind, id: string, value: boolean, label: string, replay = false): Promise<void> {
   if (liked.has(id) === value) return;
   const apply = (state: boolean) => {
     liked = new Set(liked);
@@ -79,11 +80,14 @@ export async function setLiked(kind: LikeKind, id: string, value: boolean, label
     await api(value ? "star" : "unstar", { [PARAM[kind]]: id });
     if (mine !== account) return;
     void queryClient.invalidateQueries({ queryKey: queries.starred().queryKey });
-    if (!value)
-      notify({
-        message: `removed ${label} from your likes`,
-        action: { label: "undo", onClick: () => void setLiked(kind, id, true, label) },
-      });
+    if (!replay) {
+      const action = {
+        label: value ? `liked ${label}` : `removed ${label} from your likes`,
+        undo: () => setLiked(kind, id, !value, label, true),
+        redo: () => setLiked(kind, id, value, label, true),
+      };
+      value ? record(action) : done(action);
+    }
   } catch {
     if (mine !== account) return;
     apply(!value);

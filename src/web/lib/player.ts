@@ -3,11 +3,12 @@ import { useRef, useSyncExternalStore } from "react";
 import type { FrameSource } from "./audio/types";
 import { Decks } from "./decks";
 import { notify } from "./notify";
-import { controlled, isCached, onCacheChange, pausePrecache, precache } from "./offline";
+import { controlled, dropPrecache, isCached, onCacheChange, pausePrecache, precache } from "./offline";
 import { queries, queryClient } from "./queries";
 import * as Q from "./queue";
 import { api, coverUrl, onAccountChange, preloadCover, scrobble, streamUrl } from "./subsonic";
 import type { Song } from "./types";
+import { done, record } from "./undo";
 
 export type { Entry, QueueSource, Repeat } from "./queue";
 
@@ -396,6 +397,8 @@ function lineUpNextDeck(now: boolean): void {
     if (decks.preloadedId) decks.preload(null, null, 1);
     return;
   }
+  // Straight from the network: if the service worker is fetching the same song, it stops (one download, not two).
+  if (next && controlled() && !isCached(next.song.id)) dropPrecache(next.song.id);
   decks.preload(next?.song.id ?? null, next ? streamUrl(next.song.id) : null, next?.factor ?? 1);
 }
 
@@ -458,24 +461,38 @@ function onEnded(): void {
   else advance(Q.next(state.queue));
 }
 
-/** Apply a queue edit that added songs, and say so with an undo that takes exactly those back out. */
-function queued(next: Q.Queue, where: string): void {
-  const before = new Set(state.queue.upNext.map((entry) => entry.uid));
+/**
+ * Put back a queue from before (or after) an edit, as long as the same song is still playing; otherwise `fallback`
+ * makes the closest change that leaves what's playing alone.
+ */
+function restoreQueue(snapshot: Q.Queue, fallback: () => Q.Queue): void {
+  edit(state.queue.current?.uid === snapshot.current?.uid ? snapshot : fallback());
+}
+
+/** Apply a queue edit that added songs, and say so with an undo that takes exactly those back out (⌘Z too). */
+function queued(next: Q.Queue, where: string, reapply: (queue: Q.Queue) => Q.Queue): void {
+  const before = state.queue;
+  const uids = new Set(before.upNext.map((entry) => entry.uid));
   edit(next);
-  const added = next.upNext.filter((entry) => !before.has(entry.uid));
+  let added = next.upNext.filter((entry) => !uids.has(entry.uid));
   if (!added.length) return;
-  notify({
-    message: `added ${added.length === 1 ? (added[0] as Q.Entry).song.title : `${added.length} songs`} ${where}`,
-    action: {
-      label: "undo",
-      onClick: () => edit(added.reduce((queue, entry) => Q.remove(queue, entry), state.queue)),
-    },
+  const after = next;
+  done({
+    label: `added ${added.length === 1 ? (added[0] as Q.Entry).song.title : `${added.length} songs`} ${where}`,
+    undo: () => restoreQueue(before, () => added.reduce((queue, entry) => Q.remove(queue, entry), state.queue)),
+    redo: () =>
+      restoreQueue(after, () => {
+        const known = new Set(state.queue.upNext.map((entry) => entry.uid));
+        const queue = reapply(state.queue);
+        added = queue.upNext.filter((entry) => !known.has(entry.uid));
+        return queue;
+      }),
   });
 }
 
 /**
- * Apply a queue edit that took songs out, with an undo: the queue as it was if the same song is still playing,
- * otherwise the removed songs back at the end of your queue.
+ * Apply a queue edit that took songs out, with an undo (⌘Z too): the queue as it was if the same song is still
+ * playing, otherwise the removed songs back at the end of your queue.
  */
 function removed(next: Q.Queue, message: string): void {
   const before = state.queue;
@@ -484,21 +501,40 @@ function removed(next: Q.Queue, message: string): void {
   const gone = upcoming(before).filter((entry) => !left.has(entry.uid));
   edit(next);
   if (!gone.length) return;
-  notify({
-    message,
-    action: {
-      label: "undo",
-      onClick: () =>
-        edit(
-          state.queue.current?.uid === before.current?.uid
-            ? before
-            : Q.addToQueue(
-                state.queue,
-                gone.map((entry) => entry.song),
-              ),
-        ),
-    },
+  let restored: Q.Entry[] = [];
+  done({
+    label: message,
+    undo: () =>
+      restoreQueue(before, () => {
+        const known = new Set(state.queue.upNext.map((entry) => entry.uid));
+        const queue = Q.addToQueue(
+          state.queue,
+          gone.map((entry) => entry.song),
+        );
+        restored = queue.upNext.filter((entry) => !known.has(entry.uid));
+        return queue;
+      }),
+    redo: () => restoreQueue(next, () => restored.reduce((queue, entry) => Q.remove(queue, entry), state.queue)),
   });
+}
+
+/**
+ * Starting an album or playlist replaces what was left of the one before: undoable (⌘Z) back to that song, at that
+ * point, and said out loud with an undo button when a lot was dropped (the "I lost my queue" moment).
+ */
+function replacedContext(before: Q.Queue, at: number, label: string): void {
+  if (!before.current) return;
+  const after = state.queue;
+  const back = (queue: Q.Queue, seconds: number) => {
+    const playing = state.playing;
+    setQueue(queue);
+    load(playing, seconds);
+    if (!playing) preloadNext();
+  };
+  const dropped = Q.contextUpcoming(before).length;
+  const action = { label, undo: () => back(before, at), redo: () => back(after, 0) };
+  if (dropped >= 10) done({ ...action, label: `${label} · ${dropped} songs from ${before.context.source?.name ?? "before"} dropped` });
+  else record(action);
 }
 
 let sleepTimer: ReturnType<typeof setTimeout> | undefined;
@@ -600,7 +636,10 @@ export const player = {
   /** Start a context (album, playlist, …) at `start`, `startAt` seconds in (a lyrics hit). Your up-next queue stays. */
   play(songs: Song[], start = 0, options: { shuffle?: boolean; album?: boolean; source?: Q.QueueSource; startAt?: number } = {}): void {
     if (!songs.length) return;
+    const before = state.queue;
+    const at = position;
     advance(Q.playContext(state.queue, songs, start, options), options.startAt);
+    replacedContext(before, at, `started ${options.source?.name ?? (songs[start] as Song | undefined)?.title ?? "playing"}`);
   },
   toggle(force?: boolean): void {
     if (!current()) return;
@@ -656,15 +695,23 @@ export const player = {
   /** To the top of your queue; starts playing if nothing is. */
   playNext(songs: Song[]): void {
     if (!current()) player.play(songs);
-    else queued(Q.playNext(state.queue, songs), "to play next");
+    else queued(Q.playNext(state.queue, songs), "to play next", (queue) => Q.playNext(queue, songs));
   },
   /** To the end of your queue; starts playing if nothing is. */
   addToQueue(songs: Song[]): void {
     if (!current()) player.play(songs);
-    else queued(Q.addToQueue(state.queue, songs), "to the queue");
+    else queued(Q.addToQueue(state.queue, songs), "to the queue", (queue) => Q.addToQueue(queue, songs));
   },
   move(entry: Q.Entry, delta: -1 | 1): void {
-    edit(Q.move(state.queue, entry, delta));
+    const before = state.queue;
+    const after = Q.move(before, entry, delta);
+    if (after === before) return;
+    edit(after);
+    record({
+      label: `moved ${entry.song.title}`,
+      undo: () => restoreQueue(before, () => Q.move(state.queue, entry, delta === 1 ? -1 : 1)),
+      redo: () => restoreQueue(after, () => Q.move(state.queue, entry, delta)),
+    });
   },
   /** Drag and drop in the queue: `entry` takes `to`'s place. */
   moveTo(entry: Q.Entry, to: Q.Entry): void {

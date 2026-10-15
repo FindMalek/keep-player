@@ -26,6 +26,7 @@ import { installShortcuts, useShortcuts } from "@/lib/shortcuts";
 import { useCheckingSession, useUser } from "@/lib/subsonic";
 import { isOnboarded, welcomeTip } from "@/lib/tips";
 import { loadTooltips } from "@/lib/tooltips";
+import { redo, undo } from "@/lib/undo";
 import {
   AlbumPage,
   AlbumsPage,
@@ -37,6 +38,7 @@ import {
   HistoryPage,
   HomePage,
   LikedPage,
+  LyricsPage,
   PlaylistPage,
   preloadAllRoutes,
   SearchPage,
@@ -121,6 +123,8 @@ function Page({ path }: { path: string }) {
       return <SearchPage />;
     case "history":
       return <HistoryPage />;
+    case "lyrics":
+      return <LyricsPage />;
     default:
       return <HomePage />;
   }
@@ -172,6 +176,8 @@ export function App() {
       findInList: openListFilter,
       openMiniPlayer: () => void openMiniPlayer(),
       newPlaylist: () => openPlaylistDialog({ kind: "new" }),
+      undo: () => void undo(),
+      redo: () => void redo(),
       likeCurrent: () => {
         const song = currentSong(player.getState());
         if (song) void toggleLiked("song", song.id, song.title);

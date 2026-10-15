@@ -53,6 +53,17 @@ export const SETTINGS = [
     description: "`on`: walk the library in the background (about one song a second) to fetch lyrics nobody opened yet. `off` to disable.",
   },
   {
+    name: "LYRICS_WRITE_LRC",
+    fallback: "off",
+    description:
+      '`on`: lyrics found on LRCLIB are also saved as `<track>.lrc` next to the audio file, so other clients get them. Needs `MUSIC_DIR` and Navidrome\'s "Report Real Path". Never overwrites; undo from the lyrics page.',
+  },
+  {
+    name: "MUSIC_DIR",
+    fallback: "",
+    description: "Navidrome's music folder mounted writable here, for `LYRICS_WRITE_LRC`. Unused otherwise.",
+  },
+  {
     name: "INDEX_USER",
     fallback: "",
     description: "Navidrome account for background jobs (search index, lyrics backfill). Unset: the admin who signed in most recently.",
@@ -82,6 +93,8 @@ export interface Config {
   coverCacheMb: number;
   lrclibUrl: string;
   lyricsBackfill: boolean;
+  /** Null unless `LYRICS_WRITE_LRC=on`: the music folder .lrc files are written into. */
+  lrcDir: string | null;
   indexUser: string | undefined;
   indexPassword: string | undefined;
   trustProxy: boolean;
@@ -132,6 +145,9 @@ export function readConfig(env: Env): { config: Config; errors: string[] } {
 
   const lrclibUrl = get("LRCLIB_URL").replace(/\/+$/, "");
   if (lrclibUrl && !isUrl(lrclibUrl)) errors.push(`LRCLIB_URL must be http(s)://host or empty, got "${lrclibUrl}"`);
+  const writeLrc = flag("LYRICS_WRITE_LRC", ["on"], ["off"]);
+  const musicDir = get("MUSIC_DIR").replace(/(.)\/+$/, "$1");
+  if (writeLrc && !musicDir.startsWith("/")) errors.push(`LYRICS_WRITE_LRC=on needs MUSIC_DIR, an absolute path, got "${musicDir}"`);
   const indexUser = get("INDEX_USER") || undefined;
   const indexPassword = get("INDEX_PASSWORD") || undefined;
   if (!!indexUser !== !!indexPassword) errors.push("INDEX_USER and INDEX_PASSWORD go together: set both or neither");
@@ -145,6 +161,7 @@ export function readConfig(env: Env): { config: Config; errors: string[] } {
     coverCacheMb: number("COVER_CACHE_MB", 16),
     lrclibUrl,
     lyricsBackfill: flag("LYRICS_BACKFILL", ["on"], ["off"]),
+    lrcDir: writeLrc ? musicDir : null,
     indexUser,
     indexPassword,
     trustProxy: flag("TRUST_PROXY", ["1", "true", "yes", "on"], ["0", "false", "no", "off", ""]),

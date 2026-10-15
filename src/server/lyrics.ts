@@ -18,6 +18,8 @@ interface Song {
   albumId?: string;
   duration?: number;
   displayAlbumArtist?: string;
+  /** The file's path, when Navidrome reports real paths (for .lrc sidecars). */
+  path?: string;
 }
 
 interface LrclibRecord {
@@ -123,6 +125,9 @@ export function fromNavidrome(list: StructuredLyrics[]): Lyrics | null {
 }
 
 export class LyricsService {
+  /** Called with the raw text whenever LRCLIB has lyrics for a song (the opt-in .lrc writer listens). */
+  onLrclib: ((upstreamId: string, song: { id: string; path?: string }, text: string) => void) | null = null;
+
   constructor(
     private readonly db: Database,
     private readonly lrclibUrl: string,
@@ -178,6 +183,8 @@ export class LyricsService {
     if (found === undefined) return MISSING;
     const lyrics = found ? fromLrclib(found) : MISSING;
     this.store(upstream.id, songId, lyrics, found?.id ?? null);
+    const text = found?.syncedLyrics || found?.plainLyrics;
+    if (text) this.onLrclib?.(upstream.id, song, text);
     return lyrics;
   }
 

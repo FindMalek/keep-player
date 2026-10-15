@@ -3,6 +3,7 @@ import { queries, queryClient } from "./queries";
 import { go } from "./router";
 import { api, getUser, HEADERS } from "./subsonic";
 import type { Playlist, Song } from "./types";
+import { done, record } from "./undo";
 
 /*
  * Playlist edits (#46), all through Subsonic so Arpeggi and every other client see them. Optimistic: the cache
@@ -103,18 +104,23 @@ async function full(id: string): Promise<Full> {
   return (await queryClient.fetchQuery({ ...queries.playlist(id), staleTime: 0 })) as Full;
 }
 
-async function append(playlist: Playlist, songs: Song[]): Promise<void> {
+async function append(playlist: Playlist, songs: Song[], before: Song[]): Promise<void> {
   if (!songs.length) return;
   await api("updatePlaylist", { playlistId: playlist.id, songIdToAdd: songs.map((song) => song.id) });
   await refresh(playlist.id);
-  notify({ message: `added ${songs.length === 1 ? (songs[0] as Song).title : `${songs.length} songs`} to ${leafOf(playlist.name)}` });
+  done({
+    label: `added ${songs.length === 1 ? (songs[0] as Song).title : `${songs.length} songs`} to ${leafOf(playlist.name)}`,
+    undo: () => rewrite(playlist.id, before),
+    redo: () => rewrite(playlist.id, [...before, ...songs]),
+  });
 }
 
 /** Add songs; any already in the playlist get asked about first ("add anyway" or "skip" them). */
 export async function addToPlaylist(playlist: Playlist, songs: Song[]): Promise<void> {
-  const present = new Set(((await full(playlist.id).catch(() => null))?.entry ?? []).map((song) => song.id));
+  const before = (await full(playlist.id).catch(() => null))?.entry ?? [];
+  const present = new Set(before.map((song) => song.id));
   const duplicates = songs.filter((song) => present.has(song.id));
-  if (!duplicates.length) return append(playlist, songs);
+  if (!duplicates.length) return append(playlist, songs, before);
   const fresh = songs.filter((song) => !present.has(song.id));
   notify({
     message:
@@ -123,8 +129,8 @@ export async function addToPlaylist(playlist: Playlist, songs: Song[]): Promise<
         : `${duplicates.length} of ${songs.length} already in ${leafOf(playlist.name)}`,
     duration: 15_000,
     id: "playlist-duplicates",
-    action: { label: "add anyway", onClick: () => void append(playlist, songs) },
-    cancel: { label: fresh.length ? "skip those" : "skip", onClick: () => void append(playlist, fresh) },
+    action: { label: "add anyway", onClick: () => void append(playlist, songs, before) },
+    cancel: { label: fresh.length ? "skip those" : "skip", onClick: () => void append(playlist, fresh, before) },
   });
 }
 
@@ -142,23 +148,49 @@ export async function removeFromPlaylist(playlist: Full, indexes: number[]): Pro
   patch(playlist.id, { entry: after, songCount: after.length });
   await api("updatePlaylist", { playlistId: playlist.id, songIndexToRemove: indexes });
   await refresh(playlist.id);
-  notify({
-    message: `removed ${indexes.length === 1 ? (before[indexes[0] as number]?.title ?? "a song") : `${indexes.length} songs`} from ${leafOf(playlist.name)}`,
-    action: { label: "undo", onClick: () => void rewrite(playlist.id, before) },
+  done({
+    label: `removed ${indexes.length === 1 ? (before[indexes[0] as number]?.title ?? "a song") : `${indexes.length} songs`} from ${leafOf(playlist.name)}`,
+    undo: () => rewrite(playlist.id, before),
+    redo: () => rewrite(playlist.id, after),
   });
 }
 
 const pending = new Map<string, { timer: ReturnType<typeof setTimeout>; songs: Song[] }>();
+/** The order before a burst of moves, so ⌘Z puts the whole burst back at once. */
+const burstStart = new Map<string, Song[]>();
 
-/** Show the new order at once, save it once the moving stops. */
+/** Show the new order at once, save it once the moving stops; the burst is one undoable step. */
 export function reorderPlaylist(id: string, songs: Song[]): void {
+  if (!burstStart.has(id)) {
+    const current = (queryClient.getQueryData(queries.playlist(id).queryKey) as Full | undefined)?.entry;
+    if (current) burstStart.set(id, current);
+  }
   patch(id, { entry: songs });
   clearTimeout(pending.get(id)?.timer);
   pending.set(id, {
     songs,
     timer: setTimeout(() => {
       pending.delete(id);
-      void rewrite(id, songs).catch(() => notify({ kind: "error", message: "couldn't save the new order" }));
+      const before = burstStart.get(id);
+      burstStart.delete(id);
+      void rewrite(id, songs).then(
+        () => {
+          if (!before) return;
+          const name = (queryClient.getQueryData(queries.playlist(id).queryKey) as Full | undefined)?.name ?? "the playlist";
+          record({
+            label: `reordered ${leafOf(name)}`,
+            undo: () => {
+              patch(id, { entry: before });
+              return rewrite(id, before);
+            },
+            redo: () => {
+              patch(id, { entry: songs });
+              return rewrite(id, songs);
+            },
+          });
+        },
+        () => notify({ kind: "error", message: "couldn't save the new order" }),
+      );
     }, REORDER_DEBOUNCE_MS),
   });
 }
