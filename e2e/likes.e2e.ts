@@ -58,10 +58,15 @@ test("ratings show once turned on and are saved", async ({ page, signedIn }) => 
   await page.getByRole("menuitemcheckbox", { name: "show ratings" }).click();
   await page.keyboard.press("Escape");
   const rating = page.getByRole("group", { name: `rating for ${titles[0]}` });
-  await rating.getByRole("button", { name: "4 stars" }).click();
-  await expect(rating.getByRole("button", { name: "4 stars" })).toHaveAttribute("aria-pressed", "true");
+  // The mock keeps ratings across tests and retries, and clicking the current rating clears it: pick one not set yet.
+  const stars = (await rating.getByRole("button", { name: "4 stars" }).getAttribute("aria-pressed")) === "true" ? "3 stars" : "4 stars";
+  // Reload only once the server has the rating: reloading mid-request would lose it.
+  const saved = page.waitForResponse((response) => response.url().includes("/rest/setRating") && response.ok());
+  await rating.getByRole("button", { name: stars }).click();
+  await expect(rating.getByRole("button", { name: stars })).toHaveAttribute("aria-pressed", "true");
+  await saved;
   await page.reload();
-  await expect(page.getByRole("group", { name: `rating for ${titles[0]}` }).getByRole("button", { name: "4 stars" })).toHaveAttribute(
+  await expect(page.getByRole("group", { name: `rating for ${titles[0]}` }).getByRole("button", { name: stars })).toHaveAttribute(
     "aria-pressed",
     "true",
   );
