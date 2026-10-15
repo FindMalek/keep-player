@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import { AlbumRows } from "@/components/album-rows";
 import { Hint } from "@/components/hint";
 import { AlbumGrid, AlbumGridSkeleton, Content, EmptyState, PageHeader } from "@/components/library";
-import { LikedToggle } from "@/components/liked-toggle";
 import { Delayed } from "@/components/skeletons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,7 +23,9 @@ import {
 import { plural } from "@/lib/format";
 import { usePageView } from "@/lib/page-view";
 import { queries } from "@/lib/queries";
-import { useAllPages } from "@/lib/use-all-pages";
+// Through browse, whose chunk the home page already loads, so the two pages share no chunk of their own (an extra
+// shared chunk is one more request on the home page's critical path; Lighthouse notices).
+import { LikedToggle, useAllPages } from "@/pages/browse";
 
 const ANY = "any";
 type Layout = "grid" | "list";

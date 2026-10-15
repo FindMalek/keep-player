@@ -1,9 +1,8 @@
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { PlayIcon, ShuffleIcon } from "lucide-react";
-import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { HeartIcon, PlayIcon, ShuffleIcon } from "lucide-react";
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ListContextMenu, type MenuTarget } from "@/components/item-menu";
 import { AlbumGrid, AlbumGridSkeleton, Content, EmptyState, PageHeader, Section, TrackList } from "@/components/library";
-import { LikedToggle } from "@/components/liked-toggle";
 import { Link } from "@/components/link";
 import { ListFilterBar } from "@/components/list-filter-bar";
 import { ArtistRowsSkeleton, Delayed, TrackListSkeleton } from "@/components/skeletons";
@@ -19,7 +18,6 @@ import { closeListFilter, songMatches, useListFilter } from "@/lib/list-filter";
 import { player } from "@/lib/player";
 import { queries, queryClient } from "@/lib/queries";
 import type { Album, Artist, Song } from "@/lib/types";
-import { useAllPages } from "@/lib/use-all-pages";
 import { cn } from "@/lib/utils";
 import { useColumns, usePageVirtualizer } from "@/lib/virtual";
 
@@ -104,6 +102,31 @@ export function HomePage() {
         </>
       )}
     </>
+  );
+}
+
+/** Pages of an infinite list as one array, plus a callback that loads the next page once (no duplicate requests). */
+export function useAllPages<T>(query: {
+  data?: { pages: T[][] };
+  hasNextPage: boolean;
+  isFetchingNextPage: boolean;
+  fetchNextPage: () => Promise<unknown>;
+}) {
+  const items = useMemo(() => query.data?.pages.flat() ?? [], [query.data]);
+  const { hasNextPage, isFetchingNextPage, fetchNextPage } = query;
+  const loadMore = useCallback(() => {
+    if (hasNextPage && !isFetchingNextPage) void fetchNextPage();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+  return { items, loadMore };
+}
+
+/** "Only what I liked" on the albums and artists pages. */
+export function LikedToggle({ pressed, onPressedChange }: { pressed: boolean; onPressedChange: (pressed: boolean) => void }) {
+  return (
+    <Toggle variant="outline" size="sm" pressed={pressed} onPressedChange={onPressedChange} className="font-mono font-normal">
+      <HeartIcon className={cn(pressed && "fill-current")} />
+      liked
+    </Toggle>
   );
 }
 
