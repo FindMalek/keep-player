@@ -148,6 +148,18 @@ export function createLibrary(trackCount = 10_000, seed = 7): Library {
       entry,
     };
   });
+  // A smart playlist (Navidrome .nsp rules): readable, not editable.
+  const smart = songs.slice(500, 520);
+  playlists.push({
+    id: "pl-smart",
+    name: "Recently added",
+    songCount: smart.length,
+    duration: smart.reduce((sum, song) => sum + (song.duration ?? 0), 0),
+    owner: "demo",
+    readonly: true,
+    changed: new Date(created).toISOString(),
+    entry: smart,
+  });
 
   return { artists, albums, songs, playlists, genres: GENRES, lyrics };
 }

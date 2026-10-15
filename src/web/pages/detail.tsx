@@ -1,28 +1,47 @@
 import { useQuery } from "@tanstack/react-query";
-import { ExternalLinkIcon } from "lucide-react";
-import { Fragment, type ReactNode, useEffect, useState } from "react";
+import { ExternalLinkIcon, Trash2Icon } from "lucide-react";
+import { Fragment, type ReactNode, useEffect, useMemo, useState } from "react";
 import { ArtistCard } from "@/components/artist-card";
 import { Cover } from "@/components/cover";
+import { EditableText } from "@/components/editable-text";
+import { Hint } from "@/components/hint";
 import { KeepOffline } from "@/components/keep-offline";
-import { AlbumGrid, AlbumGridSkeleton, Content, EmptyState, PageHeader, Section, TrackList } from "@/components/library";
+import { AlbumGrid, AlbumGridSkeleton, Content, EmptyState, type ListEditing, PageHeader, Section, TrackList } from "@/components/library";
 import { LikeButton } from "@/components/like-button";
 import { Link } from "@/components/link";
 import { Delayed, HeroSkeleton, TrackListSkeleton } from "@/components/skeletons";
 import { Badge } from "@/components/ui/badge";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cachedSummary } from "@/lib/cached";
 import { length, plural, quality } from "@/lib/format";
 import type { LikeKind } from "@/lib/likes";
 import { clearMorph, isMorphing } from "@/lib/motion";
 import { player } from "@/lib/player";
+import {
+  canEdit,
+  deletePlaylist,
+  folderOf,
+  hiddenQuery,
+  leafOf,
+  moveInPlaylist,
+  removeFromPlaylist,
+  reorderPlaylist,
+  setHidden,
+  updatePlaylist,
+} from "@/lib/playlists";
 import { queries, queryClient } from "@/lib/queries";
+import { usePath } from "@/lib/router";
 import type { Album, Artist, Playlist, Song } from "@/lib/types";
 
 function Hero({
   cover,
   kind,
   title,
+  titleSlot,
   children,
   onPlay,
   onShuffle,
@@ -34,6 +53,8 @@ function Hero({
   cover?: string;
   kind: ReactNode;
   title: string;
+  /** Shown instead of the plain title (an editable one). */
+  titleSlot?: ReactNode;
   children: ReactNode;
   onPlay: () => void;
   onShuffle: () => void;
@@ -52,7 +73,7 @@ function Hero({
       </div>
       <div className="flex min-w-0 flex-col gap-1.5">
         <div className="self-start">{kind}</div>
-        <h1 className="font-medium text-[26px] leading-[1.1] tracking-tight [overflow-wrap:anywhere]">{title}</h1>
+        <h1 className="font-medium text-[26px] leading-[1.1] tracking-tight [overflow-wrap:anywhere]">{titleSlot ?? title}</h1>
         <div className="flex flex-col gap-0.5">{children}</div>
         <div className="mt-1 flex gap-1.5">
           <Button onClick={onPlay}>play</Button>
@@ -267,6 +288,22 @@ export function GenrePage({ name }: { name: string }) {
   );
 }
 
+const PLAYLIST_SORTS = [
+  ["custom", "playlist order"],
+  ["title", "title"],
+  ["artist", "artist"],
+  ["album", "album"],
+  ["duration", "length"],
+] as const;
+type PlaylistSort = (typeof PLAYLIST_SORTS)[number][0];
+
+function sortSongs(songs: Song[], sort: PlaylistSort): Song[] {
+  if (sort === "custom") return songs;
+  const sorted = [...songs];
+  if (sort === "duration") return sorted.sort((a, b) => (a.duration ?? 0) - (b.duration ?? 0));
+  return sorted.sort((a, b) => (a[sort] ?? "").localeCompare(b[sort] ?? "", undefined, { sensitivity: "base" }));
+}
+
 export function PlaylistPage({ id }: { id: string }) {
   const {
     data: playlist,
@@ -276,6 +313,25 @@ export function PlaylistPage({ id }: { id: string }) {
     ...queries.playlist(id),
     placeholderData: () => cachedSummary<Playlist>(id, ["playlists"]),
   });
+  const hiddenIds = useQuery(hiddenQuery(id)).data;
+  const hidden = useMemo(() => new Set(hiddenIds ?? []), [hiddenIds]);
+  const [sort, setSort] = useState<PlaylistSort>("custom");
+  const path = usePath();
+  const songs = playlist?.entry ?? [];
+  const shown = useMemo(() => sortSongs(songs, sort), [songs, sort]);
+  const editable = Boolean(playlist && canEdit(playlist) && !isPlaceholderData);
+  const editing = useMemo<ListEditing | undefined>(
+    () =>
+      playlist && editable && sort === "custom"
+        ? {
+            remove: (indexes) => void removeFromPlaylist(playlist, indexes),
+            move: (index, delta) => moveInPlaylist(playlist, index, delta),
+            hidden,
+            toggleHidden: (song) => void setHidden(playlist.id, song.id, !hidden.has(song.id)),
+          }
+        : undefined,
+    [playlist, editable, sort, hidden],
+  );
   if (error)
     return (
       <Content>
@@ -283,9 +339,10 @@ export function PlaylistPage({ id }: { id: string }) {
       </Content>
     );
   if (!playlist) return <DetailSkeleton />;
-  const songs = playlist.entry ?? [];
-  const source = { kind: "playlist", name: playlist.name.split(" / ").at(-1) ?? playlist.name, href: `/playlist/${playlist.id}` };
+  const source = { kind: "playlist", name: leafOf(playlist.name), href: `/playlist/${playlist.id}` };
   const parts = playlist.name.split(" / ");
+  const folder = folderOf(playlist.name);
+  const playable = shown.filter((song) => !hidden.has(song.id));
 
   return (
     <>
@@ -310,22 +367,99 @@ export function PlaylistPage({ id }: { id: string }) {
             <Kind>playlist</Kind>
           )
         }
-        title={parts.at(-1) ?? playlist.name}
-        onPlay={() => player.play(songs, 0, { shuffle: false, source })}
-        onShuffle={() => player.play(songs, -1, { shuffle: true, source })}
-        onQueue={() => player.addToQueue(songs)}
-        extra={<KeepOffline group={`playlist:${playlist.id}`} songs={songs} />}
+        title={leafOf(playlist.name)}
+        titleSlot={
+          <EditableText
+            label="playlist name"
+            value={leafOf(playlist.name)}
+            editable={editable}
+            onSave={(name) => name && void updatePlaylist(playlist.id, { name: folder ? `${folder} / ${name}` : name })}
+          />
+        }
+        onPlay={() => player.play(playable, 0, { shuffle: false, source })}
+        onShuffle={() => player.play(playable, -1, { shuffle: true, source })}
+        onQueue={() => player.addToQueue(playable)}
+        extra={
+          <>
+            <KeepOffline group={`playlist:${playlist.id}`} songs={playable} />
+            {editable ? (
+              <>
+                <Hint label={playlist.public ? "others on this server can see it" : "only you can see it"}>
+                  <Label className="flex h-8 items-center gap-2 px-2 font-mono font-normal text-muted-foreground text-xs">
+                    <Switch
+                      checked={Boolean(playlist.public)}
+                      onCheckedChange={(value) => void updatePlaylist(playlist.id, { public: value })}
+                      aria-label="public"
+                    />
+                    public
+                  </Label>
+                </Hint>
+                <Hint label="delete this playlist (undo for 10 s)">
+                  <Button variant="ghost" size="icon" aria-label="delete playlist" onClick={() => deletePlaylist(playlist, path)}>
+                    <Trash2Icon />
+                  </Button>
+                </Hint>
+              </>
+            ) : (
+              <Badge variant="outline" className="h-8 font-mono font-normal text-muted-foreground">
+                {playlist.readonly ? "smart playlist · read only" : `by ${playlist.owner}`}
+              </Badge>
+            )}
+          </>
+        }
       >
         <span className="text-muted-foreground">
-          {[plural(playlist.songCount ?? songs.length, "track"), length(playlist.duration)].join(" · ")}
+          {[plural(playlist.songCount ?? songs.length, "track"), length(playlist.duration), hidden.size ? `${hidden.size} hidden` : ""]
+            .filter(Boolean)
+            .join(" · ")}
         </span>
-        {playlist.comment && <Bio>{playlist.comment}</Bio>}
+        <EditableText
+          label="description"
+          value={playlist.comment ?? ""}
+          editable={editable}
+          placeholder="add a description"
+          onSave={(comment) => void updatePlaylist(playlist.id, { comment })}
+          className="max-w-[72ch] text-[12.5px] text-muted-foreground"
+        />
       </Hero>
       <Content>
         {isPlaceholderData ? (
           <TrackListSkeleton count={playlist.songCount || 12} />
         ) : (
-          <TrackList songs={songs} source={source} filterable />
+          <>
+            <div className="mb-2 flex flex-wrap items-center gap-2">
+              <ToggleGroup
+                variant="outline"
+                size="sm"
+                aria-label="sort this view"
+                value={[sort]}
+                onValueChange={(value: string[]) => {
+                  const next = value[0] as PlaylistSort | undefined;
+                  if (next) setSort(next);
+                }}
+              >
+                {PLAYLIST_SORTS.map(([value, label]) => (
+                  <ToggleGroupItem key={value} value={value} className="font-mono font-normal">
+                    {label}
+                  </ToggleGroupItem>
+                ))}
+              </ToggleGroup>
+              {sort !== "custom" && editable && (
+                <Button
+                  variant="link"
+                  size="xs"
+                  className="font-mono text-muted-foreground"
+                  onClick={() => {
+                    reorderPlaylist(playlist.id, shown);
+                    setSort("custom");
+                  }}
+                >
+                  make this the playlist order
+                </Button>
+              )}
+            </div>
+            <TrackList songs={shown} source={source} filterable editing={editing} />
+          </>
         )}
       </Content>
     </>

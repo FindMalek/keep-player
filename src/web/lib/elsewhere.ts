@@ -1,0 +1,83 @@
+import { useSyncExternalStore } from "react";
+import { notify } from "./notify";
+import { player } from "./player";
+import { getSetting } from "./settings";
+import { api, CLIENT_NAME, getUser } from "./subsonic";
+import type { Song } from "./types";
+
+/*
+ * Your other devices: Navidrome's getNowPlaying, polled every 30 s while this tab is in front. Another client of
+ * yours playing something shows in the sidebar (with the queue hand-off one click away), and starting playback here
+ * while it plays gets a one-line heads-up. Subsonic can't pause another device, so it stays informational.
+ */
+
+export interface Elsewhere {
+  song: Song;
+  /** The client's name: "Arpeggi", or another browser of ours. */
+  device: string;
+}
+
+const POLL_MS = 30_000;
+/** Navidrome keeps a now-playing entry a while after it stops; older than this isn't "playing". */
+const FRESH_MINUTES = 2;
+
+let playing: Elsewhere[] = [];
+const listeners = new Set<() => void>();
+
+function set(next: Elsewhere[]): void {
+  if (next.length === playing.length && next.every((item, index) => item.song.id === playing[index]?.song.id)) return;
+  playing = next;
+  for (const listener of listeners) listener();
+  courtesy();
+}
+
+/** Once per stretch of playing here: say so when another device of yours plays too, whichever started first. */
+let hinted = false;
+function courtesy(): void {
+  const here = player.getState().playing;
+  if (!here) hinted = false;
+  else if (playing[0] && !hinted) {
+    hinted = true;
+    notify({ message: `${playing[0].device} is also playing · it can't be paused from here`, id: "also-playing" });
+  }
+}
+
+export function deviceName(client: string): string {
+  return client.startsWith("keep-player@") ? "another browser" : client || "another device";
+}
+
+async function poll(): Promise<void> {
+  if (!getSetting("queueSync") || document.hidden) return;
+  type Entry = Song & { username?: string; playerName?: string; minutesAgo?: number };
+  const response = await api<{ nowPlaying?: { entry?: Entry[] } }>("getNowPlaying").catch(() => null);
+  if (!response) return;
+  const me = getUser();
+  set(
+    (response.nowPlaying?.entry ?? [])
+      .filter((entry) => entry.username === me && entry.playerName !== CLIENT_NAME && (entry.minutesAgo ?? 0) <= FRESH_MINUTES)
+      // Another app (your phone) before another browser of ours: the more useful one to show.
+      .sort((a, b) => Number(a.playerName?.startsWith("keep-player@")) - Number(b.playerName?.startsWith("keep-player@")))
+      .map((entry) => ({ song: entry, device: deviceName(entry.playerName ?? "") })),
+  );
+}
+
+let started = false;
+
+export function startElsewhere(): void {
+  if (started) return;
+  started = true;
+  void poll();
+  setInterval(() => void poll(), POLL_MS);
+  window.addEventListener("focus", () => void poll());
+  player.subscribe(courtesy);
+}
+
+export function useElsewhere(): Elsewhere[] {
+  return useSyncExternalStore(
+    (listener) => {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+    () => playing,
+  );
+}

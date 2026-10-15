@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { ListEndIcon, ListMusicIcon, ListStartIcon, PlayIcon, XIcon } from "lucide-react";
+import { ListEndIcon, ListMusicIcon, ListStartIcon, MinusIcon, PlayIcon, PlusIcon, XIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -9,27 +9,28 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { notify } from "@/lib/notify";
 import { player } from "@/lib/player";
-import { queries, queryClient } from "@/lib/queries";
-import { api } from "@/lib/subsonic";
+import { openPlaylistDialog } from "@/lib/playlist-dialogs";
+import { addToPlaylist, canEdit } from "@/lib/playlists";
+import { queries } from "@/lib/queries";
 import type { Song } from "@/lib/types";
 import { Hint } from "./hint";
 
-async function addToPlaylist(playlistId: string, name: string, songs: Song[]): Promise<void> {
-  try {
-    await api("updatePlaylist", { playlistId, songIdToAdd: songs.map((song) => song.id) });
-    await queryClient.invalidateQueries({ queryKey: queries.playlist(playlistId).queryKey });
-    await queryClient.invalidateQueries({ queryKey: queries.playlists().queryKey });
-    notify({ message: `added ${songs.length === 1 ? "1 song" : `${songs.length} songs`} to ${name}` });
-  } catch {
-    notify({ kind: "error", message: `couldn't add to ${name}` });
-  }
-}
-
 /** Floats above the player bar while rows are selected: what you can do with all of them at once. */
-export function SelectionBar({ songs, onPlay, onClear }: { songs: Song[]; onPlay: () => void; onClear: () => void }) {
+export function SelectionBar({
+  songs,
+  onPlay,
+  onClear,
+  onRemove,
+}: {
+  songs: Song[];
+  onPlay: () => void;
+  onClear: () => void;
+  /** On a playlist you can edit: take them out of it. */
+  onRemove?: () => void;
+}) {
   const playlists = useQuery(queries.playlists());
+
   return (
     <div
       role="toolbar"
@@ -59,14 +60,25 @@ export function SelectionBar({ songs, onPlay, onClear }: { songs: Song[]; onPlay
         <DropdownMenuContent side="top" className="max-h-80 min-w-52 overflow-y-auto">
           <DropdownMenuGroup>
             <DropdownMenuLabel className="font-mono text-[10.5px] text-faint">add to</DropdownMenuLabel>
-            {(playlists.data ?? []).map((playlist) => (
-              <DropdownMenuItem key={playlist.id} onClick={() => void addToPlaylist(playlist.id, playlist.name, songs)}>
+            <DropdownMenuItem onClick={() => openPlaylistDialog({ kind: "new", songs })}>
+              <PlusIcon /> new playlist…
+            </DropdownMenuItem>
+            {(playlists.data ?? []).filter(canEdit).map((playlist) => (
+              <DropdownMenuItem key={playlist.id} onClick={() => void addToPlaylist(playlist, songs)}>
                 {playlist.name}
               </DropdownMenuItem>
             ))}
           </DropdownMenuGroup>
         </DropdownMenuContent>
       </DropdownMenu>
+      {onRemove && (
+        <Hint label="remove from this playlist" shortcut="list-remove">
+          <Button variant="ghost" size="sm" onClick={onRemove}>
+            <MinusIcon /> remove
+          </Button>
+        </Hint>
+      )}
+
       <Hint label="clear selection" shortcut="list-clear">
         <Button variant="ghost" size="icon-sm" onClick={onClear} aria-label="clear selection">
           <XIcon />
