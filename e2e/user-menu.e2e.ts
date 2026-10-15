@@ -14,3 +14,11 @@ test("an admin sees the library index and can rebuild it", async ({ page, signed
   await expect(dialog.getByText("10,000")).toBeVisible({ timeout: 20_000 });
   await expect(dialog.getByRole("button", { name: "rebuild now" })).toBeEnabled();
 });
+
+test("the menu shows the running version, and the server reports Navidrome's health without signing in", async ({ page, signedIn }) => {
+  await signedIn.getByRole("button", { name: /demo$/ }).click();
+  await expect(page.getByText(/^keep music v\d+\.\d+\.\d+$/)).toBeVisible();
+  const health = await page.request.get("/api/health");
+  expect(health.status()).toBe(200);
+  expect(await health.json()).toMatchObject({ status: "ok", upstreams: [{ id: "default", reachable: true }] });
+});

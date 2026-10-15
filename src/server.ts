@@ -5,6 +5,7 @@ import { config } from "./server/config";
 import { CoverCache } from "./server/covers";
 import { openLibraryDb } from "./server/db";
 import { font } from "./server/fonts";
+import { HealthCheck, UpdateCheck, VERSION } from "./server/health";
 import { LyricsService } from "./server/lyrics";
 import { LoginLimiter } from "./server/rate-limit";
 import { IndexSync } from "./server/search-index";
@@ -37,7 +38,9 @@ const api = createApi({
   limiter: new LoginLimiter(),
   idleSeconds,
   trustProxy: config.trustProxy,
+  updates: new UpdateCheck(config.updateCheck),
 });
+const health = new HealthCheck(config.upstreams);
 
 if (config.lyricsBackfill && config.lrclibUrl)
   for (const upstream of config.upstreams)
@@ -54,7 +57,10 @@ const server = Bun.serve({
   // Long streams must not be cut by the idle timeout.
   idleTimeout: 0,
   routes: {
+    // Liveness (the container's healthcheck): the process answers. Readiness, with Navidrome: /api/health.
     "/healthz": () => new Response("ok"),
+    "/api/health": { GET: () => health.response() },
+    "/api/version": { GET: api.version },
     "/auth/login": { POST: (request, srv) => api.login(request, srv) },
     "/auth/logout": { POST: api.logout },
     "/auth/session": { GET: api.current },
@@ -74,4 +80,6 @@ const server = Bun.serve({
   },
 });
 
-console.log(`keep-player on :${server.port} → ${config.upstreams.map((upstream) => `${upstream.id} ${upstream.url}`).join(", ")}`);
+console.log(
+  `keep-player ${VERSION} on :${server.port} → ${config.upstreams.map((upstream) => `${upstream.id} ${upstream.url}`).join(", ")}`,
+);

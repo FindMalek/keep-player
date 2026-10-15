@@ -20,6 +20,7 @@ CI runs the same steps on every PR, and `main` only takes green PRs.
 | `bun run test` | unit tests (`*.test.ts` next to the code) |
 | `bun run e2e` | Playwright against the mock server (`e2e/*.e2e.ts`) |
 | `bun run size` | production bundle vs the gzip budget in `scripts/bundle-size.ts` |
+| `bun run config-docs` | regenerate `docs/configuration.md` after changing `src/server/settings.ts` |
 | `bun run check` | everything except e2e |
 
 ## UI components
@@ -66,5 +67,9 @@ browser is idle. The first screen is budgeted (`bun run size`) and the home page
 
 ## Deploys
 
-Every push to `main` builds `ghcr.io/findmalek/keep-player:main` and, when the `DOKPLOY_WEBHOOK_URL` secret is set,
-calls the Dokploy compose webhook so the server pulls the new image.
+Every push to `main` builds `ghcr.io/findmalek/keep-player:main` (amd64 + arm64, with SBOM and provenance) and, when
+the `DOKPLOY_WEBHOOK_URL` secret is set, calls the Dokploy compose webhook so the server pulls the new image, then
+waits for `$PLAYER_URL/api/health`. Pull requests build the image too and smoke-test it read-only. release-please
+keeps a release PR open; merging it publishes `:X.Y.Z` and `:latest`. Setup: [docs/deploy/dokploy.md](docs/deploy/dokploy.md).
+
+New settings go in `src/server/settings.ts` (parsed and checked at boot), then `bun run config-docs`.

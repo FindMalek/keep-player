@@ -30,6 +30,17 @@ export const apiQueries = {
       },
       staleTime: Number.POSITIVE_INFINITY,
     }),
+  /** The running version, and for admins a newer release when the server checks (`UPDATE_CHECK=on`). Hourly. */
+  version: () =>
+    queryOptions({
+      queryKey: ["version"],
+      queryFn: async () => {
+        const response = await fetch("/api/version");
+        if (!response.ok) throw new Error(`version: ${response.status}`);
+        return (await response.json()) as { version: string; latest: string | null; updateAvailable: boolean };
+      },
+      staleTime: 60 * MINUTE,
+    }),
   /** The server's search index (admins only), refreshed every 2 s while it rebuilds. */
   searchIndex: () =>
     queryOptions({
