@@ -3,7 +3,7 @@ import { useRef, useSyncExternalStore } from "react";
 import type { FrameSource } from "./audio/types";
 import { Decks } from "./decks";
 import { notify } from "./notify";
-import { pausePrecache, precache } from "./offline";
+import { controlled, isCached, onCacheChange, pausePrecache, precache } from "./offline";
 import { queries, queryClient } from "./queries";
 import * as Q from "./queue";
 import { api, coverUrl, onAccountChange, preloadCover, scrobble, streamUrl } from "./subsonic";
@@ -196,9 +196,17 @@ const decks = new Decks({
     clearTimeout(stallTimer);
     preloadNext();
   },
+  progress: () => {
+    // Bytes are still arriving: a slow stream isn't a dead one.
+    if (state.buffering) watchStall();
+    if (!nextLined && decks.bufferedAhead(SAFE_AHEAD_SECONDS)) preloadNext();
+  },
   duration: (seconds) => set({ duration: seconds || (current()?.duration ?? 0) }),
   time: (seconds) => {
     if (document.hidden) setPosition(seconds);
+    // The next song is due soon and still isn't in the idle deck (its precache is slow): load it straight away.
+    const left = decks.element.duration - seconds;
+    if (Number.isFinite(left) && left < DIRECT_PRELOAD_SECONDS) lineUpNextDeck(true);
     const song = current();
     const duration = decks.element.duration;
     if (song && !scrobbled && (seconds >= SCROBBLE_AFTER_SEC || (duration > 0 && seconds >= duration / 2))) {
@@ -235,37 +243,41 @@ async function onMediaError(): Promise<void> {
   if (!song || code === null) return;
   if (code === MediaError.MEDIA_ERR_DECODE) return skipBroken("the file can't be decoded");
   if (code === MediaError.MEDIA_ERR_NETWORK) return recover();
-  const verdict = await probe(streamUrl(song.id));
+  const { verdict, type } = await probe(streamUrl(song.id));
   if (song !== current()) return;
   if (verdict === "missing") skipBroken("the server doesn't have the file");
-  // Reachable and serving it: one more try in case it was a blip, then it really is the format.
-  else if (verdict === "network" || stalls === 0) recover();
-  else skipBroken("it's in a format this browser can't play");
+  // Only call it the format when the browser says so for the type the server sends; a slow or dropped connection
+  // looks the same to Chrome, and that is retried (and skipped as "couldn't load" if it never comes through).
+  else if (verdict === "ok" && type && decks.element.canPlayType(type) === "") skipBroken("it's in a format this browser can't play");
+  else recover();
 }
 
 /** What the server says about a song's stream, from its first two bytes. */
-async function probe(url: string): Promise<"ok" | "missing" | "network"> {
+async function probe(url: string): Promise<{ verdict: "ok" | "missing" | "network"; type: string | null }> {
   const response = await fetch(url, { headers: { range: "bytes=0-1" }, cache: "no-store", signal: AbortSignal.timeout(10_000) }).catch(
     () => null,
   );
-  if (!response) return "network";
+  if (!response) return { verdict: "network", type: null };
   void response.body?.cancel();
-  if (response.status === 404 || response.status === 410) return "missing";
-  return response.ok ? "ok" : "network";
+  const type = response.headers.get("content-type")?.split(";")[0]?.trim() || null;
+  if (response.status === 404 || response.status === 410) return { verdict: "missing", type };
+  return { verdict: response.ok ? "ok" : "network", type };
 }
 
 /*
- * Resilience. A stall (buffering for 4 s) or a network error reloads the song at the same position, waiting 1, 2, 4,
- * then 8 s between tries; after that the song is skipped with an undo, so the music never just stops.
+ * Resilience. A stall (buffering with no new bytes for 8 s) or a network error reloads the song at the same position,
+ * waiting 1, 2, 4, then 8 s between tries; after that the song is skipped with an undo, so the music never just stops.
+ * A stream that is slow but still moving is left alone: reloading it would throw away what it already has.
  */
 const RETRY_DELAYS = [1000, 2000, 4000, 8000];
+const STALL_MS = 8000;
 let stalls = 0;
 let stallTimer: ReturnType<typeof setTimeout> | undefined;
 let lastSave = 0;
 
 function watchStall(): void {
   clearTimeout(stallTimer);
-  stallTimer = setTimeout(() => state.buffering && recover(), 4000);
+  stallTimer = setTimeout(() => state.buffering && recover(), STALL_MS);
 }
 
 function recover(): void {
@@ -274,7 +286,7 @@ function recover(): void {
   clearTimeout(stallTimer);
   const delay = RETRY_DELAYS[stalls];
   if (delay === undefined) {
-    skipBroken("it kept stalling");
+    skipBroken("it couldn't be loaded");
     return;
   }
   stalls += 1;
@@ -342,20 +354,49 @@ function stopsAfterThis(): boolean {
 
 /** How many upcoming songs the service worker downloads ahead. */
 const PRECACHE_AHEAD = 3;
+/** Buffered past the playhead before anything else downloads, so the next songs never starve the playing one. */
+const SAFE_AHEAD_SECONDS = 30;
+/** This close to the end, the next song goes into the idle deck from the network even if its precache isn't done. */
+const DIRECT_PRELOAD_SECONDS = 45;
+/** Whether the next songs were lined up for the playing one (reset when a song starts). */
+let nextLined = false;
 
-/** Keep the idle deck holding whatever plays next, and the next few downloading; called whenever the queue changes. */
+/**
+ * Line up what plays next, once the playing song is safely buffered: the service worker downloads the next few (one
+ * at a time, low priority), and the idle deck takes the next song from that cache when it lands there, so it isn't
+ * downloaded twice. Without a service worker, or close to the end, the deck loads it straight from the network.
+ * Called whenever the queue changes and as the playing song's download moves on.
+ */
 function preloadNext(): void {
   if (!current()) return;
-  precache(Q.peekUpcoming(state.queue, PRECACHE_AHEAD).map((song) => song.id));
   const next = upcoming();
-  decks.preload(next?.song.id ?? null, next ? streamUrl(next.song.id) : null, next?.factor ?? 1);
+  if (!decks.bufferedAhead(SAFE_AHEAD_SECONDS)) {
+    // Not yet: and a deck holding a song that no longer comes next would compete for nothing.
+    if (decks.preloadedId && decks.preloadedId !== next?.song.id) decks.preload(null, null, 1);
+    return;
+  }
+  nextLined = true;
+  precache(Q.peekUpcoming(state.queue, PRECACHE_AHEAD).map((song) => song.id));
+  lineUpNextDeck(false);
   // The player bar shows the next cover within minutes; have it cached by then.
   preloadCover(next?.song.coverArt, 42);
 }
 
+/** Put the next song in the idle deck, from the cache when the service worker has it (or `now`: from the network). */
+function lineUpNextDeck(now: boolean): void {
+  const next = upcoming();
+  if (decks.preloadedId === (next?.song.id ?? null)) return;
+  if (next && !now && controlled() && !isCached(next.song.id)) return;
+  decks.preload(next?.song.id ?? null, next ? streamUrl(next.song.id) : null, next?.factor ?? 1);
+}
+
+// The service worker saved another song: it may be the one the idle deck is waiting for.
+onCacheChange(() => nextLined && lineUpNextDeck(false));
+
 /** Bookkeeping when a song starts (loaded or handed over gaplessly). */
 function started(song: Song | undefined): void {
   scrobbled = false;
+  nextLined = false;
   setPosition(0);
   set({ duration: song?.duration ?? 0, error: null });
   applyVolume();

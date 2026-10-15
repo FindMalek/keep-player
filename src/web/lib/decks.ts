@@ -18,6 +18,8 @@ export interface DeckEvents {
   pause: () => void;
   waiting: () => void;
   canPlay: () => void;
+  /** The playing song's download moved forward (fires a few times a second while bytes arrive). */
+  progress: () => void;
   duration: (seconds: number) => void;
   /** About 4/s from the playing deck; the engine uses it for scrobbling and for position while hidden. */
   time: (seconds: number) => void;
@@ -68,6 +70,8 @@ export class Decks {
     on("pause", this.events.pause);
     on("waiting", this.events.waiting);
     on("canplay", this.events.canPlay);
+    on("progress", this.events.progress);
+    on("canplaythrough", this.events.progress);
     on("durationchange", () => this.events.duration(Number.isFinite(element.duration) ? element.duration : 0));
     on("seeked", () => this.events.seeked(element.currentTime));
     on("error", this.events.error);
@@ -315,6 +319,17 @@ export class Decks {
         if (end >= element.currentTime) return end;
       }
     return 0;
+  }
+
+  /**
+   * Whether the playing song is far enough ahead that downloading the next ones can't starve it: the browser expects
+   * to play it through, or `seconds` past the playhead (or the rest of the song) are buffered.
+   */
+  bufferedAhead(seconds: number): boolean {
+    const element = this.playing.element;
+    if (element.readyState >= HTMLMediaElement.HAVE_ENOUGH_DATA) return true;
+    const end = this.buffered();
+    return end - element.currentTime >= seconds || (element.duration > 0 && end >= element.duration - 0.5);
   }
 
   get preloadedId(): string | null {
