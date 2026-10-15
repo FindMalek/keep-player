@@ -19,6 +19,11 @@ export const test = base.extend<{ signedIn: Page }>({
       // The first-run setup is its own test (onboarding.e2e.ts); everywhere else it's done.
       if (localStorage.getItem("keep-player:onboarded") === null) localStorage.setItem("keep-player:onboarded", "test");
     });
+    // Synced settings are per account, and every test is the same account: a server copy would carry one test's
+    // settings into the next. Each test starts with none (settings.e2e.ts removes this to test the sync itself).
+    await page.route("**/api/settings", (route) =>
+      route.fulfill({ json: route.request().method() === "GET" ? { settings: null, updated: 0 } : { ok: true } }),
+    );
     await use(page);
   },
   signedIn: async ({ page }, use) => {

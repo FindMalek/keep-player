@@ -43,6 +43,7 @@ import {
   PlaylistPage,
   preloadAllRoutes,
   SearchPage,
+  SettingsPage,
   SongLink,
   SongsPage,
   StatsPage,
@@ -130,6 +131,8 @@ function Page({ path }: { path: string }) {
       return <StatsPage />;
     case "lyrics":
       return <LyricsPage />;
+    case "settings":
+      return <SettingsPage section={param} />;
     case "moments":
       return <MomentsPage />;
     case "song":
@@ -196,10 +199,18 @@ export function App() {
     }),
   );
 
+  // The settings page's "show shortcuts" button.
+  useEffect(() => {
+    const open = () => setCheatSheet(true);
+    window.addEventListener("keep:cheat-sheet", open);
+    return () => window.removeEventListener("keep:cheat-sheet", open);
+  }, []);
+
   useEffect(() => {
     if (!user) return;
     void loadLikes();
     startListeningHistory();
+    void import("@/lib/settings-sync").then((sync) => sync.startSettingsSync());
     // The queue hand-off (Arpeggi, other browsers) waits until the first screen is done.
     const id = setTimeout(() => {
       void import("@/lib/queue-sync").then((sync) => sync.startQueueSync());

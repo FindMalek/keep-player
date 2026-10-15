@@ -34,5 +34,11 @@ export function openLibraryDb(path: string): Database {
     song_id text not null,
     primary key (account, playlist_id, song_id)
   )`);
+  // Preferences that follow the user to every browser (#53); device-only ones stay in localStorage.
+  db.run(`create table if not exists user_settings (
+    account text primary key,
+    body text not null,
+    updated integer not null
+  )`);
   return db;
 }

@@ -9,6 +9,7 @@ import {
   MonitorIcon,
   MonitorSmartphoneIcon,
   MoonIcon,
+  SettingsIcon,
   SunIcon,
 } from "lucide-react";
 import {
@@ -117,6 +118,10 @@ export function UserMenu({
         <DropdownMenuItem onClick={onStorage}>
           <HardDriveDownloadIcon />
           offline storage
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => go("/settings")}>
+          <SettingsIcon />
+          settings
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => go("/lyrics")}>
           <MicVocalIcon />

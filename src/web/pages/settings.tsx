@@ -1,0 +1,227 @@
+import { useQuery } from "@tanstack/react-query";
+import { DownloadIcon, ExternalLinkIcon, HardDriveDownloadIcon, LogOutIcon, MonitorSmartphoneIcon } from "lucide-react";
+import { lazy, type ReactNode, Suspense, useState } from "react";
+import { Content, PageHeader } from "@/components/library";
+import { Link } from "@/components/link";
+import { OutputDevice } from "@/components/output-device";
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { apiQueries } from "@/lib/api-queries";
+import { install, useInstallState } from "@/lib/install";
+import { MINI_PLAYER_SUPPORTED } from "@/lib/mini-player";
+import { type Settings, setSetting, useSetting } from "@/lib/settings";
+import { logout, useUser } from "@/lib/subsonic";
+import { setTheme, type Theme, useTheme } from "@/lib/theme";
+
+const StorageDialog = lazy(() => import("@/components/storage-dialog").then((module) => ({ default: module.StorageDialog })));
+const SessionsDialog = lazy(() => import("@/components/sessions-dialog").then((module) => ({ default: module.SessionsDialog })));
+
+const SECTIONS = ["playback", "appearance", "sync", "storage", "lyrics", "shortcuts", "account", "about"] as const;
+type Section = (typeof SECTIONS)[number];
+
+/** One setting: what it is and why you'd change it on the left, the control on the right. */
+function Row({ label, hint, children, id }: { label: string; hint?: ReactNode; children: ReactNode; id?: string }) {
+  return (
+    <div className="flex items-center justify-between gap-6 border-b py-3 last:border-b-0">
+      <div className="flex min-w-0 flex-col gap-0.5">
+        <label htmlFor={id} className="text-sm">
+          {label}
+        </label>
+        {hint && <p className="text-muted-foreground text-xs">{hint}</p>}
+      </div>
+      <div className="shrink-0">{children}</div>
+    </div>
+  );
+}
+
+function Toggle({ setting, label, hint }: { setting: keyof Settings; label: string; hint?: ReactNode }) {
+  const value = useSetting(setting);
+  const id = `setting-${setting}`;
+  return (
+    <Row id={id} label={label} hint={hint}>
+      <Switch id={id} checked={value} onCheckedChange={(checked) => setSetting(setting, checked === true)} />
+    </Row>
+  );
+}
+
+const SYNCED = <span className="font-mono">follows you to every browser</span>;
+const DEVICE = <span className="font-mono">this device only</span>;
+
+/** Everything you can set, by topic. The tab is in the address (`/settings/sync`), so a link opens the right one. */
+export function SettingsPage({ section }: { section: string | null }) {
+  const [tab, setTab] = useState<Section>((SECTIONS as readonly string[]).includes(section ?? "") ? (section as Section) : "playback");
+  const theme = useTheme();
+  const queueSync = useSetting("queueSync");
+  const user = useUser();
+  const session = useQuery(apiQueries.session()).data;
+  const version = useQuery(apiQueries.version()).data;
+  const installState = useInstallState();
+  const [storageOpen, setStorageOpen] = useState(false);
+  const [sessionsOpen, setSessionsOpen] = useState(false);
+
+  return (
+    <>
+      <PageHeader title="settings" />
+      <Content>
+        <Tabs
+          value={tab}
+          onValueChange={(value) => {
+            setTab(value as Section);
+            window.history.replaceState(window.history.state, "", `/settings/${value}`);
+          }}
+          className="max-w-2xl"
+        >
+          <TabsList variant="line" className="flex-wrap font-mono">
+            {SECTIONS.map((section) => (
+              <TabsTrigger key={section} value={section}>
+                {section}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+
+          <TabsContent value="playback">
+            <Row label="output device" hint={<>speakers or headphones to play through · {DEVICE}</>}>
+              <OutputDevice />
+            </Row>
+            {MINI_PLAYER_SUPPORTED && (
+              <Toggle
+                setting="miniPlayerWhenHidden"
+                label="mini player when you leave the tab"
+                hint={<>an always-on-top window while music plays · {DEVICE}</>}
+              />
+            )}
+            <p className="py-3 text-muted-foreground text-xs">
+              songs play gapless with replaygain from your tags. crossfade, equalizer and quality settings come next.
+            </p>
+          </TabsContent>
+
+          <TabsContent value="appearance">
+            <Row label="theme" hint={SYNCED}>
+              <ToggleGroup
+                variant="outline"
+                size="sm"
+                aria-label="theme"
+                value={[theme]}
+                onValueChange={(value: string[]) => value[0] && setTheme(value[0] as Theme)}
+              >
+                {(["system", "dark", "light"] as const).map((value) => (
+                  <ToggleGroupItem key={value} value={value} className="font-mono font-normal">
+                    {value}
+                  </ToggleGroupItem>
+                ))}
+              </ToggleGroup>
+            </Row>
+            <Toggle setting="reduceMotion" label="reduce motion" hint={<>no animations, whatever the system says · {SYNCED}</>} />
+            <Toggle
+              setting="ratings"
+              label="show ratings"
+              hint={<>1–5 stars in track lists, for smart playlists in other clients · {SYNCED}</>}
+            />
+          </TabsContent>
+
+          <TabsContent value="sync">
+            <Toggle
+              setting="queueSync"
+              label="sync with your other devices"
+              hint={<>saves the queue to navidrome and offers queues from arpeggi or other browsers · {SYNCED}</>}
+            />
+            {queueSync && (
+              <Toggle
+                setting="followOtherDevices"
+                label="pick up their queue without asking"
+                hint={<>never while this one plays · {SYNCED}</>}
+              />
+            )}
+          </TabsContent>
+
+          <TabsContent value="storage">
+            <Row label="offline storage" hint={<>songs kept for offline and the next few precached · {DEVICE}</>}>
+              <Button variant="outline" size="sm" onClick={() => setStorageOpen(true)}>
+                <HardDriveDownloadIcon />
+                manage
+              </Button>
+            </Row>
+          </TabsContent>
+
+          <TabsContent value="lyrics">
+            <Row label="lyrics coverage" hint="how much of your library has synced lyrics, and what's missing">
+              <Button variant="outline" size="sm" render={<Link href="/lyrics" />}>
+                open
+              </Button>
+            </Row>
+            <p className="py-3 text-muted-foreground text-xs">
+              lyrics come from navidrome first, then lrclib. the server can also save them as .lrc files next to your music (
+              <span className="font-mono">LYRICS_WRITE_LRC</span>).
+            </p>
+          </TabsContent>
+
+          <TabsContent value="shortcuts">
+            <Row label="every shortcut" hint="press ? anywhere to see them all">
+              <Button variant="outline" size="sm" onClick={() => window.dispatchEvent(new Event("keep:cheat-sheet"))}>
+                show
+              </Button>
+            </Row>
+          </TabsContent>
+
+          <TabsContent value="account">
+            <Row
+              label={user ?? "signed out"}
+              hint={session?.server ? `on ${session.server}${session.admin ? " · navidrome admin" : ""}` : undefined}
+            >
+              <Button variant="outline" size="sm" onClick={() => void logout()}>
+                <LogOutIcon />
+                log out
+              </Button>
+            </Row>
+            <Row label="sessions" hint="every browser signed in as you, and a way to sign one out">
+              <Button variant="outline" size="sm" onClick={() => setSessionsOpen(true)}>
+                <MonitorSmartphoneIcon />
+                manage
+              </Button>
+            </Row>
+          </TabsContent>
+
+          <TabsContent value="about">
+            <Row label="install keep music" hint="its own window, in your dock or start menu, with media keys">
+              {installState === "installed" ? (
+                <span className="font-mono text-muted-foreground text-xs">installed</span>
+              ) : installState === "available" ? (
+                <Button variant="outline" size="sm" onClick={() => void install()}>
+                  <DownloadIcon />
+                  install
+                </Button>
+              ) : (
+                <span className="font-mono text-muted-foreground text-xs">from your browser's menu</span>
+              )}
+            </Row>
+            <Row
+              label={version ? `keep music v${version.version}` : "keep music"}
+              hint={version?.updateAvailable ? `v${version.latest} is out` : "a monochrome web player for navidrome"}
+            >
+              <Button
+                variant="outline"
+                size="sm"
+                render={<a href="https://github.com/FindMalek/keep-player" target="_blank" rel="noreferrer" />}
+              >
+                <ExternalLinkIcon />
+                github
+              </Button>
+            </Row>
+          </TabsContent>
+        </Tabs>
+      </Content>
+      {storageOpen && (
+        <Suspense>
+          <StorageDialog open={storageOpen} onOpenChange={setStorageOpen} />
+        </Suspense>
+      )}
+      {sessionsOpen && (
+        <Suspense>
+          <SessionsDialog open={sessionsOpen} onOpenChange={setSessionsOpen} />
+        </Suspense>
+      )}
+    </>
+  );
+}

@@ -8,6 +8,7 @@ import { font } from "./server/fonts";
 import { HealthCheck, UpdateCheck, VERSION } from "./server/health";
 import { LrcWriter } from "./server/lrc-writer";
 import { LyricsService } from "./server/lyrics";
+import { pwaRoutes } from "./server/pwa";
 import { LoginLimiter } from "./server/rate-limit";
 import { IndexSync } from "./server/search-index";
 import { SessionStore } from "./server/sessions";
@@ -86,6 +87,7 @@ const server = Bun.serve({
     "/api/lyrics/:songId/offset": { GET: api.lyricsOffset, PUT: api.lyricsOffset },
     "/api/playlists/:id/hidden": { GET: api.playlistHidden, PUT: api.playlistHidden },
     "/api/history": { GET: api.history, POST: api.history },
+    "/api/settings": { GET: api.userSettings, PUT: api.userSettings },
     "/api/moments": { GET: api.moments, POST: api.moments },
     "/api/moments/:id": { PATCH: api.moment, DELETE: api.moment },
     "/api/radio/bans": { GET: api.radioBans, POST: api.radioBans, DELETE: api.radioBans },
@@ -95,6 +97,7 @@ const server = Bun.serve({
     "/api/search": { GET: api.searchLibrary },
     "/api/search/lyrics": { GET: api.searchLyrics },
     "/fonts/:name": font,
+    ...pwaRoutes,
     ...webRoutes,
   },
 });

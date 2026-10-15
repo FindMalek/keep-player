@@ -1,7 +1,8 @@
 import { useSyncExternalStore } from "react";
 
 /*
- * Per-browser preferences in localStorage. Small on purpose: the settings page (#53) shows these and more.
+ * Preferences in localStorage, shown on the settings page (#53). The ones in SYNCED also follow you to every browser
+ * through the server (settings-sync.ts); the rest belong to this device.
  */
 
 export interface Settings {
@@ -16,6 +17,9 @@ export interface Settings {
   /** Take a newer queue from another device without asking (never while this one plays). */
   followOtherDevices: boolean;
 }
+
+/** Follow the user to every browser; the others (the mini player) depend on this device. */
+export const SYNCED = ["ratings", "reduceMotion", "queueSync", "followOtherDevices"] as const satisfies readonly (keyof Settings)[];
 
 const KEY = "keep-player:settings";
 const DEFAULTS: Settings = {
@@ -50,6 +54,11 @@ export function setSetting<K extends keyof Settings>(key: K, value: Settings[K])
     // Kept for this session only.
   }
   for (const listener of listeners) listener();
+}
+
+export function subscribeSettings(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
 }
 
 export function useSetting<K extends keyof Settings>(key: K): Settings[K] {
