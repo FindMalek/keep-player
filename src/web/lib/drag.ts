@@ -6,6 +6,13 @@ import type { Song } from "./types";
 /** The songs a drop stands for; the fetching code loads on the first drop (the sidebar is on the first screen). */
 export const dropSongs = (target: MenuTarget): Promise<Song[]> => import("./targets").then((module) => module.songsOf(target));
 
+/** A drop whose songs couldn't be loaded says so. */
+export const dropFailed = () => notify({ kind: "error", message: "couldn't drop that, try again" });
+
+/** `dragleave` also fires moving between a target's own children: true only when the pointer really left it. */
+export const leftTarget = (event: { currentTarget: EventTarget; relatedTarget: EventTarget | null }) =>
+  !(event.relatedTarget instanceof Node && event.currentTarget instanceof Node && event.currentTarget.contains(event.relatedTarget));
+
 /*
  * Drag and drop with the browser's own events (they work with virtualized lists, where a library's rows come and go):
  * rows, cards and queue entries are drag sources; playlists in the sidebar, the queue panel and the player bar are drop
@@ -69,16 +76,16 @@ export function dropTarget(
       event.dataTransfer.dropEffect = "copy";
       setActive(true);
     },
-    onDragLeave: () => setActive(false),
+    onDragLeave: (event: DragEvent) => {
+      if (leftTarget(event)) setActive(false);
+    },
     onDrop: (event: DragEvent) => {
       const drag = current(event);
       setActive(false);
       if (!drag || !accept(drag)) return;
       event.preventDefault();
       endDrag();
-      void dropSongs(drag.target)
-        .then(onSongs)
-        .catch(() => notify({ kind: "error", message: "couldn't drop that, try again" }));
+      void dropSongs(drag.target).then(onSongs).catch(dropFailed);
     },
   };
 }

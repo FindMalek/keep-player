@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { current as currentDrag, dropSongs, endDrag, startDrag } from "@/lib/drag";
+import { current as currentDrag, dropFailed, dropSongs, endDrag, leftTarget, startDrag } from "@/lib/drag";
 import { clock, quality } from "@/lib/format";
 import { closeListFilter, songMatches, useListFilter } from "@/lib/list-filter";
 import { focusWhenRendered, type ListCommand, useListNav } from "@/lib/list-nav";
@@ -294,7 +294,7 @@ export function QueuePanel({ onClose }: { onClose: () => void }) {
               event.dataTransfer.dropEffect = drag.reorder?.list === "queue" ? "move" : "copy";
               setDropping(drag.reorder?.list !== "queue");
             }}
-            onDragLeave={() => setDropping(false)}
+            onDragLeave={(event) => leftTarget(event) && setDropping(false)}
             onDrop={(event) => {
               const drag = currentDrag(event);
               setDropping(false);
@@ -309,7 +309,9 @@ export function QueuePanel({ onClose }: { onClose: () => void }) {
                 if (over?.kind === "entry" && over.state === "next" && from?.kind === "entry") player.moveTo(from.entry, over.entry);
                 return;
               }
-              void dropSongs(drag.target).then((songs) => player.addToQueue(songs));
+              void dropSongs(drag.target)
+                .then((songs) => player.addToQueue(songs))
+                .catch(dropFailed);
             }}
           >
             {virtualizer.getVirtualItems().map((virtual) => {

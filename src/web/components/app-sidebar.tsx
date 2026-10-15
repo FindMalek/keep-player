@@ -35,7 +35,7 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
-import { current as currentDrag, dropSongs, endDrag } from "@/lib/drag";
+import { current as currentDrag, dropFailed, dropSongs, endDrag, leftTarget } from "@/lib/drag";
 import { useElsewhere } from "@/lib/elsewhere";
 import { openPlaylistDialog } from "@/lib/playlist-dialogs";
 import { queries } from "@/lib/queries";
@@ -244,7 +244,7 @@ export function AppSidebar({ path, onSearch, onShortcuts }: { path: string; onSe
                       event.dataTransfer.dropEffect = "copy";
                       setDropId(playlist.id);
                     }}
-                    onDragLeave={() => setDropId(null)}
+                    onDragLeave={(event) => leftTarget(event) && setDropId(null)}
                     onDrop={(event) => {
                       const drag = currentDrag(event);
                       const playlist = playlists.find((item) => item.id === dropId);
@@ -252,9 +252,9 @@ export function AppSidebar({ path, onSearch, onShortcuts }: { path: string; onSe
                       if (!drag || !playlist) return;
                       event.preventDefault();
                       endDrag();
-                      void Promise.all([dropSongs(drag.target), import("@/lib/playlists")]).then(([songs, edits]) =>
-                        edits.addToPlaylist(playlist, songs),
-                      );
+                      void Promise.all([dropSongs(drag.target), import("@/lib/playlists")])
+                        .then(([songs, edits]) => edits.addToPlaylist(playlist, songs))
+                        .catch(dropFailed);
                     }}
                     onContextMenu={(event) => {
                       const id = (event.target as Element).closest("[data-playlist-id]")?.getAttribute("data-playlist-id");

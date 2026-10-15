@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Empty, EmptyDescription } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { current as currentDrag, endDrag, startDrag } from "@/lib/drag";
+import { current as currentDrag, endDrag, leftTarget, startDrag } from "@/lib/drag";
 import { clock } from "@/lib/format";
 import { closeListFilter, songMatches, useListFilter } from "@/lib/list-filter";
 import { focusWhenRendered, type ListCommand, rememberedFocus, rememberFocus, useListNav } from "@/lib/list-nav";
@@ -604,7 +604,9 @@ function TrackRows({
           event.dataTransfer.dropEffect = "move";
           setDropAt(Number(row.getAttribute("data-song-index")));
         },
-        onDragLeave: () => setDropAt(null),
+        onDragLeave: (event: DragEvent) => {
+          if (leftTarget(event)) setDropAt(null);
+        },
         onDrop: (event: DragEvent) => {
           const drag = currentDrag(event);
           setDropAt(null);
