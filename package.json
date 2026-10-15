@@ -1,5 +1,6 @@
 {
   "name": "keep-player",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -12,8 +13,9 @@
     "test": "bun test src scripts",
     "e2e": "playwright test",
     "size": "bun scripts/bundle-size.ts",
-    "check": "bun run typecheck && bun run lint && bun run colors && bun run test && bun run size",
+    "check": "bun run typecheck && bun run lint && bun run colors && bun run test && bun run size && bun scripts/config-docs.ts --check",
     "build": "bun scripts/build.ts",
+    "config-docs": "bun scripts/config-docs.ts",
     "colors": "bun scripts/check-colors.ts"
   },
   "dependencies": {

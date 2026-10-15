@@ -1,0 +1,27 @@
+# Behind Traefik (labels), with Navidrome on the same `proxy` network. TRUST_PROXY makes login rate limits see
+# real client IPs.
+services:
+  player:
+    image: ghcr.io/findmalek/keep-player:latest
+    restart: unless-stopped
+    environment:
+      NAVIDROME_URL: http://navidrome:4533
+      TRUST_PROXY: "true"
+    volumes:
+      - player-data:/data
+    read_only: true
+    tmpfs: [/tmp]
+    networks: [proxy]
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.player.rule: Host(`music.example.com`)
+      traefik.http.routers.player.entrypoints: websecure
+      traefik.http.routers.player.tls.certresolver: letsencrypt
+      traefik.http.services.player.loadbalancer.server.port: "8080"
+
+volumes:
+  player-data:
+
+networks:
+  proxy:
+    external: true

@@ -4,6 +4,7 @@ import type { Server } from "bun";
 import type { LyricsSearch } from "../shared/search";
 import type { Upstream } from "./config";
 import { type CoverCache, snapCoverSize } from "./covers";
+import { UpdateCheck } from "./health";
 import { type NewPlay, readPlays, recordPlay } from "./history";
 import type { LyricsService } from "./lyrics";
 import { lyricsCoverage, queryLyrics } from "./lyrics-search";
@@ -117,9 +118,22 @@ export interface ApiOptions {
   limiter: LoginLimiter;
   idleSeconds: number;
   trustProxy: boolean;
+  /** Release check for admins (off unless `UPDATE_CHECK=on`). */
+  updates?: UpdateCheck;
 }
 
-export function createApi({ upstreams, covers, lyrics, indexes, library, sessions, limiter, idleSeconds, trustProxy }: ApiOptions) {
+export function createApi({
+  upstreams,
+  covers,
+  lyrics,
+  indexes,
+  library,
+  sessions,
+  limiter,
+  idleSeconds,
+  trustProxy,
+  updates = new UpdateCheck(false),
+}: ApiOptions) {
   const upstreamFor = (id: string) => upstreams.find((upstream) => upstream.id === id);
 
   // The music folders (libraries) each session may see, asked as that user so Navidrome decides. Ten minutes.
@@ -368,6 +382,16 @@ export function createApi({ upstreams, covers, lyrics, indexes, library, session
     return json(search(library, upstream.id, query, { folders, liked }, limit), 200, { "cache-control": "private, no-cache" });
   }
 
+  /** `/api/version`: the running version, and for admins whether a newer release is out. */
+  async function version(request: Request): Promise<Response> {
+    const session = sessions.get(cookieValue(request));
+    if (!session) return json({ error: "signed out" }, 401);
+    const info = await updates.info();
+    return json(session.admin ? info : { version: info.version, latest: null, updateAvailable: false }, 200, {
+      "cache-control": "private, no-cache",
+    });
+  }
+
   /** `/api/history`: GET your plays (newest first, `?before=` to page back), POST one that just ended. */
   async function history(request: Request): Promise<Response> {
     if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
@@ -425,6 +449,7 @@ export function createApi({ upstreams, covers, lyrics, indexes, library, session
     login,
     logout,
     current,
+    version,
     listSessions,
     revokeSession,
     proxy,

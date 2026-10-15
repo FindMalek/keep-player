@@ -4,6 +4,7 @@ on:
   pull_request:
   push:
     branches: [main]
+    tags: ["v*"]
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -26,6 +27,7 @@ jobs:
       - run: bun run colors
       - run: bun run test
       - run: bun run size
+      - run: bun scripts/config-docs.ts --check
 
   e2e:
     runs-on: ubuntu-latest
@@ -44,14 +46,41 @@ jobs:
           path: playwright-report
           retention-days: 7
 
+  # Conventional commits on main keep a release PR open (version bump + CHANGELOG). Merging it tags vX.Y.Z here, and
+  # the image job below publishes that version: a tag pushed with GITHUB_TOKEN wouldn't start another workflow.
+  release:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    # Needs "Allow GitHub Actions to create pull requests" in the repo settings; never holds up a deploy without it.
+    continue-on-error: true
+    permissions:
+      contents: write
+      pull-requests: write
+    outputs:
+      created: ${{ steps.release.outputs.release_created }}
+      version: ${{ steps.release.outputs.version }}
+    steps:
+      - id: release
+        uses: googleapis/release-please-action@v4
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
   image:
-    needs: [check, e2e]
+    needs: [check, e2e, release]
+    # `release` is skipped on pull requests and tags; the image still builds then.
+    if: ${{ !cancelled() && !failure() }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
+      id-token: write
+      attestations: write
     steps:
       - uses: actions/checkout@v5
+      # Only the final stage's `apk add` runs as arm64; the executable is cross-compiled (see Dockerfile).
+      - uses: docker/setup-qemu-action@v3
+        if: github.event_name == 'push'
       - uses: docker/setup-buildx-action@v3
       - uses: docker/login-action@v3
         if: github.event_name == 'push'
@@ -64,19 +93,58 @@ jobs:
         with:
           images: ghcr.io/findmalek/keep-player
           tags: |
-            type=raw,value=main
+            type=raw,value=main,enable=${{ github.ref == 'refs/heads/main' }}
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+            type=raw,value=${{ needs.release.outputs.version }},enable=${{ needs.release.outputs.created == 'true' }}
+            type=raw,value=latest,enable=${{ needs.release.outputs.created == 'true' }}
             type=sha
-      - uses: docker/build-push-action@v6
+      # Pull requests: one architecture, loaded locally and smoke-tested the way the compose example runs it.
+      - if: github.event_name == 'pull_request'
+        uses: docker/build-push-action@v6
         with:
           context: .
-          push: ${{ github.event_name == 'push' }}
+          load: true
+          tags: keep-player:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: smoke test (read-only root, non-root user)
+        if: github.event_name == 'pull_request'
+        run: |
+          docker run -d --name kp --read-only --tmpfs /tmp -v kp-data:/data -p 8080:8080 \
+            -e NAVIDROME_URL=http://127.0.0.1:9 keep-player:test
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:8080/healthz && break; sleep 1; done
+          curl -fsS http://127.0.0.1:8080/ | grep -q '<div id="root">'
+          # Navidrome isn't there: readiness says so (503) without exposing its address.
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/api/health)" = 503
+          test "$(docker exec kp id -u)" = 1000
+          # A bad setting stops the server with a message naming it.
+          if docker run --rm -e PORT=eighty keep-player:test > bad.log 2>&1; then exit 1; fi
+          grep "PORT must be" bad.log
+          docker logs kp
+      - if: github.event_name == 'push'
+        id: push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          provenance: mode=max
+          sbom: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+      - if: github.event_name == 'push'
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-name: ghcr.io/findmalek/keep-player
+          subject-digest: ${{ steps.push.outputs.digest }}
+          push-to-registry: true
 
   deploy:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: ${{ !cancelled() && !failure() && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     needs: image
     runs-on: ubuntu-latest
     environment: production
@@ -87,3 +155,15 @@ jobs:
         run: |
           if [ -z "$WEBHOOK" ]; then echo "DOKPLOY_WEBHOOK_URL not set, skipping"; exit 0; fi
           curl -fsS -X POST "$WEBHOOK"
+      # The compose pulls the new image and restarts; the deploy only counts once the player answers again.
+      - name: wait until healthy
+        env:
+          PLAYER_URL: ${{ vars.PLAYER_URL }}
+        run: |
+          if [ -z "$PLAYER_URL" ]; then echo "PLAYER_URL not set, skipping"; exit 0; fi
+          sleep 20
+          for i in $(seq 1 30); do
+            if curl -fsS "$PLAYER_URL/api/health"; then exit 0; fi
+            sleep 5
+          done
+          echo "the player didn't come back healthy" && exit 1

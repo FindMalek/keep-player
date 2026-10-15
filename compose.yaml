@@ -1,0 +1,23 @@
+# keep music next to an existing Navidrome. `docker compose up -d`, then open http://localhost:8080.
+# More setups (full stack, behind Caddy or Traefik, Dokploy): docs/deploy/.
+services:
+  player:
+    image: ghcr.io/findmalek/keep-player:latest
+    restart: unless-stopped
+    environment:
+      NAVIDROME_URL: http://navidrome:4533 # as this container reaches it; every option: docs/configuration.md
+    ports:
+      - "8080:8080"
+    volumes:
+      - player-data:/data # sessions, search and lyrics index, history, cover cache
+    read_only: true
+    tmpfs: [/tmp]
+    # Same network as Navidrome, so http://navidrome:4533 resolves. Use your Navidrome compose's network name.
+    networks: [navidrome]
+
+volumes:
+  player-data:
+
+networks:
+  navidrome:
+    external: true
