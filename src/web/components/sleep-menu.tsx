@@ -13,7 +13,7 @@ import { player, type Sleep, usePlayer } from "@/lib/player";
 import { Hint } from "./hint";
 import { ToolButton } from "./tool-button";
 
-const OPTIONS = [
+export const SLEEP_OPTIONS = [
   ["off", "off"],
   ["15", "15 minutes"],
   ["30", "30 minutes"],
@@ -22,6 +22,13 @@ const OPTIONS = [
   ["track", "end of this song"],
   ["album", "end of this album"],
 ] as const;
+
+/** The radio value for the current timer (a countdown has no option of its own). */
+export const sleepValue = (sleep: Sleep): string => (!sleep ? "off" : sleep.kind === "time" ? "time" : sleep.kind);
+
+/** Pick an option: "off", minutes, "track" or "album". */
+export const chooseSleep = (next: string): void =>
+  player.setSleep(next === "off" ? null : next === "track" || next === "album" ? next : Number(next));
 
 /** "23 min left", "after this song", … for the tooltip. */
 function describe(sleep: Sleep, now: number): string {
@@ -40,7 +47,7 @@ export function SleepMenu() {
     const id = setInterval(() => setNow(Date.now()), 30_000);
     return () => clearInterval(id);
   }, [sleep]);
-  const value = !sleep ? "off" : sleep.kind === "time" ? "time" : sleep.kind;
+  const value = sleepValue(sleep);
 
   return (
     <DropdownMenu>
@@ -52,13 +59,8 @@ export function SleepMenu() {
       <DropdownMenuContent side="top" align="end" className="min-w-48">
         <DropdownMenuGroup>
           <DropdownMenuLabel className="font-mono text-[10.5px] text-faint">stop playing</DropdownMenuLabel>
-          <DropdownMenuRadioGroup
-            value={value}
-            onValueChange={(next: string) =>
-              player.setSleep(next === "off" ? null : next === "track" || next === "album" ? next : Number(next))
-            }
-          >
-            {OPTIONS.map(([option, label]) => (
+          <DropdownMenuRadioGroup value={value} onValueChange={chooseSleep}>
+            {SLEEP_OPTIONS.map(([option, label]) => (
               <DropdownMenuRadioItem key={option} value={option}>
                 {label}
               </DropdownMenuRadioItem>

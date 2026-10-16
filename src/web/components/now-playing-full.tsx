@@ -46,7 +46,7 @@ export function NowPlayingFull({ open, onOpenChange }: { open: boolean; onOpenCh
         onPointerMove={wake}
         onKeyDown={wake}
         data-idle={idle || undefined}
-        className="group/full top-0 left-0 grid h-svh w-screen bg-background max-w-none translate-x-0 translate-y-0 grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-10 border-0 p-10 data-idle:cursor-none sm:max-w-none"
+        className="group/full top-0 left-0 grid h-[calc(100svh/var(--zoom))] w-[calc(100vw/var(--zoom))] bg-background max-w-none translate-x-0 translate-y-0 grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-10 border-0 p-10 data-idle:cursor-none sm:max-w-none"
       >
         {song ? (
           <>

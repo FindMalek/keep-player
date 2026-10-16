@@ -59,6 +59,8 @@ export function noteMouseUse(id: string): void {
 export function welcomeTip(openCheatSheet: () => void): void {
   const state = read();
   if (state.welcomed || state.off) return;
+  // A phone-sized window has no keyboard to speak of, and the toast would sit on the player bar.
+  if (window.matchMedia?.("(max-width: 767px)").matches) return;
   write({ ...state, welcomed: true });
   notify({ message: "press ? anytime to see every keyboard shortcut", action: { label: "show", onClick: openCheatSheet } });
 }

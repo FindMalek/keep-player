@@ -194,10 +194,19 @@
   border-radius: 0;
 }
 
-/* Wide screens get a little bigger, like the dashboard. */
+/*
+ * Wide screens get a little bigger, like the dashboard. `zoom` scales layout but not viewport units, so anything sized
+ * to the window (the app root, the fixed sidebar, full-screen views) uses these, which divide the window by the zoom:
+ * 100svh under a 1.1 zoom is 1.1 windows tall. They are written as `h-[calc(100svh/var(--zoom))]`,
+ * arbitrary values rather than a custom utility, so tailwind-merge still resolves them against other height classes.
+ */
+:root {
+  --zoom: 1;
+}
 @media (min-width: 1800px) {
   html {
-    zoom: 1.1;
+    --zoom: 1.1;
+    zoom: var(--zoom);
   }
 }
 
