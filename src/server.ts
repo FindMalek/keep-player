@@ -67,6 +67,7 @@ const server = Bun.serve({
   development: process.env.NODE_ENV !== "production",
   // Long streams must not be cut by the idle timeout.
   idleTimeout: 0,
+  websocket: { ...api.listenSockets, maxPayloadLength: 16 * 1024 },
   routes: {
     // Liveness (the container's healthcheck): the process answers. Readiness, with Navidrome: /api/health.
     "/healthz": () => new Response("ok"),
@@ -79,6 +80,8 @@ const server = Bun.serve({
     "/auth/sessions/:id": { DELETE: api.revokeSession },
     "/rest/*": api.proxy,
     "/cover/:id/:size": api.cover,
+    "/api/listen": { POST: api.listenCreate },
+    "/api/listen/:code": { GET: (request, srv) => api.listenSocket(request, srv) },
     "/api/lyrics/coverage": { GET: api.lyricsCoverage },
     "/api/lyrics/missing": { GET: api.lyricsMissing },
     "/api/lyrics/refetch": { POST: api.lyricsRefetch },
