@@ -223,6 +223,20 @@
   }
 }
 
+/* The loader's bars (components/loader.tsx): each swells and settles, the middle ones a beat behind the outer ones. */
+@theme {
+  --animate-wave: wave 900ms ease-in-out infinite;
+  @keyframes wave {
+    0%,
+    100% {
+      transform: scaleY(0.5);
+    }
+    50% {
+      transform: scaleY(1);
+    }
+  }
+}
+
 /* The refresh line at the top (components/top-progress.tsx): a short bar sliding across, still when motion is reduced. */
 @keyframes top-progress {
   from {
