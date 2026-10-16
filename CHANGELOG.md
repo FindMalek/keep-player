@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.3.0](https://github.com/FindMalek/keep-player/compare/v0.2.0...v0.3.0) (2026-10-16)
+
+
+### Features
+
+* **demo:** generated demo library with dithered covers ([#153](https://github.com/FindMalek/keep-player/issues/153)) ([e1c47c4](https://github.com/FindMalek/keep-player/commit/e1c47c48551dd74bd8a08999b2f67be46a63f334))
+* **demo:** seed generated listening history for previews ([#160](https://github.com/FindMalek/keep-player/issues/160)) ([dd46b9c](https://github.com/FindMalek/keep-player/commit/dd46b9ccc872273a0859a1b15652edf532879cf8))
+* **previews:** Dokploy PR previews with a demo account ([#155](https://github.com/FindMalek/keep-player/issues/155)) ([d3e2cee](https://github.com/FindMalek/keep-player/commit/d3e2cee11b91e56b05f25eb5ee70973be51782b3))
+* **settings:** choose which notifications pop up ([#167](https://github.com/FindMalek/keep-player/issues/167)) ([7926ad5](https://github.com/FindMalek/keep-player/commit/7926ad512906bb513d0aa5019c1d13f0fe127e98))
+* **stats:** equal tiles with visible notes, roomier top lists, a legend for the clock ([#166](https://github.com/FindMalek/keep-player/issues/166)) ([ecba2f7](https://github.com/FindMalek/keep-player/commit/ecba2f7c2f9757a2bdb93b17275723813859da45))
+* **ui:** symmetric-wave loader instead of the circle spinner ([#159](https://github.com/FindMalek/keep-player/issues/159)) ([765a454](https://github.com/FindMalek/keep-player/commit/765a454f07e3b3621d262a77370f298a222d0bbd))
+* **ui:** top bar with back/forward, search and a trimmed account menu ([#157](https://github.com/FindMalek/keep-player/issues/157)) ([9e9d5db](https://github.com/FindMalek/keep-player/commit/9e9d5db27fa4d3782185a5bd5e7230506e080936))
+
+
+### Bug Fixes
+
+* **playback:** iphone silent switch ([#148](https://github.com/FindMalek/keep-player/issues/148)) ([c0da4f8](https://github.com/FindMalek/keep-player/commit/c0da4f8a07dd5ff986bae5e81d3ccb6e460d7d5f))
+* **ui:** top-align the cover in detail headers on phones ([#165](https://github.com/FindMalek/keep-player/issues/165)) ([b6ff417](https://github.com/FindMalek/keep-player/commit/b6ff4177609a6ee623ffd84f5fd7ace745185ef6))
+
 ## [0.2.0](https://github.com/FindMalek/keep-player/compare/v0.1.0...v0.2.0) (2026-10-16)
 
 
