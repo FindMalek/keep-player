@@ -1,3 +1,5 @@
+import { shouldShow } from "./notify-level";
+import { getSetting } from "./settings";
 import { useTheme } from "./theme";
 
 export interface Notice {
@@ -38,6 +40,7 @@ async function mount(): Promise<Sonner> {
 }
 
 export function notify({ message, kind = "info", action, cancel, duration, id }: Notice): void {
+  if (!shouldShow(getSetting("toasts"), { kind, action, cancel })) return;
   ready ??= mount();
   void ready.then(({ toast }) => (kind === "error" ? toast.error : toast)(message, { action, cancel, duration, id }));
 }

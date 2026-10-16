@@ -15,7 +15,7 @@ import { MAX_CROSSFADE } from "@/lib/crossfade";
 import { doctorQuery } from "@/lib/doctor-query";
 import { install, useInstallState } from "@/lib/install";
 import { MINI_PLAYER_SUPPORTED } from "@/lib/mini-player";
-import { type Settings, setSetting, useSetting } from "@/lib/settings";
+import { type Settings, setSetting, TOAST_LEVELS, useSetting } from "@/lib/settings";
 import { isStreamQuality, QUALITIES } from "@/lib/stream-quality";
 import { logout, useUser } from "@/lib/subsonic";
 import { setTheme, type Theme, useTheme } from "@/lib/theme";
@@ -100,6 +100,34 @@ function Loudness() {
         </div>
       </Row>
     </>
+  );
+}
+
+/** How chatty the pop-ups at the bottom are. Errors always show. */
+function ToastsRow() {
+  const level = useSetting("toasts");
+  return (
+    <Row
+      label="notifications"
+      hint={<>all: every confirmation · important: only those with a button (undo, resume) · errors: only problems · {SYNCED}</>}
+    >
+      <ToggleGroup
+        variant="outline"
+        size="sm"
+        aria-label="notifications"
+        value={[level]}
+        onValueChange={(value: string[]) => {
+          const next = TOAST_LEVELS.find((item) => item === value[0]);
+          if (next) setSetting("toasts", next);
+        }}
+      >
+        {TOAST_LEVELS.map((value) => (
+          <ToggleGroupItem key={value} value={value} className="font-mono font-normal">
+            {value}
+          </ToggleGroupItem>
+        ))}
+      </ToggleGroup>
+    </Row>
   );
 }
 
@@ -243,6 +271,7 @@ export function SettingsPage({ section }: { section: string | null }) {
                 ))}
               </ToggleGroup>
             </Row>
+            <ToastsRow />
             <Toggle setting="reduceMotion" label="reduce motion" hint={<>no animations, whatever the system says · {SYNCED}</>} />
             <Toggle
               setting="ratings"
