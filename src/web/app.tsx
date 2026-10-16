@@ -41,6 +41,7 @@ import {
   HomePage,
   ImportPage,
   LikedPage,
+  ListenPage,
   LyricsPage,
   MomentsPage,
   PlaylistPage,
@@ -140,6 +141,8 @@ function Page({ path }: { path: string }) {
       return <MomentsPage />;
     case "import":
       return <ImportPage />;
+    case "listen":
+      return <ListenPage code={param} />;
     case "song":
       return param ? <SongLink key={param} id={param} /> : null;
     default:
@@ -164,6 +167,15 @@ export function App() {
   // Opening on the home page: its rows load while its code does, not after.
   useEffect(() => {
     if (user && location.pathname === "/") prefetchHome();
+  }, [user]);
+  // A reload mid-session rejoins it (the session lives in this tab's sessionStorage).
+  useEffect(() => {
+    if (!user) return;
+    try {
+      if (sessionStorage.getItem("keep-player:listen")) void import("@/lib/listen").then((module) => module.listen.resume());
+    } catch {
+      // No storage, no resume.
+    }
   }, [user]);
   useEffect(() => {
     document.documentElement.dataset.motion = reduceMotion ? "reduce" : "system";

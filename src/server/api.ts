@@ -9,6 +9,7 @@ import { type CoverCache, snapCoverSize } from "./covers";
 import { UpdateCheck } from "./health";
 import { type NewPlay, readPlays, recordPlay } from "./history";
 import { matchTrack } from "./import-match";
+import { ListenRooms, type Peer } from "./listen";
 import type { LyricsService } from "./lyrics";
 import { forgetMisses, lyricsCoverageReport, missingLyrics } from "./lyrics-coverage";
 import { lyricsCoverage, queryLyrics } from "./lyrics-search";
@@ -132,6 +133,17 @@ export interface ApiOptions {
   backfills?: Map<string, { restart(): void }>;
   /** The .lrc sidecar writer, when `LYRICS_WRITE_LRC=on`. */
   lrc?: { count(server: string): number; undoAll(server: string): { removed: number; kept: number } } | null;
+  /** Listen-together rooms (#65). */
+  rooms?: ListenRooms;
+}
+
+/** What a listen socket carries from the upgrade to its handlers. */
+export interface ListenSocketData {
+  code: string;
+  session: string;
+  user: string;
+  server: string;
+  peer?: Peer;
 }
 
 export function createApi({
@@ -147,6 +159,7 @@ export function createApi({
   updates = new UpdateCheck(false),
   backfills = new Map(),
   lrc = null,
+  rooms = new ListenRooms(),
 }: ApiOptions) {
   const upstreamFor = (id: string) => upstreams.find((upstream) => upstream.id === id);
 
@@ -385,6 +398,44 @@ export function createApi({
     if (session.admin && lrc) report.written = lrc.count(upstream.id);
     return json(report, 200, { "cache-control": "private, no-cache" });
   }
+
+  /** `POST /api/listen`: start a listening session hosted by this browser session. Returns its code. */
+  async function listenCreate(request: Request): Promise<Response> {
+    if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
+    const session = sessions.get(cookieValue(request));
+    if (!session) return json({ error: "signed out" }, 401);
+    const body = (await request.json().catch(() => null)) as { anyoneCanSkip?: unknown } | null;
+    const code = rooms.create(session.server, session.id, body?.anyoneCanSkip === true);
+    return code ? json({ code }) : json({ error: "too many sessions" }, 429);
+  }
+
+  /** `GET /api/listen/:code` as a WebSocket: join (or, for its host, rejoin) the session. Same origin only. */
+  function listenSocket(request: Request & { params: { code: string } }, srv: Server<ListenSocketData>): Response | undefined {
+    const session = sessions.get(cookieValue(request));
+    if (!session) return json({ error: "signed out" }, 401);
+    // Browsers can't add the CSRF header to a WebSocket: the Origin must be this site instead.
+    const origin = request.headers.get("origin");
+    if (!origin || new URL(origin).host !== request.headers.get("host")) return json({ error: "bad origin" }, 403);
+    const code = request.params.code;
+    if (!rooms.has(code)) return json({ error: "no such session" }, 404);
+    const data: ListenSocketData = { code, session: session.id, user: session.user, server: session.server };
+    return srv.upgrade(request, { data }) ? undefined : json({ error: "upgrade failed" }, 400);
+  }
+
+  const listenSockets = {
+    open(socket: { data: ListenSocketData; send(text: string): unknown; close(): void }) {
+      const { code, session, user, server } = socket.data;
+      const peer: Peer = { session, user, server, send: (text) => void socket.send(text) };
+      socket.data.peer = peer;
+      if (!rooms.join(code, peer)) socket.close();
+    },
+    message(socket: { data: ListenSocketData }, message: string | Buffer) {
+      if (socket.data.peer && typeof message === "string") rooms.handle(socket.data.code, socket.data.peer, message);
+    },
+    close(socket: { data: ListenSocketData }) {
+      if (socket.data.peer) rooms.leave(socket.data.code, socket.data.peer);
+    },
+  };
 
   /** `/api/lyrics/missing?offset=&limit=`: songs nobody found lyrics for, a page at a time. */
   async function lyricsMissing(request: Request): Promise<Response> {
@@ -704,6 +755,9 @@ export function createApi({
     lyricsOffset,
     lyricsCoverage: lyricsCoverageRoute,
     lyricsMissing,
+    listenCreate,
+    listenSocket,
+    listenSockets,
     lyricsRefetch,
     lyricsWritten,
     searchIndex,
