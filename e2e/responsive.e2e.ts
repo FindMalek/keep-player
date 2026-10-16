@@ -118,3 +118,16 @@ test("on a narrow window the queue takes the window instead of squeezing the pag
   await expect(panel).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Late night" })).toBeVisible();
 });
+
+test("on a phone the cover sits at the top of an album's header, beside the title, not at its bottom", async ({ signedIn: page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/album/al-13");
+  const heading = page.getByRole("heading", { level: 1 });
+  await expect(heading).toBeVisible();
+  const cover = await page.locator("main header img").first().boundingBox();
+  const badge = await page.getByText("album", { exact: true }).first().boundingBox();
+  expect(cover).not.toBeNull();
+  expect(badge).not.toBeNull();
+  // Top-aligned: the cover starts level with the first line of the text block, give or take a few pixels.
+  expect(Math.abs((cover?.y ?? 0) - (badge?.y ?? 0))).toBeLessThan(8);
+});
