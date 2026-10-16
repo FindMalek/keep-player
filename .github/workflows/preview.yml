@@ -1,0 +1,69 @@
+# Vercel-style previews on Dokploy, built on GitHub runners: one image per PR, one Dokploy app, one sticky comment.
+# Skipped until the repo var DEPLOY_ENABLED is "true", see docs/previews.md.
+name: Preview
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+
+concurrency:
+  group: preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+  pull-requests: write
+
+env:
+  PR_NUMBER: ${{ github.event.pull_request.number }}
+  PREVIEW_DOMAIN: ${{ vars.PREVIEW_DOMAIN }}
+  DOKPLOY_URL: ${{ vars.DOKPLOY_PUBLIC_URL }}
+  DOKPLOY_PUBLIC_URL: ${{ vars.DOKPLOY_PUBLIC_URL }}
+  DOKPLOY_API_KEY: ${{ secrets.DOKPLOY_API_KEY }}
+  GITHUB_TOKEN: ${{ github.token }}
+
+jobs:
+  deploy:
+    if: github.event.action != 'closed' && vars.DOKPLOY_PUBLIC_URL != '' && vars.DEPLOY_ENABLED == 'true' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - uses: docker/setup-buildx-action@v3
+      - name: Build the preview image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ghcr.io/findmalek/keep-player:pr-${{ env.PR_NUMBER }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max,ignore-error=true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Deploy the preview
+        env:
+          GHCR_USERNAME: ${{ github.actor }}
+          GHCR_READ_TOKEN: ${{ secrets.GHCR_READ_TOKEN || github.token }}
+        run: node scripts/deploy/dokploy.mjs preview-up
+      - name: Mark failed
+        if: failure()
+        run: node scripts/deploy/dokploy.mjs comment-failed
+
+  cleanup:
+    if: github.event.action == 'closed' && vars.DOKPLOY_PUBLIC_URL != '' && vars.DEPLOY_ENABLED == 'true' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Delete the preview
+        run: node scripts/deploy/dokploy.mjs preview-down
