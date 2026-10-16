@@ -45,7 +45,8 @@ function CheckSection({ check }: { check: Check }) {
 
 /** Admins: what's missing or odd in the indexed library, with a fix hint per check, and an overall health score. */
 export function DoctorPage() {
-  const admin = useQuery(apiQueries.session()).data?.admin;
+  const session = useQuery(apiQueries.session());
+  const admin = session.isError ? false : session.data?.admin;
   const report = useQuery({ ...doctorQuery, enabled: Boolean(admin) });
   const data = report.data;
   return (

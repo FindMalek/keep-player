@@ -155,10 +155,11 @@ const DEVICE = <span className="font-mono">this device only</span>;
 /** Everything you can set, by topic. The tab is in the address (`/settings/sync`), so a link opens the right one. */
 /** Admins: the library's health score, from the doctor's checks, and the way to the full report. */
 function DoctorRow() {
-  const health = useQuery(doctorQuery).data?.health;
+  const doctor = useQuery(doctorQuery);
+  const health = doctor.data?.health;
   return (
     <Row label="library doctor" hint="missing covers, tags and replaygain, duplicates, odd formats">
-      <span className="font-mono text-sm">{health === undefined ? "…" : `${health}%`}</span>
+      <span className="font-mono text-sm">{doctor.isError ? "—" : health === undefined ? "…" : `${health}%`}</span>
       <Button variant="outline" size="sm" render={<Link href="/doctor" />}>
         open
       </Button>
