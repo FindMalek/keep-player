@@ -1,4 +1,4 @@
-import { expect, signIn, test } from "./fixtures";
+import { expect, signIn, test, trackTitles } from "./fixtures";
 
 test("settings has every section, links to each tab, and changes apply at once", async ({ page, signedIn }) => {
   await signedIn.getByRole("button", { name: /demo$/ }).click();
@@ -53,4 +53,31 @@ test("the app is installable: a manifest with icons, served by the server", asyn
     expect(response.status()).toBe(200);
     expect(response.headers()["content-type"]).toBe(icon.type);
   }
+});
+
+test("the notifications setting hides plain confirmations but never errors or things you can undo", async ({ page, signedIn }) => {
+  await signedIn.goto("/album/al-21");
+  const titles = await trackTitles(page);
+  const addToQueue = async () => {
+    await page.goto("/album/al-21");
+    await page.getByRole("button", { name: "play", exact: true }).first().click();
+    const row = page.getByRole("row", { name: new RegExp(titles[3] as string) }).first();
+    await row.hover();
+    await row.getByRole("button", { name: `add ${titles[3]} to queue`, exact: true }).click();
+  };
+  const level = async (name: string) => {
+    await page.goto("/settings/appearance");
+    await page.getByRole("group", { name: "notifications" }).getByRole("button", { name, exact: true }).click();
+  };
+
+  // At "errors" the confirmation doesn't pop up.
+  await level("errors");
+  await addToQueue();
+  await page.waitForTimeout(800);
+  await expect(page.getByText(`added ${titles[3]} to the queue`)).toHaveCount(0);
+
+  // Back at "all" it does.
+  await level("all");
+  await addToQueue();
+  await expect(page.getByText(`added ${titles[3]} to the queue`)).toBeVisible();
 });

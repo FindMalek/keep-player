@@ -6,7 +6,13 @@ import type { StreamQuality } from "./stream-quality";
  * through the server (settings-sync.ts); the rest belong to this device.
  */
 
+/** Which toasts show: all of them, the ones with something to press (undo, resume), or only the errors. */
+export const TOAST_LEVELS = ["all", "important", "errors"] as const;
+export type ToastLevel = (typeof TOAST_LEVELS)[number];
+
 export interface Settings {
+  /** Which notices pop up at the bottom: errors always do. */
+  toasts: ToastLevel;
   /** 1–5 star ratings (setRating) as a column in track lists, for smart playlists in other clients. */
   ratings: boolean;
   /** No animations or view transitions, whatever the OS says. */
@@ -32,6 +38,7 @@ export interface Settings {
 
 /** Follow the user to every browser; the others (the mini player) depend on this device. */
 export const SYNCED = [
+  "toasts",
   "ratings",
   "reduceMotion",
   "queueSync",
@@ -45,6 +52,7 @@ export const SYNCED = [
 
 const KEY = "keep-player:settings";
 const DEFAULTS: Settings = {
+  toasts: "all",
   ratings: false,
   reduceMotion: false,
   miniPlayerWhenHidden: false,
@@ -64,6 +72,7 @@ const NORMALIZATIONS = ["off", "track", "album", "auto"];
 export function sanitize<K extends keyof Settings>(key: K, value: unknown): Settings[K] | undefined {
   const fallback = DEFAULTS[key];
   if (typeof value !== typeof fallback) return undefined;
+  if (key === "toasts") return ((TOAST_LEVELS as readonly unknown[]).includes(value) ? value : undefined) as Settings[K] | undefined;
   if (key === "normalization") return (NORMALIZATIONS.includes(value as string) ? value : undefined) as Settings[K] | undefined;
   if (key === "crossfade") return Math.max(0, Math.min(12, Number(value) || 0)) as Settings[K];
   if (key === "preamp") return Math.max(-12, Math.min(12, Number(value) || 0)) as Settings[K];

@@ -17,3 +17,11 @@ describe("settings", () => {
     expect(sanitize("eqGains", "nope")).toBeUndefined();
   });
 });
+
+describe("notifications level", () => {
+  test("a value from another browser is kept only if it is a level", () => {
+    expect(sanitize("toasts", "important")).toBe("important");
+    expect(sanitize("toasts", "loud")).toBeUndefined();
+    expect(sanitize("toasts", 3)).toBeUndefined();
+  });
+});
