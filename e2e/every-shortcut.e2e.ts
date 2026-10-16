@@ -133,7 +133,8 @@ const CHECKS: Record<string, Check> = {
   },
   "stop-after": async (page, press) => {
     await press();
-    await expect(bar(page).getByRole("button", { name: "sleep timer" })).toHaveAttribute("aria-pressed", "true");
+    // At this window width the sleep timer lives in the bar's "more" menu, whose button shows the timer is on.
+    await expect(bar(page).getByRole("button", { name: "more controls" })).toHaveAttribute("aria-pressed", "true");
   },
   queue: async (page, press) => {
     await press();
