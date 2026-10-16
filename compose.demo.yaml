@@ -1,0 +1,16 @@
+# A Navidrome over the generated demo library (see docs/demo-library.md): `bun run demo:library ./demo-music` first.
+services:
+  navidrome:
+    image: deluan/navidrome:0.64.2
+    ports:
+      - "4533:4533"
+    environment:
+      ND_MUSICFOLDER: /music
+      ND_SCANSCHEDULE: "@every 1h"
+      ND_AUTOIMPORTPLAYLISTS: "true"
+      ND_COVERARTPRIORITY: "cover.*, embedded"
+    volumes:
+      - ./demo-music:/music:ro
+      - navidrome-demo-data:/data
+volumes:
+  navidrome-demo-data:
