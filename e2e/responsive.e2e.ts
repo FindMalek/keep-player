@@ -11,6 +11,7 @@ const SIZES: [number, number][] = [
   [768, 1024],
   [600, 800],
   [390, 844],
+  [320, 640],
 ];
 
 async function playPlaylist(page: Page): Promise<void> {
