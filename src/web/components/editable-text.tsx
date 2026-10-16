@@ -47,7 +47,6 @@ export function EditableText({
   };
   return (
     <input
-      // biome-ignore lint/a11y/noAutofocus: the click asked to edit this
       autoFocus
       aria-label={label}
       value={draft}

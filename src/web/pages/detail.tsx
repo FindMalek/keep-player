@@ -117,10 +117,6 @@ const Kind = ({ children }: { children: ReactNode }) => (
   </Badge>
 );
 
-const Bio = ({ children }: { children: ReactNode }) => (
-  <p className="line-clamp-3 max-w-[72ch] text-[12.5px] text-muted-foreground">{children}</p>
-);
-
 export function AlbumPage({ id }: { id: string }) {
   const [morph] = useState(() => isMorphing(id));
   // Cleared only after commit: a first render that suspends runs the initializer again and must still see it.

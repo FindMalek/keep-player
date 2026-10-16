@@ -131,7 +131,12 @@ export class Decks {
       });
       this.bus = bus;
       bus.connect(this.filters[0] as BiquadFilterNode);
-      this.filters.reduce((from, to) => (from.connect(to), to)).connect(master);
+      this.filters
+        .reduce((from, to) => {
+          from.connect(to);
+          return to;
+        })
+        .connect(master);
       for (const deck of this.decks) {
         deck.gain = context.createGain();
         context.createMediaElementSource(deck.element).connect(deck.gain).connect(bus);
