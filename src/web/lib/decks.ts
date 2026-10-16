@@ -19,6 +19,20 @@ const RAMP_SECONDS = 0.005;
 /** Within this much of the end, a timer is armed for the handover (timeupdate alone fires only ~4 times a second). */
 const ARM_SECONDS = 0.6;
 
+/**
+ * iOS mutes Web Audio (everything this player plays) while the ringer switch is on silent, unless the page says it is
+ * playback. Safari 16.4+ has `navigator.audioSession` for exactly that; elsewhere there is nothing to set.
+ */
+export function markPlaybackSession(nav: object = navigator): void {
+  const session = (nav as { audioSession?: { type: string } }).audioSession;
+  if (!session || session.type === "playback") return;
+  try {
+    session.type = "playback";
+  } catch {
+    // A browser that exposes it read-only: nothing to do.
+  }
+}
+
 export interface DeckEvents {
   playing: () => void;
   pause: () => void;
@@ -115,6 +129,7 @@ export class Decks {
 
   /** Builds the Web Audio graph; browsers only allow it after a user gesture, so call this from play. */
   ensureGraph(): void {
+    markPlaybackSession();
     if (this.context) return;
     try {
       const context = new AudioContext();
@@ -312,8 +327,20 @@ export class Decks {
     return new Promise((resolve) => setTimeout(resolve, seconds * 1000));
   }
 
+  /**
+   * Called from the first taps and key presses (and after: iOS suspends the context for a call or a lock): builds the
+   * graph and resumes it inside the gesture. The first play can come after a network wait, which is no gesture, and
+   * a context started there stays silent on iOS.
+   */
+  unlock(): void {
+    this.ensureGraph();
+    if (this.context && this.context.state !== "running") void this.context.resume().catch(() => undefined);
+  }
+
   async play(): Promise<void> {
     this.ensureGraph();
+    // Not awaited: a suspended context's resume() can stay pending until the next gesture.
+    if (this.context && this.context.state !== "running") void this.context.resume().catch(() => undefined);
     await this.playing.element.play();
   }
 
