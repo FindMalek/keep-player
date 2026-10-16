@@ -60,7 +60,9 @@ test.describe(() => {
     await page.getByRole("button", { name: "play", exact: true }).first().click();
     const bar = page.getByRole("contentinfo");
     await expect(bar.getByRole("link", { name: titles[0] as string, exact: true })).toBeVisible();
-    await page.waitForTimeout(11_000);
+    // The stall shows as the wave loader where the play button is, and goes again once the audio flows.
+    await expect(bar.getByRole("status", { name: "buffering" })).toBeVisible({ timeout: 10_000 });
+    await page.waitForTimeout(8_000);
     await expect(page.getByText(/^skipped /)).toHaveCount(0);
     await expect(bar.getByRole("button", { name: "pause" })).toBeVisible();
     expect(requests.filter((request) => request.id === first)).toHaveLength(1);

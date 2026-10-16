@@ -3,7 +3,6 @@ import {
   EllipsisIcon,
   InfoIcon,
   ListMusicIcon,
-  LoaderCircleIcon,
   MicVocalIcon,
   MoonIcon,
   PauseIcon,
@@ -48,6 +47,7 @@ import { Cover } from "./cover";
 import { Hint } from "./hint";
 import { LikeButton } from "./like-button";
 import { Link } from "./link";
+import { Loader } from "./loader";
 import { OfflineMark } from "./offline-mark";
 import { ToolButton } from "./tool-button";
 import { Truncated } from "./truncated";
@@ -236,7 +236,7 @@ export function PlayerBar({ panel, onPanel }: { panel: Panel; onPanel: (panel: P
         <AudioPlayerPlay className="size-8 rounded-none" aria-label={controller.playing ? "pause" : "play"}>
           {({ playing }) =>
             slow ? (
-              <LoaderCircleIcon className="animate-spin motion-reduce:animate-none" />
+              <Loader className="size-4" label="buffering" />
             ) : playing ? (
               <PauseIcon className="fill-current" />
             ) : (
