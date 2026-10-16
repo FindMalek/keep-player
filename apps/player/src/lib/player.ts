@@ -263,6 +263,11 @@ const decks = new Decks({
   error: () => void onMediaError(),
 });
 
+// Safari only lets audio start inside a tap or key press: unlock the engine on those, so the first play (which may
+// come after a network wait) already has a running context.
+for (const type of ["click", "touchend", "keydown"] as const)
+  window.addEventListener(type, () => decks.unlock(), { capture: true, passive: true });
+
 /**
  * Network trouble is worth retrying; a file the browser can't decode or the server doesn't have is not. Chrome reports
  * a request that failed before any audio arrived (timeout, dropped connection, 502) as "source not supported", the

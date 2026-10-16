@@ -222,9 +222,7 @@ export function SettingsPage({ section }: { section: string | null }) {
                 </Button>
               </div>
             </Row>
-            <p className="py-3 text-muted-foreground text-xs">
-              songs play gapless with replaygain from your tags. equalizer and quality settings come next.
-            </p>
+            <p className="py-3 text-muted-foreground text-xs">songs play gapless with replaygain from your tags.</p>
           </TabsContent>
 
           <TabsContent value="appearance">
