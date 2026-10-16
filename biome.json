@@ -6,7 +6,16 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": ["**", "!docs/**/*.png", "!bun.lock", "!src/web/components/ui", "!src/web/hooks", "!src/web/lib/audio"]
+    "includes": [
+      "**",
+      "!docs/**/*.png",
+      "!bun.lock",
+      "!.release-please-manifest.json",
+      "!CHANGELOG.md",
+      "!src/web/components/ui",
+      "!src/web/hooks",
+      "!src/web/lib/audio"
+    ]
   },
   "formatter": {
     "indentStyle": "space",
