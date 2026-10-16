@@ -27,8 +27,8 @@ test("the clicked album's cover carries into its page, and reduce motion turns t
   const named = page.locator("main header > div").first();
   await expect(named).toHaveCSS("view-transition-name", "album-cover");
 
-  await page.getByRole("button", { name: /demo$/ }).click();
-  await page.getByRole("menuitemcheckbox", { name: "reduce motion" }).click();
+  await page.goto("/settings/appearance");
+  await page.getByRole("switch", { name: "reduce motion" }).click();
   await expect(page.locator("html")).toHaveAttribute("data-motion", "reduce");
   await page.keyboard.press("Escape");
   await page.reload();

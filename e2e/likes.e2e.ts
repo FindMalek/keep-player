@@ -54,9 +54,9 @@ test("an album heart fills the liked filter on the albums page", async ({ page, 
 test("ratings show once turned on and are saved", async ({ page, signedIn }) => {
   await signedIn.goto("/album/al-13");
   const titles = await trackTitles(page);
-  await page.getByRole("button", { name: /demo$/ }).click();
-  await page.getByRole("menuitemcheckbox", { name: "show ratings" }).click();
-  await page.keyboard.press("Escape");
+  await page.goto("/settings/appearance");
+  await page.getByRole("switch", { name: "show ratings" }).click();
+  await page.goto("/album/al-13");
   const rating = page.getByRole("group", { name: `rating for ${titles[0]}` });
   // The mock keeps ratings across tests and retries, and clicking the current rating clears it: pick one not set yet.
   const stars = (await rating.getByRole("button", { name: "4 stars" }).getAttribute("aria-pressed")) === "true" ? "3 stars" : "4 stars";

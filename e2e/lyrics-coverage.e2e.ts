@@ -23,8 +23,8 @@ test("the lyrics page shows coverage and the songs without lyrics, and an admin 
   const listed = await missingIds();
   for (const [id] of missing) expect(listed.has(id as string)).toBe(true);
 
-  await signedIn.getByRole("button", { name: /demo$/ }).click();
-  await page.getByRole("menuitem", { name: "lyrics coverage" }).click();
+  await signedIn.goto("/settings/lyrics");
+  await page.getByRole("link", { name: "open" }).click();
   await expect(page).toHaveURL(/\/lyrics$/);
   await expect(page.getByRole("img", { name: "lyrics coverage" })).toBeVisible();
   await expect(page.getByText(/^no lyrics found · \d+ songs?$/)).toBeVisible();
