@@ -1,4 +1,4 @@
-import type { Album, Song as AppSong, Artist, Playlist } from "../../src/web/lib/types";
+import type { Album, Song as AppSong, Artist, Playlist } from "../../apps/player/src/lib/types";
 
 /** Songs as getSong returns them: the list fields plus where the file lives and what it is. */
 type Song = AppSong & { parent?: string; path?: string; samplingRate?: number; channelCount?: number };

@@ -16,7 +16,7 @@
                                          sessions.db · library.db · covers/ · session.secret
 ```
 
-## Server (`src/server`)
+## Server (`apps/server/src`)
 
 - **One origin.** The app, the API and the audio come from the same host: no CORS, cookies just work, and Web
   Audio can process the stream (ReplayGain, gapless handover, fades).
@@ -39,7 +39,7 @@
 In production the web app is bundled, minified and precompressed (brotli, gzip) and embedded in the executable with
 the server (`scripts/build.ts`). The image is that executable on Alpine, multi-arch.
 
-## Web app (`src/web`)
+## Web app (`apps/player/src`)
 
 - **Player engine** (`lib/player.ts`, `lib/decks.ts`): two `<audio>` decks, each through its own gain node.
   The playing deck plays; the idle one holds the next song. A few ms before the end the idle deck starts and they

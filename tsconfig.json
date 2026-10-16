@@ -11,8 +11,9 @@
     "noEmit": true,
     "types": ["bun"],
     "paths": {
-      "@/*": ["./src/web/*"]
+      "@/*": ["./apps/player/src/*"],
+      "@keep/shared/*": ["./packages/shared/src/*"]
     }
   },
-  "include": ["src", "test", "e2e", "scripts", "playwright.config.ts"]
+  "include": ["apps", "packages", "test", "e2e", "scripts", "playwright.config.ts"]
 }

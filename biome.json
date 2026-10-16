@@ -12,9 +12,9 @@
       "!bun.lock",
       "!.release-please-manifest.json",
       "!CHANGELOG.md",
-      "!src/web/components/ui",
-      "!src/web/hooks",
-      "!src/web/lib/audio"
+      "!apps/player/src/components/ui",
+      "!apps/player/src/hooks",
+      "!apps/player/src/lib/audio"
     ]
   },
   "formatter": {

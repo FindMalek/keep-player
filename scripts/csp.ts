@@ -15,4 +15,4 @@ export function cspOf(html: string): string | undefined {
 }
 
 // `bun scripts/csp.ts` prints the hash to paste into index.html after editing the inline boot script.
-if (import.meta.main) console.log(inlineScriptHashes(await Bun.file("src/web/index.html").text()).join(" "));
+if (import.meta.main) console.log(inlineScriptHashes(await Bun.file("apps/player/src/index.html").text()).join(" "));
