@@ -11,6 +11,7 @@ import {
   MoonIcon,
   SettingsIcon,
   SunIcon,
+  UsersIcon,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -122,6 +123,10 @@ export function UserMenu({
         <DropdownMenuItem onClick={() => go("/settings")}>
           <SettingsIcon />
           settings
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => go("/listen")}>
+          <UsersIcon />
+          listen together
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => go("/lyrics")}>
           <MicVocalIcon />

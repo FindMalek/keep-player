@@ -83,7 +83,7 @@ the server first and tells you what to fix if it can't reach it. [Getting starte
 | [configuration](docs/configuration.md) | every setting (generated from the code) |
 | [deploy](docs/deploy/README.md) | full stack, Traefik, Caddy, nginx, Dokploy, image tags, health |
 | [shortcuts](docs/shortcuts.md) | every key (generated from the code) |
-| [search](docs/search.md) · [lyrics](docs/lyrics.md) · [sync](docs/sync.md) · [spotify import](docs/spotify-import.md) | how they work |
+| [search](docs/search.md) · [lyrics](docs/lyrics.md) · [sync](docs/sync.md) · [spotify import](docs/spotify-import.md) · [listen together](docs/listen-together.md) | how they work |
 | [architecture](docs/architecture.md) · [security](docs/security.md) | how it's built, what's protected |
 | [troubleshooting](docs/troubleshooting.md) | when something's off |
 | [contributing](CONTRIBUTING.md) · [roadmap](docs/ROADMAP.md) | working on it |
