@@ -74,7 +74,7 @@ function Hero({
   backdrop?: ReactNode;
 }) {
   return (
-    <header className="relative isolate flex flex-wrap items-end gap-x-5 gap-y-3 border-b px-5 pt-[18px] pb-4">
+    <header className="relative isolate flex flex-wrap items-start gap-x-5 sm:items-end gap-y-3 border-b px-5 pt-[18px] pb-4">
       {backdrop && <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden opacity-20">{backdrop}</div>}
       <div className="shrink-0" style={morph ? { viewTransitionName: "album-cover" } : undefined}>
         <Cover id={cover} size={160} className="w-[104px] sm:w-[152px]" priority />
