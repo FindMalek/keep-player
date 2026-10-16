@@ -34,6 +34,13 @@ test("stats show what you played, forgotten favourites make a playlist, and the 
   await expect(page.getByRole("link", { name: tag })).toBeVisible();
   await expect(page.getByRole("img", { name: /listening clock/ })).toBeVisible();
   await expect(page.locator("[data-slot=chart]")).toBeVisible();
+  // The figures sit in equal tiles, each saying what it counts, and the clock has a legend.
+  const tiles = page.locator("dl > div");
+  await expect(tiles).toHaveCount(6);
+  const widths = await tiles.evaluateAll((items) => items.map((item) => Math.round(item.getBoundingClientRect().width)));
+  expect(Math.max(...widths) - Math.min(...widths)).toBeLessThanOrEqual(1);
+  await expect(page.getByText(/first heard here/)).toBeVisible();
+  await expect(page.getByText(/^less/)).toBeVisible();
 
   await page.getByRole("group", { name: "range" }).getByRole("button", { name: "year" }).click();
   await expect(page.getByRole("link", { name: tag })).toBeVisible();

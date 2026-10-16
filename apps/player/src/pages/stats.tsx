@@ -3,7 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 import { ListPlusIcon, PlayIcon, SparklesIcon } from "lucide-react";
 import { lazy, Suspense, useMemo, useState } from "react";
 import { Bar, BarChart, CartesianGrid, XAxis } from "recharts";
-import { Hint } from "@/components/hint";
 import { Content, EmptyState, PageHeader, Section, TrackList } from "@/components/library";
 import { Link } from "@/components/link";
 import { TrackListSkeleton } from "@/components/skeletons";
@@ -44,15 +43,17 @@ const fromInput = (value: string) => {
   return new Date(year ?? 1970, (month ?? 1) - 1, day ?? 1).getTime();
 };
 
-function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
-  const body = (
-    <div className="flex flex-col gap-0.5 border p-3">
+/** One figure with what it counts underneath, so nothing needs hovering to be understood. Equal tiles in a grid. */
+function Stat({ label, value, note }: { label: string; value: string; note: string }) {
+  return (
+    <div className="flex min-w-0 flex-col gap-0.5 border p-3">
       <dt className="font-mono text-muted-foreground text-xs">{label}</dt>
       <dd className="font-mono text-xl tabular-nums">{value}</dd>
+      <dd className="truncate text-muted-foreground text-xs" title={note}>
+        {note}
+      </dd>
     </div>
   );
-  if (!hint) return body;
-  return <Hint label={hint}>{body}</Hint>;
 }
 
 function TopList({ title, items, href }: { title: string; items: StatItem[]; href?: (item: StatItem) => string }) {
@@ -64,27 +65,29 @@ function TopList({ title, items, href }: { title: string; items: StatItem[]; hre
       ) : (
         <ol className="flex flex-col">
           {items.map((item, index) => (
-            <li key={item.id} className="flex items-baseline gap-2 py-0.5 text-sm">
+            <li key={item.id} className="flex items-baseline gap-2 py-1 text-sm">
               <span className="w-4 shrink-0 text-right font-mono text-muted-foreground text-xs tabular-nums">{index + 1}</span>
-              <span className="min-w-0 flex-1 truncate">
-                {href ? (
-                  <Link href={href(item)} className="hover:underline">
-                    {item.name}
-                  </Link>
-                ) : item.song ? (
-                  <button
-                    type="button"
-                    className="hover:underline"
-                    onClick={() =>
-                      player.play([item.song as unknown as Song], 0, { source: { kind: "stats", name: "stats", href: "/stats" } })
-                    }
-                  >
-                    {item.name}
-                  </button>
-                ) : (
-                  item.name
-                )}
-                {item.detail && <span className="text-muted-foreground"> · {item.detail}</span>}
+              <span className="flex min-w-0 flex-1 flex-col">
+                <span className="truncate">
+                  {href ? (
+                    <Link href={href(item)} className="hover:underline">
+                      {item.name}
+                    </Link>
+                  ) : item.song ? (
+                    <button
+                      type="button"
+                      className="max-w-full truncate hover:underline"
+                      onClick={() =>
+                        player.play([item.song as unknown as Song], 0, { source: { kind: "stats", name: "stats", href: "/stats" } })
+                      }
+                    >
+                      {item.name}
+                    </button>
+                  ) : (
+                    item.name
+                  )}
+                </span>
+                {item.detail && <span className="truncate text-muted-foreground text-xs">{item.detail}</span>}
               </span>
               <span className="shrink-0 font-mono text-muted-foreground text-xs tabular-nums">{item.plays}</span>
             </li>
@@ -120,6 +123,13 @@ function ListeningClock({ clock }: { clock: number[][] }) {
             {hour}h
           </span>
         ))}
+      </div>
+      <div className="flex items-center gap-1 pl-9 font-mono text-muted-foreground text-xs" aria-hidden>
+        less
+        {[0.05, 0.3, 0.55, 0.8, 1].map((opacity) => (
+          <span key={opacity} className="size-3.5 bg-foreground sm:size-4" style={{ opacity }} />
+        ))}
+        more · {max} min at most
       </div>
     </div>
   );
@@ -221,16 +231,16 @@ export function StatsPage() {
         ) : (
           <div className="flex flex-col gap-6">
             <dl className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
-              <Stat label="minutes" value={data.minutes.toLocaleString()} />
-              <Stat label="plays" value={data.plays.toLocaleString()} hint="skips (under 30 s) don't count" />
-              <Stat label="songs" value={data.songs.toLocaleString()} />
+              <Stat label="minutes" value={data.minutes.toLocaleString()} note="listened in this range" />
+              <Stat label="plays" value={data.plays.toLocaleString()} note="skips (under 30 s) not counted" />
+              <Stat label="songs" value={data.songs.toLocaleString()} note="different songs played" />
               <Stat
                 label="new to you"
                 value={`${data.songs ? Math.round((data.discovery.fresh / data.songs) * 100) : 0}%`}
-                hint={`${plural(data.discovery.fresh, "song")} first heard in this range, ${data.discovery.familiar} heard before`}
+                note={`${data.discovery.fresh} of ${data.songs} first heard here`}
               />
-              <Stat label="streak" value={plural(data.streaks.current, "day")} hint={`longest: ${plural(data.streaks.longest, "day")}`} />
-              <Stat label="skips" value={data.skips.toLocaleString()} />
+              <Stat label="streak" value={plural(data.streaks.current, "day")} note={`longest ${plural(data.streaks.longest, "day")}`} />
+              <Stat label="skips" value={data.skips.toLocaleString()} note="left within 30 s" />
             </dl>
             <ChartContainer config={chartConfig} className="aspect-auto h-40 w-full">
               <BarChart data={chartDays} margin={{ left: 0, right: 0 }}>
@@ -247,7 +257,7 @@ export function StatsPage() {
               <TopList title="top genres" items={data.top.genres} href={(item) => `/genre/${encodeURIComponent(item.name)}`} />
             </div>
             <div className="flex flex-col gap-2">
-              <h3 className="font-mono text-muted-foreground text-xs">listening clock</h3>
+              <h3 className="font-mono text-muted-foreground text-xs">listening clock · minutes by weekday and hour</h3>
               <ListeningClock clock={data.clock} />
             </div>
           </div>
