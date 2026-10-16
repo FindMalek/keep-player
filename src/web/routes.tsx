@@ -16,6 +16,7 @@ const chunks = {
   settings: () => import("@/pages/settings"),
   moments: () => import("@/pages/moments"),
   import: () => import("@/pages/import"),
+  doctor: () => import("@/pages/doctor"),
   listen: () => import("@/pages/listen"),
 };
 
@@ -38,6 +39,7 @@ const SECTIONS: Record<string, keyof typeof chunks> = {
   settings: "settings",
   moments: "moments",
   import: "import",
+  doctor: "doctor",
   listen: "listen",
   song: "moments",
 };
@@ -73,6 +75,7 @@ export const StatsPage = lazy(() => chunks.stats().then((module) => ({ default: 
 export const LyricsPage = lazy(() => chunks.lyrics().then((module) => ({ default: module.LyricsPage })));
 export const SettingsPage = lazy(() => chunks.settings().then((module) => ({ default: module.SettingsPage })));
 export const ImportPage = lazy(() => chunks.import().then((module) => ({ default: module.ImportPage })));
+export const DoctorPage = lazy(() => chunks.doctor().then((module) => ({ default: module.DoctorPage })));
 export const ListenPage = lazy(() => chunks.listen().then((module) => ({ default: module.ListenPage })));
 export const MomentsPage = lazy(() => chunks.moments().then((module) => ({ default: module.MomentsPage })));
 export const SongLink = lazy(() => chunks.moments().then((module) => ({ default: module.SongLink })));

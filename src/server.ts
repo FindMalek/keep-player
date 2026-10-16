@@ -83,6 +83,7 @@ const server = Bun.serve({
     "/api/listen": { POST: api.listenCreate },
     "/api/listen/:code": { GET: (request, srv) => api.listenSocket(request, srv) },
     "/api/lyrics/coverage": { GET: api.lyricsCoverage },
+    "/api/doctor": { GET: api.doctor },
     "/api/lyrics/missing": { GET: api.lyricsMissing },
     "/api/lyrics/refetch": { POST: api.lyricsRefetch },
     "/api/lyrics/written": { DELETE: api.lyricsWritten },

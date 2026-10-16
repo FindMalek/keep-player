@@ -19,8 +19,7 @@ test("logging out ends the server session", async ({ page, signedIn }) => {
   await signedIn.getByRole("button", { name: /demo$/ }).click();
   await page.getByRole("menuitem", { name: "log out" }).click();
   await expect(page.getByRole("button", { name: "sign in" })).toBeVisible();
-  const status = await page.evaluate(() =>
-    fetch("/rest/ping?f=json", { headers: { "x-keep-player": "1" } }).then((response) => response.status),
-  );
-  expect(status).toBe(401);
+  // Not from inside the page: logging out navigates it, which can destroy a page-context fetch mid-flight.
+  const response = await page.request.get("/rest/ping?f=json", { headers: { "x-keep-player": "1" } });
+  expect(response.status()).toBe(401);
 });

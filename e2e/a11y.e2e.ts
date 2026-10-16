@@ -11,6 +11,7 @@ const PAGES = [
   "/songs",
   "/genres",
   "/import",
+  "/doctor",
   "/listen",
   "/genre/Rock",
   "/folders",
