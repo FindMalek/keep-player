@@ -22,7 +22,8 @@
     "config-docs": "bun scripts/config-docs.ts",
     "shortcuts-docs": "bun scripts/shortcuts-docs.ts",
     "screenshots": "bun scripts/screenshots.ts",
-    "colors": "bun scripts/check-colors.ts"
+    "colors": "bun scripts/check-colors.ts",
+    "demo:library": "bun scripts/demo-library.ts"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.13.0",
