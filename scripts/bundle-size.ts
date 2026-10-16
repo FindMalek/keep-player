@@ -15,7 +15,7 @@ import tailwind from "bun-plugin-tailwind";
 const BUDGET_KB = { js: 160, css: 30 };
 
 const result = await Bun.build({
-  entrypoints: ["src/web/index.html"],
+  entrypoints: ["apps/player/src/index.html"],
   minify: true,
   splitting: true,
   metafile: true,

@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import { appShortcuts } from "../src/web/app-shortcuts";
+import { appShortcuts } from "../apps/player/src/app-shortcuts";
 import { expect, fakeMediaClock, test, trackTitles } from "./fixtures";
 
 /*

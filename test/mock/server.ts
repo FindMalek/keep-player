@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import type { Album, Song } from "../../src/web/lib/types";
+import type { Album, Song } from "../../apps/player/src/lib/types";
 import { createLibrary } from "./library";
 import { greyPng } from "./png";
 

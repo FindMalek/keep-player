@@ -3,7 +3,11 @@
 FROM --platform=$BUILDPLATFORM oven/bun:1.4.2-alpine AS build
 ARG TARGETARCH
 WORKDIR /app
+# The workspace manifests first, so the install layer is cached until a dependency changes.
 COPY package.json bun.lock ./
+COPY apps/player/package.json apps/player/
+COPY apps/server/package.json apps/server/
+COPY packages/shared/package.json packages/shared/
 RUN bun install --frozen-lockfile
 COPY . .
 RUN BUN_TARGET="bun-linux-$([ "$TARGETARCH" = arm64 ] && echo arm64 || echo x64)-musl" bun scripts/build.ts

@@ -1,6 +1,6 @@
 # Security
 
-keep music is a thin client in front of your Navidrome. The server in this repo (`src/server`) is the only thing that
+keep music is a thin client in front of your Navidrome. The server in this repo (`apps/server/src`) is the only thing that
 talks to Navidrome, and the browser never sees a credential.
 
 ## How login works
@@ -22,7 +22,7 @@ the user menu (sessions). Rotating `SESSION_SECRET` signs everyone out.
 
 - **Fixed upstream.** Navidrome's address comes only from `NAVIDROME_URL` or the `NAVIDROME_SERVERS` allowlist, never
   from the request, so the server can't be used as an open proxy (SSRF).
-- **Allowlisted endpoints.** Only the Subsonic endpoints the app uses are forwarded (`ENDPOINTS` in `src/server/api.ts`).
+- **Allowlisted endpoints.** Only the Subsonic endpoints the app uses are forwarded (`ENDPOINTS` in `apps/server/src/api.ts`).
   Admin endpoints like `deleteUser` or `createUser` return 404.
 - **No client credentials.** `u`, `p`, `t`, `s`, `apiKey`, `c` and `v` are stripped from every request and set by the
   server.
