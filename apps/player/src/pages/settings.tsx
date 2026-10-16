@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { DownloadIcon, ExternalLinkIcon, HardDriveDownloadIcon, LogOutIcon, MonitorSmartphoneIcon } from "lucide-react";
+import { DatabaseIcon, DownloadIcon, ExternalLinkIcon, HardDriveDownloadIcon, LogOutIcon, MonitorSmartphoneIcon } from "lucide-react";
 import { lazy, type ReactNode, Suspense, useState } from "react";
 import { Content, PageHeader } from "@/components/library";
 import { LibraryRules } from "@/components/library-rules";
@@ -22,6 +22,7 @@ import { setTheme, type Theme, useTheme } from "@/lib/theme";
 
 const EqualizerSheet = lazy(() => import("@/components/equalizer-sheet").then((module) => ({ default: module.EqualizerSheet })));
 const StorageDialog = lazy(() => import("@/components/storage-dialog").then((module) => ({ default: module.StorageDialog })));
+const IndexDialog = lazy(() => import("@/components/index-dialog").then((module) => ({ default: module.IndexDialog })));
 const SessionsDialog = lazy(() => import("@/components/sessions-dialog").then((module) => ({ default: module.SessionsDialog })));
 
 const SECTIONS = ["playback", "appearance", "library", "sync", "storage", "lyrics", "shortcuts", "account", "about"] as const;
@@ -179,6 +180,7 @@ export function SettingsPage({ section }: { section: string | null }) {
   const [eqOpen, setEqOpen] = useState(false);
   const eqOn = useSetting("eqOn");
   const [sessionsOpen, setSessionsOpen] = useState(false);
+  const [indexOpen, setIndexOpen] = useState(false);
 
   return (
     <>
@@ -319,6 +321,14 @@ export function SettingsPage({ section }: { section: string | null }) {
                 log out
               </Button>
             </Row>
+            {session?.admin && (
+              <Row label="library index" hint="the search and lyrics index the server keeps; rebuild it after big changes">
+                <Button variant="outline" size="sm" onClick={() => setIndexOpen(true)}>
+                  <DatabaseIcon />
+                  manage
+                </Button>
+              </Row>
+            )}
             <Row label="sessions" hint="every browser signed in as you, and a way to sign one out">
               <Button variant="outline" size="sm" onClick={() => setSessionsOpen(true)}>
                 <MonitorSmartphoneIcon />
@@ -364,6 +374,11 @@ export function SettingsPage({ section }: { section: string | null }) {
       {eqOpen && (
         <Suspense>
           <EqualizerSheet open={eqOpen} onOpenChange={setEqOpen} />
+        </Suspense>
+      )}
+      {indexOpen && (
+        <Suspense>
+          <IndexDialog open={indexOpen} onOpenChange={setIndexOpen} />
         </Suspense>
       )}
       {sessionsOpen && (

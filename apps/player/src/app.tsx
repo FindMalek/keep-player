@@ -8,6 +8,7 @@ import { MobileBar } from "@/components/mobile-bar";
 import { PageSlot, usePageHost } from "@/components/page-host";
 import { type Panel, PlayerBar } from "@/components/player-bar";
 import { RouteBoundary } from "@/components/route-boundary";
+import { TopBar } from "@/components/top-bar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { startElsewhere } from "@/lib/elsewhere";
@@ -312,9 +313,10 @@ export function App() {
           skip to content
         </a>
         <SidebarProvider className="min-h-0 flex-1" style={{ "--sidebar-width": "200px" } as CSSProperties}>
-          <AppSidebar path={path} onSearch={() => setSearching(true)} onShortcuts={() => setCheatSheet(true)} />
+          <AppSidebar path={path} />
           <SidebarInset className="min-h-0 min-w-0">
-            <MobileBar onSearch={() => setSearching(true)} />
+            <MobileBar onSearch={() => setSearching(true)} onShortcuts={() => setCheatSheet(true)} />
+            <TopBar onSearch={() => setSearching(true)} onShortcuts={() => setCheatSheet(true)} />
             <div className="min-h-0 flex-1">
               {showPanel && narrow ? (
                 // No room for a page and a panel side by side: the panel takes the window (the page stays where it was).

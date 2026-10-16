@@ -10,18 +10,13 @@ import {
   HistoryIcon,
   HouseIcon,
   ListMusicIcon,
-  MonitorIcon,
-  MoonIcon,
   MusicIcon,
   PlusIcon,
-  SearchIcon,
-  SunIcon,
   TagIcon,
   UsersIcon,
 } from "lucide-react";
 import { lazy, Suspense, useEffect, useState } from "react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Kbd } from "@/components/ui/kbd";
 import {
   Sidebar,
   SidebarContent,
@@ -47,13 +42,9 @@ import type { Playlist } from "@/lib/types";
 import { BrandMark } from "./brand";
 import { Link } from "./link";
 
-// Rarely opened; keeps the dialog code out of the first load.
-const StorageDialog = lazy(() => import("./storage-dialog").then((module) => ({ default: module.StorageDialog })));
 const ElsewhereBadge = lazy(() => import("./elsewhere-badge").then((module) => ({ default: module.ElsewhereBadge })));
-const IndexDialog = lazy(() => import("./index-dialog").then((module) => ({ default: module.IndexDialog })));
 // Right-clicking a playlist loads the shared item menu then (menus stay off the first screen).
 const PointMenu = lazy(() => import("./item-menu").then((module) => ({ default: module.PointMenu })));
-const SessionsDialog = lazy(() => import("./sessions-dialog").then((module) => ({ default: module.SessionsDialog })));
 
 const LIBRARY = [
   ["/", "home", HouseIcon],
@@ -66,12 +57,6 @@ const LIBRARY = [
   ["/stats", "stats", ChartColumnIcon],
   ["/genres", "genres", TagIcon],
   ["/folders", "folders", FolderIcon],
-] as const;
-
-const _THEMES = [
-  ["system", MonitorIcon],
-  ["dark", MoonIcon],
-  ["light", SunIcon],
 ] as const;
 
 const LABEL = "font-mono text-[10.5px] text-faint";
@@ -148,28 +133,9 @@ function SubTree({ node, path, dropId }: { node: FolderNode; path: string; dropI
   );
 }
 
-// The menu (Base UI menu + positioning) loads after first paint; the same button stands in until then.
-const UserMenu = lazy(() => import("./user-menu").then((module) => ({ default: module.UserMenu })));
-
-/** Stands in for the menu while it loads; a click here opens the menu as soon as it arrives. */
-function UserButton({ user, onClick }: { user: string; onClick: () => void }) {
-  return (
-    <SidebarMenuButton size="sm" className="font-mono" onClick={onClick}>
-      <span aria-hidden className="grid size-4 place-items-center bg-foreground text-[10px] text-background uppercase">
-        {user.slice(0, 1)}
-      </span>
-      <span>{user}</span>
-    </SidebarMenuButton>
-  );
-}
-
-export function AppSidebar({ path, onSearch, onShortcuts }: { path: string; onSearch: () => void; onShortcuts: () => void }) {
+export function AppSidebar({ path }: { path: string }) {
   const user = useUser() ?? "";
-  const [sessionsOpen, setSessionsOpen] = useState(false);
-  const [indexOpen, setIndexOpen] = useState(false);
   const elsewhere = useElsewhere();
-  const [menuWanted, setMenuWanted] = useState(false);
-  const [storageOpen, setStorageOpen] = useState(false);
   // Dragging songs, an album or a playlist over a playlist you can edit adds them to it on drop.
   const [dropId, setDropId] = useState<string | null>(null);
   const [menu, setMenu] = useState<{ target: { kind: "playlist"; playlist: Playlist }; x: number; y: number } | null>(null);
@@ -193,15 +159,6 @@ export function AppSidebar({ path, onSearch, onShortcuts }: { path: string; onSe
           <div className="flex h-7 items-center px-2 group-data-[collapsible=icon]:px-2.5 group-data-[collapsible=icon]:[&_span:last-child]:hidden">
             <BrandMark />
           </div>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton variant="outline" size="sm" className="text-muted-foreground" onClick={onSearch} tooltip="search ⌘K">
-                <SearchIcon />
-                <span className="flex-1">search</span>
-                <Kbd>⌘K</Kbd>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
         </SidebarHeader>
 
         <SidebarContent>
@@ -287,34 +244,6 @@ export function AppSidebar({ path, onSearch, onShortcuts }: { path: string; onSe
               <ElsewhereBadge playing={elsewhere[0]} />
             </Suspense>
           )}
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <Suspense fallback={<UserButton user={user} onClick={() => setMenuWanted(true)} />}>
-                <UserMenu
-                  defaultOpen={menuWanted}
-                  onSessions={() => setSessionsOpen(true)}
-                  onIndex={() => setIndexOpen(true)}
-                  onStorage={() => setStorageOpen(true)}
-                  onShortcuts={onShortcuts}
-                />
-              </Suspense>
-              {storageOpen && (
-                <Suspense>
-                  <StorageDialog open={storageOpen} onOpenChange={setStorageOpen} />
-                </Suspense>
-              )}
-              {indexOpen && (
-                <Suspense>
-                  <IndexDialog open={indexOpen} onOpenChange={setIndexOpen} />
-                </Suspense>
-              )}
-              {sessionsOpen && (
-                <Suspense>
-                  <SessionsDialog open={sessionsOpen} onOpenChange={setSessionsOpen} />
-                </Suspense>
-              )}
-            </SidebarMenuItem>
-          </SidebarMenu>
         </SidebarFooter>
       </nav>
     </Sidebar>

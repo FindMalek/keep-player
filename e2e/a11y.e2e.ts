@@ -47,6 +47,8 @@ for (const scheme of ["light", "dark"] as const)
 
     for (const path of PAGES)
       test(`no accessibility violations on ${path}`, async ({ page, signedIn }) => {
+        // The pointer rests where sign-in left it; a link that ends up under it would open its hover card.
+        await page.mouse.move(0, 0);
         await signedIn.goto(path);
         await page.locator("main h1, main [aria-label=tracks], main a").first().waitFor();
         await page.waitForTimeout(300);

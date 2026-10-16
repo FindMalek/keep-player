@@ -16,3 +16,16 @@ test("back restores where the page was scrolled", async ({ page, signedIn }) => 
   await expect(page).toHaveURL(/\/songs$/);
   await expect.poll(() => scroller.evaluate((element) => element.scrollTop)).toBeGreaterThan(2300);
 });
+
+test("the top bar steps back and forward through history and opens search", async ({ signedIn: page }) => {
+  const top = page.getByRole("toolbar", { name: "app bar" });
+  await expect(top.getByRole("button", { name: "back" })).toBeDisabled();
+  await page.getByRole("navigation", { name: "sidebar" }).getByRole("link", { name: "albums" }).click();
+  await expect(page).toHaveURL(/\/albums$/);
+  await top.getByRole("button", { name: "back" }).click();
+  await expect(page).toHaveURL(/\/$/);
+  await top.getByRole("button", { name: "forward" }).click();
+  await expect(page).toHaveURL(/\/albums$/);
+  await top.getByRole("button", { name: "search" }).click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+});
