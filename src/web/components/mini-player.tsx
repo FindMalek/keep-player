@@ -22,7 +22,7 @@ function MiniPlayer() {
   const playing = usePlayer((state) => state.playing);
   if (!song) return <p className="p-4 font-mono text-muted-foreground text-xs">nothing playing</p>;
   return (
-    <div className="flex h-svh items-center gap-3 bg-background p-3 text-foreground">
+    <div className="flex h-[calc(100svh/var(--zoom))] items-center gap-3 bg-background p-3 text-foreground">
       <Cover id={song.coverArt} size={108} className="size-[108px] shrink-0" priority />
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <span className="truncate font-medium text-sm">{song.title}</span>

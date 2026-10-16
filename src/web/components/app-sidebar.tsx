@@ -19,7 +19,7 @@ import {
   TagIcon,
   UsersIcon,
 } from "lucide-react";
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Kbd } from "@/components/ui/kbd";
 import {
@@ -36,6 +36,7 @@ import {
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { current as currentDrag, dropFailed, dropSongs, endDrag, leftTarget } from "@/lib/drag";
 import { useElsewhere } from "@/lib/elsewhere";
@@ -173,6 +174,10 @@ export function AppSidebar({ path, onSearch, onShortcuts }: { path: string; onSe
   const [dropId, setDropId] = useState<string | null>(null);
   const [menu, setMenu] = useState<{ target: { kind: "playlist"; playlist: Playlist }; x: number; y: number } | null>(null);
   const { data } = useQuery(queries.playlists());
+  // On a narrow window the sidebar is a sheet: going somewhere closes it.
+  const { setOpenMobile } = useSidebar();
+  // biome-ignore lint/correctness/useExhaustiveDependencies: close on every navigation
+  useEffect(() => setOpenMobile(false), [path, setOpenMobile]);
   const playlists = [...(data ?? [])].sort((a, b) => a.name.localeCompare(b.name));
 
   return (

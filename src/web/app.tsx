@@ -4,10 +4,12 @@ import { createPortal } from "react-dom";
 import { NowPlayingAnnouncer } from "@/components/announcer";
 import { AppSidebar } from "@/components/app-sidebar";
 import { ChordHint } from "@/components/chord-hint";
+import { MobileBar } from "@/components/mobile-bar";
 import { PageSlot, usePageHost } from "@/components/page-host";
 import { type Panel, PlayerBar } from "@/components/player-bar";
 import { RouteBoundary } from "@/components/route-boundary";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { startElsewhere } from "@/lib/elsewhere";
 import { loadLikes, toggleLiked } from "@/lib/likes";
 import { openListFilter } from "@/lib/list-filter";
@@ -195,6 +197,7 @@ export function App() {
   const nowPlaying = usePlayer(currentSong);
   const playing = usePlayer((state) => state.playing);
   const showPanel = panel !== null && hasTrack;
+  const narrow = useIsMobile();
   const host = usePageHost();
 
   useShortcuts(() =>
@@ -300,7 +303,7 @@ export function App() {
           <OfflineBanner />
         </Suspense>
       )}
-      <div className="flex h-svh flex-col" style={{ "--bar-height": hasTrack ? "4rem" : "0px" } as CSSProperties}>
+      <div className="flex h-[calc(100svh/var(--zoom))] flex-col" style={{ "--bar-height": hasTrack ? "4rem" : "0px" } as CSSProperties}>
         {/* First tab stop: straight to the page, past the sidebar. */}
         <a
           href="#content"
@@ -311,28 +314,44 @@ export function App() {
         <SidebarProvider className="min-h-0 flex-1" style={{ "--sidebar-width": "200px" } as CSSProperties}>
           <AppSidebar path={path} onSearch={() => setSearching(true)} onShortcuts={() => setCheatSheet(true)} />
           <SidebarInset className="min-h-0 min-w-0">
-            {showPanel ? (
-              <Suspense fallback={<PageSlot host={host} />}>
-                <SplitView
-                  host={host}
-                  side={
-                    <div className="h-full" style={{ viewTransitionName: "side-panel" }}>
-                      <Suspense>
-                        {panel === "queue" ? (
-                          <QueuePanel onClose={() => setPanel(null)} />
-                        ) : panel === "info" ? (
-                          <InfoPanel onClose={() => setPanel(null)} />
-                        ) : (
-                          <LyricsPanel onClose={() => setPanel(null)} />
-                        )}
-                      </Suspense>
-                    </div>
-                  }
-                />
-              </Suspense>
-            ) : (
-              <PageSlot host={host} />
-            )}
+            <MobileBar onSearch={() => setSearching(true)} />
+            <div className="min-h-0 flex-1">
+              {showPanel && narrow ? (
+                // No room for a page and a panel side by side: the panel takes the window (the page stays where it was).
+                <div className="h-full" style={{ viewTransitionName: "side-panel" }}>
+                  <Suspense>
+                    {panel === "queue" ? (
+                      <QueuePanel onClose={() => setPanel(null)} />
+                    ) : panel === "info" ? (
+                      <InfoPanel onClose={() => setPanel(null)} />
+                    ) : (
+                      <LyricsPanel onClose={() => setPanel(null)} />
+                    )}
+                  </Suspense>
+                </div>
+              ) : showPanel ? (
+                <Suspense fallback={<PageSlot host={host} />}>
+                  <SplitView
+                    host={host}
+                    side={
+                      <div className="h-full" style={{ viewTransitionName: "side-panel" }}>
+                        <Suspense>
+                          {panel === "queue" ? (
+                            <QueuePanel onClose={() => setPanel(null)} />
+                          ) : panel === "info" ? (
+                            <InfoPanel onClose={() => setPanel(null)} />
+                          ) : (
+                            <LyricsPanel onClose={() => setPanel(null)} />
+                          )}
+                        </Suspense>
+                      </div>
+                    }
+                  />
+                </Suspense>
+              ) : (
+                <PageSlot host={host} />
+              )}
+            </div>
           </SidebarInset>
         </SidebarProvider>
         <PlayerBar panel={panel} onPanel={setPanel} />

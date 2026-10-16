@@ -1,5 +1,6 @@
 import {
   ChevronDownIcon,
+  EllipsisIcon,
   InfoIcon,
   ListMusicIcon,
   LoaderCircleIcon,
@@ -18,7 +19,7 @@ import {
   Volume2Icon,
   VolumeXIcon,
 } from "lucide-react";
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import {
   AudioPlayer,
   AudioPlayerControls,
@@ -31,6 +32,7 @@ import {
 } from "@/components/ui/audio-player";
 import { Button } from "@/components/ui/button";
 import { VolumeControlMute, VolumeControlSlider } from "@/components/ui/volume-control";
+import { type BarMode, useBarMode } from "@/lib/bar-mode";
 import { dropTarget } from "@/lib/drag";
 import { useEngineController } from "@/lib/engine-controller";
 import { quality } from "@/lib/format";
@@ -156,8 +158,27 @@ function UpNextPeek() {
   );
 }
 
+/** Per-mode shape of the bar's grid. Full and laptop share three columns; mobile stacks the seek bar below. */
+const BAR_GRID: Record<BarMode, string> = {
+  full: "grid h-16 grid-cols-[minmax(0,1fr)_minmax(320px,1.4fr)_minmax(0,1fr)] gap-4 px-3.5",
+  laptop: "grid h-16 grid-cols-[minmax(0,1fr)_minmax(300px,1.4fr)_minmax(0,1fr)] gap-3 px-3.5",
+  compact: "grid h-16 grid-cols-[minmax(0,1fr)_minmax(250px,1.3fr)_auto] gap-3 px-3",
+  mobile: "grid h-auto grid-cols-[minmax(0,1fr)_auto] gap-x-2 gap-y-0.5 px-3 py-1.5",
+};
+
+const PlayerMore = lazy(() => import("./player-more").then((module) => ({ default: module.PlayerMore })));
+
+function MoreFallback() {
+  return (
+    <ToolButton aria-label="more controls" disabled>
+      <EllipsisIcon />
+    </ToolButton>
+  );
+}
+
 export function PlayerBar({ panel, onPanel }: { panel: Panel; onPanel: (panel: Panel) => void }) {
   const [dropping, setDropping] = useState(false);
+  const mode = useBarMode();
   const controller = useEngineController();
   const song = usePlayer(currentSong);
   const shuffle = usePlayer((state) => state.queue.shuffle);
@@ -175,11 +196,118 @@ export function PlayerBar({ panel, onPanel }: { panel: Panel; onPanel: (panel: P
   const cached = useCachedIds();
   const songId = usePlayer((state) => currentSong(state)?.id ?? "");
   const offline = cached.has(songId);
+  const footer = useRef<HTMLElement>(null);
+  const hasSong = Boolean(song);
+  // The rest of the layout (the sidebar's bottom edge, the selection bar) sits above the bar: tell it how tall it is.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the footer only exists once there is a song, so look again then
+  useEffect(() => {
+    const element = footer.current;
+    const host = element?.parentElement;
+    if (!element || !host) return;
+    const publish = () => host.style.setProperty("--bar-height", `${element.offsetHeight}px`);
+    publish();
+    const observer = new ResizeObserver(publish);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [hasSong]);
   if (!song) return null;
+
+  const mobile = mode === "mobile";
+  const full = mode === "full";
+  const roomy = mode === "full" || mode === "laptop";
+
+  const controls = (
+    <AudioPlayerControls className={cn("justify-center gap-2.5", mobile && "gap-1")}>
+      {!mobile && (
+        <Hint label="shuffle" shortcut="shuffle">
+          <ToolButton on={shuffle} onClick={player.toggleShuffle} aria-label="shuffle" aria-pressed={shuffle}>
+            <ShuffleIcon />
+          </ToolButton>
+        </Hint>
+      )}
+      {!mobile && (
+        <Hint label="previous" shortcut="previous">
+          <AudioPlayerPrevious className={ICON_BUTTON} aria-label="previous">
+            <SkipBackIcon className="fill-current" />
+          </AudioPlayerPrevious>
+        </Hint>
+      )}
+      <Hint label={controller.playing ? "pause" : "play"} shortcut="play-pause">
+        <AudioPlayerPlay className="size-8 rounded-none" aria-label={controller.playing ? "pause" : "play"}>
+          {({ playing }) =>
+            slow ? (
+              <LoaderCircleIcon className="animate-spin motion-reduce:animate-none" />
+            ) : playing ? (
+              <PauseIcon className="fill-current" />
+            ) : (
+              <PlayIcon className="fill-current" />
+            )
+          }
+        </AudioPlayerPlay>
+      </Hint>
+      <Hint label="next" shortcut="next">
+        <AudioPlayerNext className={ICON_BUTTON} aria-label="next">
+          <SkipForwardIcon className="fill-current" />
+        </AudioPlayerNext>
+      </Hint>
+      {!mobile && (
+        <Hint label={`repeat: ${repeat}`} shortcut="repeat">
+          <ToolButton on={repeat !== "off"} onClick={player.cycleRepeat} aria-label={`repeat ${repeat}`}>
+            {repeat === "one" ? <Repeat1Icon /> : <RepeatIcon />}
+          </ToolButton>
+        </Hint>
+      )}
+    </AudioPlayerControls>
+  );
+
+  const seek = (
+    <div className="flex min-w-0 items-center gap-2.5">
+      <Elapsed />
+      <div className="relative flex flex-1 items-center">
+        <AudioPlayerSeek aria-label="seek" className={cn(buffering && "animate-pulse motion-reduce:animate-none")} />
+        <Suspense>
+          <MomentTicks songId={song?.id} duration={duration} />
+        </Suspense>
+      </div>
+      <AudioPlayerTime type="duration" className="w-11 text-left text-[11px]" />
+    </div>
+  );
+
+  const queueButton = (
+    <Hint label="queue" shortcut="queue">
+      <ToolButton on={panel === "queue"} onClick={() => onPanel(panel === "queue" ? null : "queue")} aria-label="queue">
+        <ListMusicIcon />
+      </ToolButton>
+    </Hint>
+  );
+
+  const more = (
+    <Suspense fallback={<MoreFallback />}>
+      <PlayerMore mode={mode} panel={panel} onPanel={onPanel} />
+    </Suspense>
+  );
+
+  const status = error ? (
+    <span className="mr-2 flex min-w-0 items-center gap-1.5 font-mono text-[11px] text-destructive">
+      <span className="truncate" title={error}>
+        {error}
+      </span>
+      <Button variant="link" size="xs" className="h-auto p-0 font-mono text-[11px]" onClick={player.retry}>
+        retry
+      </Button>
+    </span>
+  ) : roomy ? (
+    <span className="mr-2 truncate font-mono text-[11px] text-muted-foreground">
+      {offline && !buffering && <OfflineMark />}
+      {buffering ? "loading…" : quality(song.suffix, song.bitRate)}
+    </span>
+  ) : null;
 
   return (
     <footer
+      ref={footer}
       className="relative shrink-0 border-t bg-background data-drop-target:bg-card data-drop-target:outline data-drop-target:outline-foreground data-drop-target:-outline-offset-1"
+      data-bar={mode}
       data-drop-target={dropping || undefined}
       // Drop songs here to play them next.
       {...dropTarget((songs) => {
@@ -188,124 +316,81 @@ export function PlayerBar({ panel, onPanel }: { panel: Panel; onPanel: (panel: P
       }, setDropping)}
     >
       <UpNextPeek />
-      <AudioPlayer
-        player={controller}
-        shortcuts={false}
-        onPrevious={player.previous}
-        onNext={player.next}
-        className="grid h-16 grid-cols-[minmax(0,1fr)_minmax(320px,1.4fr)_minmax(0,1fr)] gap-4 px-3.5"
-      >
+      <AudioPlayer player={controller} shortcuts={false} onPrevious={player.previous} onNext={player.next} className={BAR_GRID[mode]}>
         <NowPlaying song={song} />
 
-        <div className="flex flex-col gap-0.5">
-          <AudioPlayerControls className="justify-center gap-2.5">
-            <Hint label="shuffle" shortcut="shuffle">
-              <ToolButton on={shuffle} onClick={player.toggleShuffle} aria-label="shuffle" aria-pressed={shuffle}>
-                <ShuffleIcon />
-              </ToolButton>
-            </Hint>
-            <Hint label="previous" shortcut="previous">
-              <AudioPlayerPrevious className={ICON_BUTTON} aria-label="previous">
-                <SkipBackIcon className="fill-current" />
-              </AudioPlayerPrevious>
-            </Hint>
-            <Hint label={controller.playing ? "pause" : "play"} shortcut="play-pause">
-              <AudioPlayerPlay className="size-8 rounded-none" aria-label={controller.playing ? "pause" : "play"}>
-                {({ playing }) =>
-                  slow ? (
-                    <LoaderCircleIcon className="animate-spin motion-reduce:animate-none" />
-                  ) : playing ? (
-                    <PauseIcon className="fill-current" />
-                  ) : (
-                    <PlayIcon className="fill-current" />
-                  )
-                }
-              </AudioPlayerPlay>
-            </Hint>
-            <Hint label="next" shortcut="next">
-              <AudioPlayerNext className={ICON_BUTTON} aria-label="next">
-                <SkipForwardIcon className="fill-current" />
-              </AudioPlayerNext>
-            </Hint>
-            <Hint label={`repeat: ${repeat}`} shortcut="repeat">
-              <ToolButton on={repeat !== "off"} onClick={player.cycleRepeat} aria-label={`repeat ${repeat}`}>
-                {repeat === "one" ? <Repeat1Icon /> : <RepeatIcon />}
-              </ToolButton>
-            </Hint>
-          </AudioPlayerControls>
-          <div className="flex items-center gap-2.5">
-            <Elapsed />
-            <div className="relative flex flex-1 items-center">
-              <AudioPlayerSeek aria-label="seek" className={cn(buffering && "animate-pulse motion-reduce:animate-none")} />
-              <Suspense>
-                <MomentTicks songId={song?.id} duration={duration} />
-              </Suspense>
+        {mobile ? (
+          <>
+            <div className="flex items-center justify-end gap-0.5">
+              {controls}
+              {queueButton}
+              {more}
             </div>
-            <AudioPlayerTime type="duration" className="w-11 text-left text-[11px]" />
-          </div>
-        </div>
+            <div className="col-span-2">{seek}</div>
+            {error && <div className="col-span-2 flex">{status}</div>}
+          </>
+        ) : (
+          <>
+            <div className="flex min-w-0 flex-col gap-0.5">
+              {controls}
+              {seek}
+            </div>
 
-        <div className="flex min-w-0 items-center justify-end gap-1">
-          {error ? (
-            <span className="mr-2 flex min-w-0 items-center gap-1.5 font-mono text-[11px] text-destructive">
-              <span className="truncate" title={error}>
-                {error}
-              </span>
-              <Button variant="link" size="xs" className="h-auto p-0 font-mono text-[11px]" onClick={player.retry}>
-                retry
-              </Button>
-            </span>
-          ) : (
-            <span className="mr-2 truncate font-mono text-[11px] text-muted-foreground">
-              {offline && !buffering && <OfflineMark />}
-              {buffering ? "loading…" : quality(song.suffix, song.bitRate)}
-            </span>
-          )}
-          <Hint label="lyrics" shortcut="lyrics">
-            <ToolButton on={panel === "lyrics"} onClick={() => onPanel(panel === "lyrics" ? null : "lyrics")} aria-label="lyrics">
-              <MicVocalIcon />
-            </ToolButton>
-          </Hint>
-          <Hint label="song info" shortcut="info">
-            <ToolButton on={panel === "info"} onClick={() => onPanel(panel === "info" ? null : "info")} aria-label="song info">
-              <InfoIcon />
-            </ToolButton>
-          </Hint>
-          {MINI_PLAYER_SUPPORTED && (
-            <Hint label="mini player" shortcut="mini-player">
-              <ToolButton on={false} onClick={() => void openMiniPlayer()} aria-label="mini player">
-                <PictureInPicture2Icon />
-              </ToolButton>
-            </Hint>
-          )}
-          <Hint label="queue" shortcut="queue">
-            <ToolButton on={panel === "queue"} onClick={() => onPanel(panel === "queue" ? null : "queue")} aria-label="queue">
-              <ListMusicIcon />
-            </ToolButton>
-          </Hint>
-          <Suspense fallback={<SleepFallback />}>
-            <SleepMenu />
-          </Suspense>
-          {CAN_PICK_OUTPUT && (
-            <Suspense fallback={<OutputDeviceFallback />}>
-              <OutputDevice />
-            </Suspense>
-          )}
-          <AudioPlayerVolume className="w-32">
-            <Hint label={controller.muted ? "unmute" : `mute · volume ${Math.round(controller.volume * 100)}%`} shortcut="mute">
-              <VolumeControlMute className="size-8">
-                {controller.muted || controller.volume === 0 ? (
-                  <VolumeXIcon />
-                ) : controller.volume < 0.5 ? (
-                  <Volume1Icon />
-                ) : (
-                  <Volume2Icon />
-                )}
-              </VolumeControlMute>
-            </Hint>
-            <VolumeControlSlider />
-          </AudioPlayerVolume>
-        </div>
+            <div className="flex min-w-0 items-center justify-end gap-1">
+              {status}
+              <Hint label="lyrics" shortcut="lyrics">
+                <ToolButton on={panel === "lyrics"} onClick={() => onPanel(panel === "lyrics" ? null : "lyrics")} aria-label="lyrics">
+                  <MicVocalIcon />
+                </ToolButton>
+              </Hint>
+              {full && (
+                <>
+                  <Hint label="song info" shortcut="info">
+                    <ToolButton on={panel === "info"} onClick={() => onPanel(panel === "info" ? null : "info")} aria-label="song info">
+                      <InfoIcon />
+                    </ToolButton>
+                  </Hint>
+                  {MINI_PLAYER_SUPPORTED && (
+                    <Hint label="mini player" shortcut="mini-player">
+                      <ToolButton on={false} onClick={() => void openMiniPlayer()} aria-label="mini player">
+                        <PictureInPicture2Icon />
+                      </ToolButton>
+                    </Hint>
+                  )}
+                </>
+              )}
+              {queueButton}
+              {full ? (
+                <>
+                  <Suspense fallback={<SleepFallback />}>
+                    <SleepMenu />
+                  </Suspense>
+                  {CAN_PICK_OUTPUT && (
+                    <Suspense fallback={<OutputDeviceFallback />}>
+                      <OutputDevice />
+                    </Suspense>
+                  )}
+                </>
+              ) : (
+                more
+              )}
+              <AudioPlayerVolume className={cn(roomy ? (full ? "w-32" : "w-28") : "w-8")}>
+                <Hint label={controller.muted ? "unmute" : `mute · volume ${Math.round(controller.volume * 100)}%`} shortcut="mute">
+                  <VolumeControlMute className="size-8">
+                    {controller.muted || controller.volume === 0 ? (
+                      <VolumeXIcon />
+                    ) : controller.volume < 0.5 ? (
+                      <Volume1Icon />
+                    ) : (
+                      <Volume2Icon />
+                    )}
+                  </VolumeControlMute>
+                </Hint>
+                {roomy && <VolumeControlSlider />}
+              </AudioPlayerVolume>
+            </div>
+          </>
+        )}
       </AudioPlayer>
     </footer>
   );

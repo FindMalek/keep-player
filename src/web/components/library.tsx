@@ -35,12 +35,12 @@ import { VirtualGrid } from "./virtual-grid";
 
 export function PageHeader({ title, meta, children }: { title: ReactNode; meta?: ReactNode; children?: ReactNode }) {
   return (
-    <header className="sticky top-0 z-10 flex min-h-11 items-center justify-between gap-4 border-b bg-background px-5">
+    <header className="sticky top-0 z-10 flex min-h-11 flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b bg-background px-5 py-1.5">
       <div className="flex min-w-0 items-baseline gap-3.5">
         <h1 className="truncate font-medium font-mono text-sm">{title}</h1>
         {meta !== undefined && <span className="shrink-0 font-mono text-muted-foreground text-xs">{meta}</span>}
       </div>
-      {children && <div className="flex shrink-0 items-center gap-2">{children}</div>}
+      {children && <div className="flex flex-wrap items-center gap-2">{children}</div>}
     </header>
   );
 }

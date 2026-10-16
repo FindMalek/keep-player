@@ -74,7 +74,8 @@ test.describe(() => {
 test("⇧S toggles stop after this song", async ({ page, signedIn }) => {
   await signedIn.goto("/album/al-3");
   await page.getByRole("button", { name: "play", exact: true }).first().click();
-  const sleep = page.getByRole("contentinfo").getByRole("button", { name: "sleep timer" });
+  // At this window width the sleep timer is in the bar's "more" menu, whose button shows the timer is on.
+  const sleep = page.getByRole("contentinfo").getByRole("button", { name: "more controls" });
   await page.locator("body").press("Shift+S");
   await expect(page.getByText("will stop after this song")).toBeVisible();
   await expect(sleep).toHaveAttribute("aria-pressed", "true");
