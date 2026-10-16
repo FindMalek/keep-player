@@ -29,6 +29,11 @@ const indexes = new Map(
   ]),
 );
 for (const index of indexes.values()) index.start();
+if (config.demoSeed && config.indexUser && config.indexPassword) {
+  const [first] = config.upstreams;
+  const { indexUser, indexPassword } = config;
+  if (first) void import("./demo-seed").then((demo) => demo.seedDemoHistory(library, first, indexUser, indexPassword));
+}
 const lrc = config.lrcDir ? new LrcWriter(library, config.lrcDir) : null;
 if (lrc) lyrics.onLrclib = (server, song, text) => lrc.write(server, song, text);
 const backfills = new Map(

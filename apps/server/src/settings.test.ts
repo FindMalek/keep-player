@@ -29,3 +29,11 @@ test("every bad value is reported at once, each naming its variable", () => {
   });
   expect(errors.map((error) => error.split(" ")[0])).toEqual(["NAVIDROME_URL", "INDEX_USER", "PORT", "COVER_CACHE_MB", "TRUST_PROXY"]);
 });
+
+test("DEMO_SEED needs the account it seeds", () => {
+  expect(readConfig({ DEMO_SEED: "on" }).errors.map((error) => error.split(" ")[0])).toEqual(["DEMO_SEED=on"]);
+  const ok = readConfig({ DEMO_SEED: "on", INDEX_USER: "demo", INDEX_PASSWORD: "demo" });
+  expect(ok.errors).toEqual([]);
+  expect(ok.config.demoSeed).toBe(true);
+  expect(readConfig({}).config.demoSeed).toBe(false);
+});

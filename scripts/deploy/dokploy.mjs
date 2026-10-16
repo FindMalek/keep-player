@@ -203,6 +203,10 @@ async function previewUp() {
       LRCLIB_URL: "",
       LYRICS_BACKFILL: "off",
       SESSION_SECRET: randomBytes(24).toString("hex"),
+      // The demo account also runs the background jobs, and gets months of generated listening to show.
+      INDEX_USER: DEMO_USER,
+      INDEX_PASSWORD: DEMO_PASSWORD,
+      DEMO_SEED: "on",
     },
   });
   Object.assign(row, deployed, { status: "building" });

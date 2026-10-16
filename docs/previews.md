@@ -8,8 +8,10 @@ Sign in with `demo` / `demo`.
 
 ## What is isolated
 
-- **Data:** each preview runs with an empty data directory (no volume): sessions, listening history, the search index
-  and the cover cache start from nothing. Production data is never copied.
+- **Data:** each preview runs with an empty data directory (no volume): sessions, the search index and the cover cache
+  start from nothing. Production data is never copied. The one thing put in is generated: with `DEMO_SEED=on` the
+  server fills the demo account's history with about six months of believable listening (a few favourites, a long tail,
+  evenings and weekends, some skips), so Stats and History aren't empty. It is the same every time.
 - **Library:** every preview talks to one shared demo Navidrome. Its library is the [generated demo
   library](demo-library.md) baked into an image, so it is the same for every preview and contains no real music.
 - **Network:** both hosts sit behind the tailnet-only middleware, like the other `*.findmalek.engineer` services.
