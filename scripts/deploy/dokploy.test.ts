@@ -80,6 +80,8 @@ test("a preview is deployed, tied to the demo navidrome, and one sticky comment 
   const env = (save?.body as { env: string } | undefined)?.env;
   expect(env).toContain("NAVIDROME_URL=http://keep-player-demo-abc:4533");
   expect(env).toContain("LRCLIB_URL=");
+  expect(env).toContain("DEMO_SEED=on");
+  expect(env).toContain("INDEX_USER=demo");
   const provider = calls.find((c) => c.path === "/api/application.saveDockerProvider");
   expect((provider?.body as { dockerImage: string } | undefined)?.dockerImage).toBe("ghcr.io/findmalek/keep-player:pr-7");
   const domain = calls.find((c) => c.path === "/api/domain.create");

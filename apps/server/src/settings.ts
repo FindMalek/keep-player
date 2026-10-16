@@ -70,6 +70,12 @@ export const SETTINGS = [
   },
   { name: "INDEX_PASSWORD", fallback: "", description: "Password for `INDEX_USER`." },
   {
+    name: "DEMO_SEED",
+    fallback: "off",
+    description:
+      "`on`: fill `INDEX_USER`'s history with months of generated listening, once (for demos and previews, see docs/previews.md). Needs `INDEX_USER`.",
+  },
+  {
     name: "TRUST_PROXY",
     fallback: "false",
     description: "`true` behind a reverse proxy: client IPs come from `X-Real-IP` / `X-Forwarded-For` (login rate limits).",
@@ -97,6 +103,7 @@ export interface Config {
   lrcDir: string | null;
   indexUser: string | undefined;
   indexPassword: string | undefined;
+  demoSeed: boolean;
   trustProxy: boolean;
   updateCheck: boolean;
 }
@@ -152,6 +159,9 @@ export function readConfig(env: Env): { config: Config; errors: string[] } {
   const indexPassword = get("INDEX_PASSWORD") || undefined;
   if (!!indexUser !== !!indexPassword) errors.push("INDEX_USER and INDEX_PASSWORD go together: set both or neither");
 
+  const demoSeed = flag("DEMO_SEED", ["on"], ["off"]);
+  if (demoSeed && !indexUser) errors.push("DEMO_SEED=on needs INDEX_USER and INDEX_PASSWORD: the history is seeded for that account");
+
   const config: Config = {
     port: number("PORT", 1, 65_535),
     dataDir: get("DATA_DIR"),
@@ -164,6 +174,7 @@ export function readConfig(env: Env): { config: Config; errors: string[] } {
     lrcDir: writeLrc ? musicDir : null,
     indexUser,
     indexPassword,
+    demoSeed,
     trustProxy: flag("TRUST_PROXY", ["1", "true", "yes", "on"], ["0", "false", "no", "off", ""]),
     updateCheck: flag("UPDATE_CHECK", ["on"], ["off"]),
   };
