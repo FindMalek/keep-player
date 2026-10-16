@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // PR previews on Dokploy through its API, see docs/previews.md. One app per PR plus one shared demo Navidrome.
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 
 const MODE = process.argv[2];
 const COMMENT_MARKER = "<!-- keep-player-preview -->";
@@ -228,6 +228,17 @@ async function commentFailed() {
   await upsertComment({ name: `keep-player-pr-${requireEnv("PR_NUMBER")}`, status: "failed" });
 }
 
+// Navidrome imports playlists only once an admin exists, and the first scan ran before the demo account did: scan again.
+async function rescan(host) {
+  const salt = randomBytes(8).toString("hex");
+  const token = createHash("md5")
+    .update(DEMO_PASSWORD + salt)
+    .digest("hex");
+  const query = new URLSearchParams({ u: DEMO_USER, t: token, s: salt, v: "1.16.1", c: "keep-player-deploy", f: "json" });
+  const res = await fetch(`https://${host}/rest/startScan?${query}`).catch(() => null);
+  console.info(`demo rescan: ${res?.status ?? "unreachable"}`);
+}
+
 // The shared demo Navidrome: image with the generated library, and the `demo` account created on its first start.
 async function demoUp() {
   const environment = await ensureEnvironment();
@@ -248,7 +259,10 @@ async function demoUp() {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ username: DEMO_USER, password: DEMO_PASSWORD }),
     }).catch(() => null);
-    if (res && res.status < 500) return console.info(`demo account: ${res.status}`);
+    if (res && res.status < 500) {
+      console.info(`demo account: ${res.status}`);
+      return rescan(host);
+    }
     await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
   }
   throw new Error("couldn't reach the demo Navidrome to create the demo account");
