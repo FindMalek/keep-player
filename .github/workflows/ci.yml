@@ -15,7 +15,7 @@ permissions:
 
 jobs:
   check:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, the-keep]
     steps:
       - uses: actions/checkout@v5
       - uses: oven-sh/setup-bun@v2
@@ -31,7 +31,7 @@ jobs:
       - run: bun scripts/shortcuts-docs.ts --check
 
   e2e:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, the-keep]
     steps:
       - uses: actions/checkout@v5
       - uses: oven-sh/setup-bun@v2
@@ -51,7 +51,7 @@ jobs:
   # the image job below publishes that version: a tag pushed with GITHUB_TOKEN wouldn't start another workflow.
   release:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, the-keep]
     # Needs "Allow GitHub Actions to create pull requests" in the repo settings; never holds up a deploy without it.
     continue-on-error: true
     permissions:
@@ -71,7 +71,7 @@ jobs:
     needs: [check, e2e, release]
     # `release` is skipped on pull requests and tags; the image still builds then.
     if: ${{ !cancelled() && !failure() }}
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, the-keep]
     permissions:
       contents: read
       packages: write
@@ -147,7 +147,7 @@ jobs:
   deploy:
     if: ${{ !cancelled() && !failure() && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     needs: image
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, the-keep]
     environment: production
     steps:
       - name: trigger dokploy
