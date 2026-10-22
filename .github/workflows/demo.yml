@@ -35,8 +35,8 @@ jobs:
           file: infra/demo/Dockerfile
           push: true
           tags: ghcr.io/findmalek/keep-player-demo:latest
-          cache-from: type=gha,scope=demo
-          cache-to: type=gha,scope=demo,mode=max,ignore-error=true
+          cache-from: type=registry,ref=ghcr.io/findmalek/keep-player-demo:cache
+          cache-to: type=registry,ref=ghcr.io/findmalek/keep-player-demo:cache,mode=max,ignore-error=true
       - uses: actions/setup-node@v4
         with:
           node-version: "24"

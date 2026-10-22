@@ -42,8 +42,8 @@ jobs:
           context: .
           push: true
           tags: ghcr.io/findmalek/keep-player:pr-${{ env.PR_NUMBER }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max,ignore-error=true
+          cache-from: type=registry,ref=ghcr.io/findmalek/keep-player:cache
+          cache-to: type=registry,ref=ghcr.io/findmalek/keep-player:cache,mode=max,ignore-error=true
       - uses: actions/setup-node@v4
         with:
           node-version: "24"

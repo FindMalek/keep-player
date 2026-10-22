@@ -108,8 +108,8 @@ jobs:
           context: .
           load: true
           tags: keep-player:test
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=registry,ref=ghcr.io/findmalek/keep-player:cache
+          cache-to: type=registry,ref=ghcr.io/findmalek/keep-player:cache,mode=max
       - name: smoke test (read-only root, non-root user)
         if: github.event_name == 'pull_request'
         run: |
@@ -135,8 +135,8 @@ jobs:
           sbom: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=registry,ref=ghcr.io/findmalek/keep-player:cache
+          cache-to: type=registry,ref=ghcr.io/findmalek/keep-player:cache,mode=max
       - if: github.event_name == 'push'
         uses: actions/attest-build-provenance@v3
         with:
