@@ -41,7 +41,8 @@ jobs:
         with:
           bun-version: 1.4.2
       - run: bun install --frozen-lockfile
-      - run: bunx playwright install --with-deps chromium
+      # The runner host has the system libraries already; apt over the home line costs minutes per run.
+      - run: bunx playwright install chromium
       - run: bun run e2e
       - uses: actions/upload-artifact@v4
         if: failure()
@@ -113,8 +114,9 @@ jobs:
           context: .
           load: true
           tags: keep-player:test
-          cache-from: type=registry,ref=ghcr.io/findmalek/keep-player:cache
-          cache-to: type=registry,ref=ghcr.io/findmalek/keep-player:cache,mode=max
+          # Layers stay on the runner host: no registry round trip over the home line for a throwaway image.
+          cache-from: type=local,src=/home/findmalek/.cache/buildx/keep-player
+          cache-to: type=local,dest=/home/findmalek/.cache/buildx/keep-player,mode=max
       - name: smoke test (read-only root, non-root user)
         if: github.event_name == 'pull_request'
         run: |
