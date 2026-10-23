@@ -25,7 +25,7 @@ import { openPlaylistDialog, usePlaylistDialog } from "@/lib/playlist-dialogs";
 import { loadPrefs } from "@/lib/prefs";
 import { prefetchHome } from "@/lib/queries";
 import { useReachability } from "@/lib/reachability";
-import { go, usePath } from "@/lib/router";
+import { go, replace, usePath } from "@/lib/router";
 import { useSetting } from "@/lib/settings";
 import { installShortcuts, useShortcuts } from "@/lib/shortcuts";
 import { useCheckingSession, useUser } from "@/lib/subsonic";
@@ -139,8 +139,6 @@ function Page({ path }: { path: string }) {
       return <StatsPage />;
     case "lyrics":
       return <LyricsPage />;
-    case "settings":
-      return <SettingsPage section={param} />;
     case "moments":
       return <MomentsPage />;
     case "import":
@@ -194,6 +192,12 @@ export function App() {
   const [searchLoaded, setSearchLoaded] = useState(false);
   if (searching && !searchLoaded) setSearchLoaded(true);
   const path = usePath();
+  // Settings open as a dialog over the page you came from; a direct link to them opens over home.
+  const settings = /^\/settings(\/|$)/.test(path) ? (path.split("/")[2] ?? null) : undefined;
+  const [behind, setBehind] = useState({ path: "/", inApp: false });
+  if (settings === undefined && behind.path !== path) setBehind({ path, inApp: true });
+  const pagePath = settings === undefined ? path : behind.path;
+  const closeSettings = () => (behind.inApp ? window.history.back() : replace("/"));
   const hasTrack = usePlayer((state) => state.queue.current !== null);
   const nowPlaying = usePlayer(currentSong);
   const playing = usePlayer((state) => state.playing);
@@ -377,13 +381,18 @@ export function App() {
       )}
       {createPortal(
         <PageScrollContext.Provider value={host}>
-          <RouteBoundary key={path} path={path}>
+          <RouteBoundary key={pagePath} path={pagePath}>
             <Suspense>
-              <Page path={path} />
+              <Page path={pagePath} />
             </Suspense>
           </RouteBoundary>
         </PageScrollContext.Provider>,
         host,
+      )}
+      {settings !== undefined && (
+        <Suspense>
+          <SettingsPage section={settings} onClose={closeSettings} />
+        </Suspense>
       )}
       {(searching || searchLoaded) && (
         <Suspense>
