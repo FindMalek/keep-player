@@ -272,6 +272,7 @@ export function SettingsPage({ section }: { section: string | null }) {
               </ToggleGroup>
             </Row>
             <ToastsRow />
+            <Toggle setting="loadingBar" label="loading bar" hint={<>a thin line at the top while things refresh · {SYNCED}</>} />
             <Toggle setting="reduceMotion" label="reduce motion" hint={<>no animations, whatever the system says · {SYNCED}</>} />
             <Toggle
               setting="ratings"

@@ -17,6 +17,8 @@ export interface Settings {
   ratings: boolean;
   /** No animations or view transitions, whatever the OS says. */
   reduceMotion: boolean;
+  /** The thin line at the top while lists refresh; off by default, the skeletons already say it. */
+  loadingBar: boolean;
   /** Open the mini player by itself when you leave the tab while music plays (Chromium). */
   miniPlayerWhenHidden: boolean;
   /** Save the queue to the server and offer queues from Arpeggi or other browsers. */
@@ -41,6 +43,7 @@ export const SYNCED = [
   "toasts",
   "ratings",
   "reduceMotion",
+  "loadingBar",
   "queueSync",
   "followOtherDevices",
   "crossfade",
@@ -55,6 +58,7 @@ const DEFAULTS: Settings = {
   toasts: "all",
   ratings: false,
   reduceMotion: false,
+  loadingBar: false,
   miniPlayerWhenHidden: false,
   queueSync: true,
   followOtherDevices: false,
