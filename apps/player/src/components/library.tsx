@@ -270,7 +270,11 @@ const TrackRow = memo(function TrackRow({
       data-playing={status ? true : undefined}
       data-hidden={hidden || undefined}
       data-drop-target={dropTarget || undefined}
-      className="group/row h-[34px] data-drop-target:shadow-[inset_0_2px_0_var(--foreground)] data-hidden:opacity-45 scroll-my-12 border-muted outline-none hover:bg-card focus-visible:bg-card focus-visible:shadow-[inset_2px_0_0_var(--foreground)]"
+      className={cn(
+        "group/row data-drop-target:shadow-[inset_0_2px_0_var(--foreground)] data-hidden:opacity-45 scroll-my-12 border-muted outline-none hover:bg-card focus-visible:bg-card focus-visible:shadow-[inset_2px_0_0_var(--foreground)]",
+        // Title over artist needs room above and below, or both lines touch the row edges.
+        showArtist ? "h-11" : "h-[34px]",
+      )}
       onDoubleClick={() => onPlay(index)}
       onClick={(event) => {
         if (event.metaKey || event.ctrlKey || event.shiftKey) onSelectClick(index, event.shiftKey);
@@ -485,7 +489,7 @@ function TrackRows({
   const virtual = items.length > VIRTUALIZE_FROM;
   const virtualizer = usePageVirtualizer(listRef, {
     count: items.length,
-    estimateSize: (index) => (items[index]?.kind === "disc" ? 32 : 34),
+    estimateSize: (index) => (items[index]?.kind === "disc" ? 32 : showArtist ? 44 : 34),
     enabled: virtual,
   });
   const windowItems = virtualizer.getVirtualItems();

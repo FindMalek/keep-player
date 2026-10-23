@@ -35,11 +35,14 @@ import {
 } from "@/components/ui/sidebar";
 import { current as currentDrag, dropFailed, dropSongs, endDrag, leftTarget } from "@/lib/drag";
 import { useElsewhere } from "@/lib/elsewhere";
+import { usePlayer } from "@/lib/player";
 import { openPlaylistDialog } from "@/lib/playlist-dialogs";
 import { queries } from "@/lib/queries";
 import { useUser } from "@/lib/subsonic";
 import type { Playlist } from "@/lib/types";
+import { cn } from "@/lib/utils";
 import { BrandMark } from "./brand";
+import { Equalizer } from "./equalizer";
 import { Link } from "./link";
 
 const ElsewhereBadge = lazy(() => import("./elsewhere-badge").then((module) => ({ default: module.ElsewhereBadge })));
@@ -87,6 +90,9 @@ function tree(playlists: Playlist[]): FolderNode {
 const playlistPrefix = (path: string) => path.replace(/^\//, "").split("/").join(" / ");
 
 function SubTree({ node, path, dropId }: { node: FolderNode; path: string; dropId: string | null }) {
+  // The playlist the queue came from, so you can see what's playing without opening it.
+  const playingHref = usePlayer((state) => (state.queue.context.source?.kind === "playlist" ? state.queue.context.source.href : undefined));
+  const playing = usePlayer((state) => state.playing);
   return (
     <>
       {[...node.folders.values()].map((folder) => (
@@ -123,8 +129,13 @@ function SubTree({ node, path, dropId }: { node: FolderNode; path: string; dropI
             data-drop-target={dropId === playlist.id || undefined}
             className="data-drop-target:bg-sidebar-accent data-drop-target:outline data-drop-target:outline-foreground"
           >
-            <SidebarMenuSubButton isActive={path === href} className="font-mono text-muted-foreground" render={<Link href={href} />}>
+            <SidebarMenuSubButton
+              isActive={path === href}
+              className={cn("font-mono text-muted-foreground", playingHref === href && "text-foreground")}
+              render={<Link href={href} />}
+            >
               <span>{playlist.name.split(" / ").at(-1)}</span>
+              {playingHref === href && <Equalizer playing={playing} />}
             </SidebarMenuSubButton>
           </SidebarMenuSubItem>
         );
