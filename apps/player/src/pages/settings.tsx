@@ -274,6 +274,11 @@ export function SettingsPage({ section }: { section: string | null }) {
             <ToastsRow />
             <Toggle setting="reduceMotion" label="reduce motion" hint={<>no animations, whatever the system says · {SYNCED}</>} />
             <Toggle
+              setting="offlineInBar"
+              label="offline mark in the player bar"
+              hint={<>the arrow next to the format when a song is saved for offline · track rows always show it · {SYNCED}</>}
+            />
+            <Toggle
               setting="ratings"
               label="show ratings"
               hint={<>1–5 stars in track lists, for smart playlists in other clients · {SYNCED}</>}

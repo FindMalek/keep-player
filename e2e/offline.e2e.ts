@@ -23,6 +23,8 @@ test("once the next tracks are precached, going offline still plays and seeks th
   await page.waitForTimeout(1500);
   await expect(bar.getByRole("button", { name: "retry" })).toHaveCount(0);
   await expect(bar.getByRole("button", { name: "pause" })).toBeVisible();
+  // The bar keeps quiet about it unless you ask; the rows above always say it.
+  await expect(bar.getByLabel("saved for offline")).toHaveCount(0);
   expect(await page.locator("[data-slot=audio-player-time][data-type=current]").textContent()).not.toBe("0:00");
 });
 
