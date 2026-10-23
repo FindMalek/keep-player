@@ -16,6 +16,8 @@ permissions:
 jobs:
   check:
     runs-on: [self-hosted, the-keep]
+    # A stalled download on the home line must fail fast, not sit for github's 6 h limit.
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
       - uses: oven-sh/setup-bun@v2
@@ -32,6 +34,7 @@ jobs:
 
   e2e:
     runs-on: [self-hosted, the-keep]
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
       - uses: oven-sh/setup-bun@v2
@@ -52,6 +55,7 @@ jobs:
   release:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: [self-hosted, the-keep]
+    timeout-minutes: 30
     # Needs "Allow GitHub Actions to create pull requests" in the repo settings; never holds up a deploy without it.
     continue-on-error: true
     permissions:
@@ -72,6 +76,7 @@ jobs:
     # `release` is skipped on pull requests and tags; the image still builds then.
     if: ${{ !cancelled() && !failure() }}
     runs-on: [self-hosted, the-keep]
+    timeout-minutes: 30
     permissions:
       contents: read
       packages: write
@@ -148,6 +153,7 @@ jobs:
     if: ${{ !cancelled() && !failure() && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     needs: image
     runs-on: [self-hosted, the-keep]
+    timeout-minutes: 30
     environment: production
     steps:
       - name: trigger dokploy
