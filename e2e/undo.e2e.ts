@@ -1,4 +1,4 @@
-import { expect, fakeMediaClock, test } from "./fixtures";
+import { expect, fakeMediaClock, test, trackTitles } from "./fixtures";
 
 const go = (page: import("@playwright/test").Page, path: string) =>
   page.evaluate((to) => {
@@ -47,4 +47,19 @@ test("⌘Z in a text field undoes the typing, not the app", async ({ page, signe
   await input.fill("abc");
   await input.press("ControlOrMeta+z");
   await expect(page.getByText(/^undid:|^nothing to undo/)).toHaveCount(0);
+});
+
+test("adding to the queue says so, and undo takes exactly that back out", async ({ page, signedIn }) => {
+  await signedIn.goto("/album/al-21");
+  const titles = await trackTitles(page);
+  await page.getByRole("button", { name: "play", exact: true }).first().click();
+  const row = page.getByRole("row", { name: new RegExp(titles[3] as string) }).first();
+  await row.hover();
+  await row.getByRole("button", { name: `add ${titles[3]} to queue`, exact: true }).click();
+  await expect(page.getByText(`added ${titles[3]} to the queue`)).toBeVisible();
+  await page.locator("body").press("q");
+  const queue = page.getByRole("complementary", { name: "queue" });
+  await expect(queue.getByText("next in your queue")).toBeVisible();
+  await page.getByRole("button", { name: "undo" }).click();
+  await expect(queue.getByText("next in your queue")).toHaveCount(0);
 });

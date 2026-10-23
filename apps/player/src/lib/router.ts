@@ -1,10 +1,8 @@
 import { type MouseEvent, useSyncExternalStore } from "react";
 
-import { setMorph, transition } from "./motion";
-
 const NAVIGATE = "keep:navigate";
 
-// Back/forward and links both re-render through NAVIGATE, inside a view transition (lib/motion).
+// Back/forward and links both re-render through NAVIGATE.
 function subscribe(onChange: () => void): () => void {
   window.addEventListener(NAVIGATE, onChange);
   return () => window.removeEventListener(NAVIGATE, onChange);
@@ -41,8 +39,7 @@ export function navigationType(): "push" | "pop" {
 window.history.scrollRestoration = "manual";
 window.addEventListener("popstate", (event) => {
   lastNavigation = "pop";
-  setMorph(null);
-  transition(() => window.dispatchEvent(new Event(NAVIGATE)));
+  window.dispatchEvent(new Event(NAVIGATE));
   restoreScroll((event.state as { scroll?: number } | null)?.scroll ?? 0);
 });
 
@@ -50,7 +47,7 @@ function push(path: string): void {
   lastNavigation = "push";
   rememberScroll();
   window.history.pushState({ scroll: 0 }, "", path);
-  transition(() => window.dispatchEvent(new Event(NAVIGATE)));
+  window.dispatchEvent(new Event(NAVIGATE));
   scroller()?.scrollTo(0, 0);
 }
 
@@ -77,7 +74,7 @@ export function go(path: string): void {
 export function replace(path: string): void {
   lastNavigation = "push";
   window.history.replaceState({ scroll: 0 }, "", path);
-  transition(() => window.dispatchEvent(new Event(NAVIGATE)));
+  window.dispatchEvent(new Event(NAVIGATE));
 }
 
 export function useSearchParam(name: string): string {

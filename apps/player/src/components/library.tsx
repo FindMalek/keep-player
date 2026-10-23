@@ -8,7 +8,6 @@ import { current as currentDrag, endDrag, leftTarget, startDrag } from "@/lib/dr
 import { clock } from "@/lib/format";
 import { closeListFilter, songMatches, useListFilter } from "@/lib/list-filter";
 import { focusWhenRendered, type ListCommand, rememberedFocus, rememberFocus, useListNav } from "@/lib/list-nav";
-import { setMorph } from "@/lib/motion";
 import { useCachedIds } from "@/lib/offline";
 import { currentSong, player, type QueueSource, usePlayer } from "@/lib/player";
 import { anyHidden, isHidden, type RuleMarks, ruleMarks, usePrefsVersion } from "@/lib/prefs";
@@ -83,16 +82,7 @@ const AlbumCard = memo(function AlbumCard({ album, priority = false }: { album: 
     // Drag a card onto a playlist, the queue or the player bar (the link inside is the control; this only carries drags).
     // biome-ignore lint/a11y/noStaticElementInteractions: a drag source wrapper, not a control
     <div className="group/album relative" onDragStart={(event) => startDrag(event, { kind: "album", album })} onDragEnd={endDrag}>
-      <Link
-        href={`/album/${album.id}`}
-        className="flex flex-col gap-px"
-        onClick={(event) => {
-          // Only the clicked card gets the name: an album can be on the page twice (home rows).
-          const cover = event.currentTarget.firstElementChild as HTMLElement | null;
-          if (cover) cover.style.viewTransitionName = "album-cover";
-          setMorph(album.id);
-        }}
-      >
+      <Link href={`/album/${album.id}`} className="flex flex-col gap-px">
         <Cover id={album.coverArt} size={180} className="mb-1.5 group-hover/album:[&_img]:opacity-85" priority={priority} />
         <Truncated text={album.name} className="text-[12.5px]" />
         <span className="truncate text-[11.5px] text-muted-foreground">

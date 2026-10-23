@@ -15,8 +15,6 @@ export interface Settings {
   toasts: ToastLevel;
   /** 1–5 star ratings (setRating) as a column in track lists, for smart playlists in other clients. */
   ratings: boolean;
-  /** No animations or view transitions, whatever the OS says. */
-  reduceMotion: boolean;
   /** Open the mini player by itself when you leave the tab while music plays (Chromium). */
   miniPlayerWhenHidden: boolean;
   /** Save the queue to the server and offer queues from Arpeggi or other browsers. */
@@ -40,7 +38,6 @@ export interface Settings {
 export const SYNCED = [
   "toasts",
   "ratings",
-  "reduceMotion",
   "queueSync",
   "followOtherDevices",
   "crossfade",
@@ -54,7 +51,6 @@ const KEY = "keep-player:settings";
 const DEFAULTS: Settings = {
   toasts: "all",
   ratings: false,
-  reduceMotion: false,
   miniPlayerWhenHidden: false,
   queueSync: true,
   followOtherDevices: false,

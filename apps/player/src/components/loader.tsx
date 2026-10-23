@@ -4,8 +4,8 @@ const BARS = [0.4, 0.7, 1, 0.7, 0.4] as const;
 
 /**
  * The loading mark: five bars that swell outward from the middle, mirrored left and right (the "symmetric wave").
- * Monochrome (it takes the text color), sized by `className` (default 1rem). With reduced motion the bars rest in
- * the same mirrored shape, so it still reads as "loading".
+ * Monochrome (it takes the text color), sized by `className` (default 1rem).
+ * One of the two things in the app that still move.
  */
 export function Loader({ className, label = "loading" }: { className?: string; label?: string }) {
   return (
