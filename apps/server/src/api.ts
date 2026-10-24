@@ -15,6 +15,7 @@ import { ListenRooms, type Peer } from "./listen";
 import type { LyricsService } from "./lyrics";
 import { forgetMisses, lyricsCoverageReport, missingLyrics } from "./lyrics-coverage";
 import { lyricsCoverage, queryLyrics } from "./lyrics-search";
+import { dailyMixes } from "./mixes";
 import { addMoment, deleteMoment, listMoments, momentNotes, updateMoment } from "./moments";
 import { changeAlbum, changeSong, readPrefs } from "./prefs";
 import { ban, listBans, unban } from "./radio";
@@ -744,6 +745,17 @@ export function createApi({
     });
   }
 
+  /** `GET /api/mixes?day=N`: today's daily mixes for you (`day` = the browser's local days since the epoch). */
+  async function mixes(request: Request): Promise<Response> {
+    if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
+    const session = sessions.get(cookieValue(request));
+    if (!session) return json({ error: "signed out" }, 401);
+    const day = Number(new URL(request.url).searchParams.get("day")) || Math.floor(Date.now() / 86_400_000);
+    return json({ day, mixes: dailyMixes(library, session.server, `${session.server}:${session.user}`, day) }, 200, {
+      "cache-control": "private, no-cache",
+    });
+  }
+
   /** `/api/playlists/:id/hidden`: the songs you hid in a playlist (GET), hide or show one (PUT `{ songId, hidden }`). */
   async function playlistHidden(request: Request & { params: { id: string } }): Promise<Response> {
     if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
@@ -780,6 +792,7 @@ export function createApi({
     moment,
     stats,
     forgotten,
+    mixes,
     playlistHidden,
     login,
     logout,

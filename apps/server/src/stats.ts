@@ -24,6 +24,8 @@ type Song = { id: string; title?: string; artist?: string; artistId?: string; al
   unknown
 >;
 
+export type { Song as StatsSong };
+
 const localDay = (time: number, tz: number) => Math.floor((time + tz * 60_000) / DAY);
 
 function top(map: Map<string, StatItem>): StatItem[] {
@@ -129,7 +131,7 @@ export function listeningStats(db: Database, account: string, from: number, to: 
 }
 
 /** OpenSubsonic `genres` (several per song) when present, else the single `genre`. */
-function genresOf(song: Song): string[] {
+export function genresOf(song: Song): string[] {
   const list = Array.isArray(song.genres) ? (song.genres as { name?: string }[]).map((genre) => genre.name ?? "").filter(Boolean) : [];
   return list.length ? list : song.genre ? [song.genre] : [];
 }
