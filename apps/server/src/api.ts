@@ -12,6 +12,7 @@ import type { Upstream } from "./config";
 import { type CoverCache, snapCoverSize } from "./covers";
 import type { DeviceHub, DevicePeer } from "./devices";
 import { libraryItems } from "./doctor";
+import { type FeedbackTarget, fileFeedback, MAX_SCREENSHOT_BYTES } from "./feedback";
 import { UpdateCheck } from "./health";
 import { type NewPlay, readPlays, recordPlay } from "./history";
 import { matchTrack } from "./import-match";
@@ -152,6 +153,8 @@ export interface ApiOptions {
   rooms?: ListenRooms;
   /** One playback session per account (#192); null turns it off. */
   devices?: DeviceHub | null;
+  /** Feedback as GitHub issues (#182); null turns it off. */
+  feedback?: FeedbackTarget | null;
   /** Playlists from a prompt (#57); null turns them off. */
   groq?: { key: string; model: string; url: string } | null;
   /** Stands in for Groq in tests. */
@@ -199,6 +202,7 @@ export function createApi({
   lyterion = null,
   devices = null,
   groq = null,
+  feedback = null,
   fetcher = fetch,
 }: ApiOptions) {
   const upstreamFor = (id: string) => upstreams.find((upstream) => upstream.id === id);
@@ -299,6 +303,7 @@ export function createApi({
           admin: session.admin,
           oneSession: devices !== null,
           ai: groq !== null,
+          feedback: feedback !== null,
         })
       : json({ error: "signed out" }, 401);
   }
@@ -596,6 +601,50 @@ export function createApi({
     if (!upstream) return json({ error: "server removed from config" }, 401);
     const albums = appearsOn(library, upstream.id, request.params.id, await foldersFor(session, upstream));
     return json({ albums }, 200, { "cache-control": "private, max-age=300" });
+  }
+
+  /** Feedback sent per browser session in the last hour: a handful is plenty, and the token's rate limit is shared. */
+  const feedbackSent = new Map<string, number[]>();
+  const FEEDBACK_PER_HOUR = 5;
+
+  /** `POST /api/feedback` `{ kind, text, page, screenshot? }`: filed as a GitHub issue; answers its URL. */
+  async function sendFeedback(request: Request): Promise<Response> {
+    if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
+    const session = sessions.get(cookieValue(request));
+    if (!session) return json({ error: "signed out" }, 401);
+    if (!feedback) return json({ error: "feedback is off on this server" }, 404);
+    const recent = (feedbackSent.get(session.id) ?? []).filter((at) => at > Date.now() - 3_600_000);
+    if (recent.length >= FEEDBACK_PER_HOUR) return json({ error: "that's a lot of feedback for one hour, try again later" }, 429);
+    const body = (await request.json().catch(() => null)) as {
+      kind?: unknown;
+      text?: unknown;
+      page?: unknown;
+      screenshot?: { data?: unknown; type?: unknown };
+    } | null;
+    const text = typeof body?.text === "string" ? body.text.trim().slice(0, 5000) : "";
+    if (!text) return json({ error: "say what happened or what you'd like" }, 400);
+    const shot = body?.screenshot;
+    const screenshot =
+      typeof shot?.data === "string" &&
+      (shot.type === "image/png" || shot.type === "image/jpeg") &&
+      shot.data.length * 0.75 <= MAX_SCREENSHOT_BYTES
+        ? { data: shot.data, type: shot.type as "image/png" | "image/jpeg" }
+        : undefined;
+    const url = await fileFeedback(
+      feedback,
+      {
+        kind: body?.kind === "idea" ? "idea" : "bug",
+        text,
+        user: session.user,
+        version: (await updates.info()).version,
+        page: typeof body?.page === "string" ? body.page.slice(0, 200) : "",
+        ...(screenshot ? { screenshot } : {}),
+      },
+      fetcher,
+    ).catch(() => null);
+    if (!url) return json({ error: "github didn't take it, try again in a bit" }, 502);
+    feedbackSent.set(session.id, [...recent, Date.now()]);
+    return json({ url });
   }
 
   /** Bun has one WebSocket handler per server: listen-together and device sockets share it. */
@@ -1014,6 +1063,7 @@ export function createApi({
     devicesSocket,
     sockets,
     aiPlaylist,
+    sendFeedback,
     artistAppearsOn,
     remoteToken,
     remoteNow,

@@ -71,6 +71,7 @@ const api = createApi({
   lyterion: config.lyterion,
   devices: config.oneSession ? new DeviceHub() : null,
   groq: config.groq,
+  feedback: config.feedback,
 });
 const health = new HealthCheck(config.upstreams);
 
@@ -99,6 +100,7 @@ const server = Bun.serve({
     "/api/devices": { GET: (request, srv) => api.devicesSocket(request, srv) },
     "/api/remote/token": { POST: api.remoteToken },
     "/api/ai/playlist": { POST: api.aiPlaylist },
+    "/api/feedback": { POST: api.sendFeedback },
     "/api/artists/:id/appears-on": { GET: api.artistAppearsOn },
     "/api/remote/now": { GET: api.remoteNow },
     "/api/remote/:action": { POST: api.remoteAction },
