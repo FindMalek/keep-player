@@ -5,6 +5,7 @@ import { ListContextMenu, type MenuTarget } from "@/components/item-menu";
 import { AlbumGrid, AlbumGridSkeleton, Content, EmptyState, PageHeader, Section, TrackList } from "@/components/library";
 import { Link } from "@/components/link";
 import { ListFilterBar } from "@/components/list-filter-bar";
+import { MixRow } from "@/components/mix-row";
 import { ArtistRowsSkeleton, Delayed, TrackListSkeleton } from "@/components/skeletons";
 import { Alert, AlertAction, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -87,6 +88,7 @@ export function HomePage() {
         </Content>
       ) : (
         <>
+          <MixRow />
           <AlbumRow title="recently added" query={newest} priority={8} />
           <AlbumRow title="recently played" query={recent} />
           <AlbumRow title="most played" query={frequent} />
