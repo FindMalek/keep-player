@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.0](https://github.com/FindMalek/keep-player/compare/v0.7.0...v1.0.0) (2026-10-24)
+
+
+### Bug Fixes
+
+* **upload:** non-json error body ([#247](https://github.com/FindMalek/keep-player/issues/247)) ([1dd61e7](https://github.com/FindMalek/keep-player/commit/1dd61e7f3089cd49fce738243599d54da06513aa))
+
 ## [0.7.0](https://github.com/FindMalek/keep-player/compare/v0.6.0...v0.7.0) (2026-10-24)
 
 
