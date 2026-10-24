@@ -31,18 +31,18 @@ function now() {
 /**
  * Everything made for you as real Navidrome playlists ("daily mix 1"…, "discover weekly", "daylist"), replaced in place
  * when they turn over, so the phone and every other client has them too. Doing it twice just writes the same songs.
- * Returns whether a playlist was created (the sidebar then needs a refresh).
+ * Returns the playlists it had to create, for the sidebar.
  */
-async function saveAsPlaylists(stamp: string, mixes: Mix[]): Promise<boolean> {
+async function saveAsPlaylists(stamp: string, mixes: Mix[]): Promise<Playlist[]> {
   try {
-    if (localStorage.getItem(SAVED_KEY) === stamp) return false;
+    if (localStorage.getItem(SAVED_KEY) === stamp) return [];
     localStorage.setItem(SAVED_KEY, stamp);
   } catch {
-    return false;
+    return [];
   }
   const playlists = await api<{ playlists?: { playlist?: Playlist[] } }>("getPlaylists").catch(() => null);
   const mine = (playlists?.playlists?.playlist ?? []).filter((playlist) => playlist.owner === getUser());
-  let created = false;
+  const created: Playlist[] = [];
   for (const mix of mixes) {
     const existing = mine.find((playlist) => playlist.name === mix.name);
     const songId = mix.songs.map((song) => song.id);
@@ -51,7 +51,15 @@ async function saveAsPlaylists(stamp: string, mixes: Mix[]): Promise<boolean> {
       existing ? { playlistId: existing.id, songId } : { name: mix.name, songId },
     ).catch(() => null);
     const id = existing?.id ?? reply?.playlist?.id;
-    if (!existing && id) created = true;
+    if (!existing && id)
+      created.push({
+        id,
+        name: mix.name,
+        owner: getUser() ?? undefined,
+        comment: mix.description,
+        songCount: mix.songs.length,
+        duration: mix.songs.reduce((total, song) => total + (song.duration ?? 0), 0),
+      });
     if (id) await api("updatePlaylist", { playlistId: id, comment: mix.description }).catch(() => undefined);
   }
   return created;
@@ -70,12 +78,14 @@ export function MixRow() {
     // An empty answer (no plays yet, or the index still building) is asked again on the next visit, never kept.
     staleTime: (query) => (query.state.data?.length ? 60 * 60_000 : 0),
   });
-  const playlists = useQuery(queries.playlists()).data;
+  // Read what the sidebar already has: mounting must not refetch it (that would bring back a playlist mid-undo).
+  const playlists = useQuery({ ...queries.playlists(), refetchOnMount: false }).data;
   useEffect(() => {
-    // Only a brand-new playlist refreshes the sidebar: a refetch otherwise could undo a delete still waiting out its undo.
+    // New playlists go straight into the cached list: a refetch could undo a delete still waiting out its undo.
     if (!data?.length) return;
     void saveAsPlaylists(`${day}:${slot}`, data).then((created) => {
-      if (created) void queryClient.invalidateQueries({ queryKey: queries.playlists().queryKey });
+      if (created.length)
+        queryClient.setQueryData(queries.playlists().queryKey, (current?: Playlist[]) => (current ? [...current, ...created] : current));
     });
   }, [data, day, slot]);
   if (!data?.length) return null;
