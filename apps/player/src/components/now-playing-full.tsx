@@ -6,6 +6,7 @@ import { currentSong, player, usePlayer } from "@/lib/player";
 import { peekUpcoming } from "@/lib/queue";
 import type { Song } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { Aura } from "./aura";
 import { Cover } from "./cover";
 import { LikeButton } from "./like-button";
 import { LyricsView } from "./lyrics-view";
@@ -36,6 +37,9 @@ export function NowPlayingFull({ open, onOpenChange }: { open: boolean; onOpenCh
   const song = usePlayer(currentSong);
   const playing = usePlayer((state) => state.playing);
   const next = usePlayer((state) => peekUpcoming(state.queue, 3), sameSongs);
+  // The aura of what's playing from: the playlist (or album) the queue came from.
+  const from = usePlayer((state) => state.queue.context.source?.href ?? state.queue.current?.song.albumId ?? "");
+  const contextSongs = usePlayer((state) => state.queue.context.songs.slice(0, 200), sameSongs);
   const [idle, wake] = useIdle(open);
   // Focus lands on the title, not the first lyric line (which would draw a focus ring on it).
   const title = useRef<HTMLHeadingElement>(null);
@@ -46,10 +50,11 @@ export function NowPlayingFull({ open, onOpenChange }: { open: boolean; onOpenCh
         onPointerMove={wake}
         onKeyDown={wake}
         data-idle={idle || undefined}
-        className="group/full top-0 left-0 grid h-[calc(100svh/var(--zoom))] w-[calc(100vw/var(--zoom))] bg-background max-w-none translate-x-0 translate-y-0 grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-10 border-0 p-10 data-idle:cursor-none sm:max-w-none"
+        className="group/full isolate top-0 left-0 grid h-[calc(100svh/var(--zoom))] w-[calc(100vw/var(--zoom))] bg-background max-w-none translate-x-0 translate-y-0 grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-10 border-0 p-10 data-idle:cursor-none sm:max-w-none"
       >
         {song ? (
           <>
+            {from && <Aura id={from} songs={contextSongs} className="pointer-events-none absolute inset-0 -z-10 size-full opacity-40" />}
             <div className="flex min-w-0 flex-col justify-center gap-4">
               <Cover id={song.coverArt} size={512} priority className="w-full max-w-[60vh]" />
               <div className="min-w-0">
