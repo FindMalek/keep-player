@@ -78,3 +78,17 @@ test("typos, artist - title and operators find the right thing, and see all open
 });
 
 const seconds = (text: string | null) => (text ?? "0:00").split(":").reduce((total, part) => total * 60 + Number(part), 0);
+
+test("right-click works on results in ⌘K and on the search page", async ({ signedIn: page }) => {
+  await page.keyboard.press("ControlOrMeta+k");
+  const dialog = page.getByRole("dialog", { name: "search" });
+  await dialog.getByRole("combobox").fill("ember");
+  await dialog.getByRole("group", { name: "songs" }).getByRole("option").first().click({ button: "right" });
+  await expect(page.getByRole("menuitem", { name: "add to queue" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await page.keyboard.press("Escape");
+
+  await page.goto("/search?q=ember");
+  await page.locator("[data-menu^=top-]").click({ button: "right" });
+  await expect(page.getByRole("menuitem", { name: "start radio" })).toBeVisible();
+});
