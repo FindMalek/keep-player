@@ -14,7 +14,13 @@ test("a playlist has an aura behind its header, three vibe words, and exports as
   expect(varied).toBe(true);
 
   const download = page.waitForEvent("download");
-  await page.getByRole("button", { name: "aura png" }).click();
+  // Tucked in the playlist's menu, so a stray click on the header can't download it.
+  await page
+    .getByRole("main")
+    .getByRole("button", { name: /^more for / })
+    .first()
+    .click();
+  await page.getByRole("menuitem", { name: "save aura as png" }).click();
   expect((await download).suggestedFilename()).toMatch(/-aura\.png$/);
 });
 

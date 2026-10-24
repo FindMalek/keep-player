@@ -8,6 +8,7 @@ import {
   FolderIcon,
   HeartIcon,
   HeartOffIcon,
+  ImageDownIcon,
   LinkIcon,
   ListEndIcon,
   ListMusicIcon,
@@ -42,7 +43,7 @@ import { isLiked, type LikeKind, setLiked } from "@/lib/likes";
 import { notify } from "@/lib/notify";
 import { player } from "@/lib/player";
 import { openPlaylistDialog } from "@/lib/playlist-dialogs";
-import { addToPlaylist, canEdit } from "@/lib/playlists";
+import { addToPlaylist, canEdit, leafOf } from "@/lib/playlists";
 import { albumPref, songPref, usePrefsVersion } from "@/lib/prefs";
 import { queries } from "@/lib/queries";
 import { go } from "@/lib/router";
@@ -125,6 +126,16 @@ export function ItemActions({ target }: { target: MenuTarget }) {
       {like && (
         <DropdownMenuItem onClick={run(() => setLiked(like.kind, like.id, !liked, like.label))}>
           {liked ? <HeartOffIcon /> : <HeartIcon />} {liked ? "unlike" : "like"}
+        </DropdownMenuItem>
+      )}
+      {target.kind === "playlist" && (
+        <DropdownMenuItem
+          onClick={run(async () => {
+            const [{ exportAura }, songs] = await Promise.all([import("@/components/aura"), songsOf(target)]);
+            exportAura(target.playlist.id, songs, leafOf(target.playlist.name));
+          })}
+        >
+          <ImageDownIcon /> save aura as png
         </DropdownMenuItem>
       )}
       {song && (
