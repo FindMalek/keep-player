@@ -1,5 +1,5 @@
 /**
- * What to do when the browser can't offer the one-click install (#197). Pure, so it's testable: the user agent, and
+ * What to do when the browser can't offer the one-click install. Pure, so it's testable: the user agent, and
  * whether this is Arc (it looks like Chrome but can't install web apps; it sets its own CSS variables on the page).
  */
 export function installHelp(userAgent: string, arc: boolean): string {
