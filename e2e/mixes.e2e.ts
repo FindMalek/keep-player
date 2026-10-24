@@ -21,7 +21,7 @@ test("songs you play become daily mixes on home, saved as navidrome playlists to
     });
 
   await signedIn.goto("/");
-  const mixes = page.getByRole("list", { name: "daily mixes" });
+  const mixes = page.getByRole("list", { name: "made for you" });
   await expect(mixes.getByRole("button", { name: "play daily mix 1" })).toBeVisible();
   await expect
     .poll(async () => {
@@ -30,6 +30,12 @@ test("songs you play become daily mixes on home, saved as navidrome playlists to
     })
     .toBe(true);
 
+  // The card opens the mix as a playlist; the play button on it plays.
+  await page.reload();
+  await mixes.getByRole("link", { name: "daily mix 1" }).click();
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("daily mix 1");
+  await page.goBack();
+  await mixes.getByRole("link", { name: "daily mix 1" }).hover();
   await mixes.getByRole("button", { name: "play daily mix 1" }).click();
   await expect(page.getByRole("contentinfo").getByRole("button", { name: "pause" })).toBeVisible();
 });

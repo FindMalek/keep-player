@@ -36,3 +36,40 @@ test("plays count by artist and title even when the song's id changed, and artis
   expect(mix?.songs.map((item) => item.id).sort()).toEqual(["a1", "a2", "b1"]);
   expect(dailyMixes(db, "s", "s:u", 20_000, NOW)).toEqual(mixes);
 });
+
+test("discover weekly is only songs you never played; the daylist follows what you play at that hour", async () => {
+  const { madeForYou } = await import("./mixes");
+  const db = openLibraryDb(":memory:");
+  createIndexTables(db);
+  const library = [
+    song("a1", "Hurt", "Rapture"),
+    song("a2", "Hurt", "Falls Apart"),
+    song("n1", "Abba", "SOS"),
+    song("m1", "Mitski", "Nobody"),
+  ];
+  for (const item of library)
+    db.query(
+      "insert into idx_items (server, kind, id, folder, name, norm, plays, data, generation) values ('s', 'song', ?, '1', 'n', 'n', 0, ?, 1)",
+    ).run(item.id, JSON.stringify(item));
+  // Hurt every morning (08:00 UTC), Mitski every night (23:00 UTC).
+  const midnight = Date.UTC(2026, 9, 24);
+  for (let i = 1; i <= 6; i++) {
+    recordPlay(db, "s:u", "", {
+      song: song("x", "Hurt", "Rapture"),
+      started: midnight - i * DAY_MS + 8 * 3_600_000,
+      listened: 200,
+      finished: true,
+    });
+    recordPlay(db, "s:u", "", {
+      song: song("y", "Mitski", "Nobody"),
+      started: midnight - i * DAY_MS + 23 * 3_600_000,
+      listened: 200,
+      finished: true,
+    });
+  }
+  const at = (hour: number) => madeForYou(db, "s", "s:u", { day: 20_385, hour, tzMinutes: 0 }, NOW);
+  const discover = at(9).find((mix) => mix.id === "discover-weekly");
+  expect(discover?.songs.map((item) => item.id).sort()).toEqual(["a2", "n1"]);
+  expect(at(9).find((mix) => mix.id === "daylist")?.description).toContain("morning: Hurt");
+  expect(at(23).find((mix) => mix.id === "daylist")?.description).toContain("night: Mitski");
+});
