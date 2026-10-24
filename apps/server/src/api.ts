@@ -7,6 +7,7 @@ import type { LyricsSearch } from "@keep/shared/search";
 import { readTrack } from "@keep/shared/spotify-import";
 import type { Server } from "bun";
 import { askGroq, buildPlaylist, libraryArtists } from "./ai-playlist";
+import { appearsOn } from "./appears-on";
 import type { Upstream } from "./config";
 import { type CoverCache, snapCoverSize } from "./covers";
 import type { DeviceHub, DevicePeer } from "./devices";
@@ -585,6 +586,17 @@ export function createApi({
     return json({ name: plan.name, description: plan.description, artists: plan.artists, songs });
   }
 
+  /** `GET /api/artists/:id/appears-on`: albums by others with this artist on them, from the index. */
+  async function artistAppearsOn(request: Request & { params: { id: string } }): Promise<Response> {
+    if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
+    const session = sessions.get(cookieValue(request));
+    if (!session) return json({ error: "signed out" }, 401);
+    const upstream = upstreamFor(session.server);
+    if (!upstream) return json({ error: "server removed from config" }, 401);
+    const albums = appearsOn(library, upstream.id, request.params.id, await foldersFor(session, upstream));
+    return json({ albums }, 200, { "cache-control": "private, max-age=300" });
+  }
+
   /** Bun has one WebSocket handler per server: listen-together and device sockets share it. */
   const sockets = {
     open(socket: Socket<SocketData>) {
@@ -1006,6 +1018,7 @@ export function createApi({
     devicesSocket,
     sockets,
     aiPlaylist,
+    artistAppearsOn,
     remoteToken,
     remoteNow,
     remoteAction,

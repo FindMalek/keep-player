@@ -9,7 +9,7 @@ import type { LyricsCoverage } from "@keep/shared/lyrics";
 const STATUSES = ["synced", "plain", "instrumental", "missing"] as const;
 
 /** `folders` null: everything (admins with access to all folders, tests). */
-function folderFilter(folders: string[] | null): { sql: string; params: string[] } {
+export function folderFilter(folders: string[] | null): { sql: string; params: string[] } {
   if (!folders) return { sql: "", params: [] };
   if (!folders.length) return { sql: " and 0", params: [] };
   return { sql: ` and i.folder in (${folders.map(() => "?").join(", ")})`, params: folders };
