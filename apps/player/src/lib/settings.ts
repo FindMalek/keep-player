@@ -15,6 +15,8 @@ export interface Settings {
   toasts: ToastLevel;
   /** 1–5 star ratings (setRating) as a column in track lists, for smart playlists in other clients. */
   ratings: boolean;
+  /** The "saved for offline" arrow next to the format in the player bar; track rows always show it. */
+  offlineInBar: boolean;
   /** Open the mini player by itself when you leave the tab while music plays (Chromium). */
   miniPlayerWhenHidden: boolean;
   /** Save the queue to the server and offer queues from Arpeggi or other browsers. */
@@ -38,6 +40,7 @@ export interface Settings {
 export const SYNCED = [
   "toasts",
   "ratings",
+  "offlineInBar",
   "queueSync",
   "followOtherDevices",
   "crossfade",
@@ -51,6 +54,7 @@ const KEY = "keep-player:settings";
 const DEFAULTS: Settings = {
   toasts: "all",
   ratings: false,
+  offlineInBar: false,
   miniPlayerWhenHidden: false,
   queueSync: true,
   followOtherDevices: false,
