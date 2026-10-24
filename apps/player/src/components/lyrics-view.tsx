@@ -48,7 +48,7 @@ function Words({ words, offset }: { words: NonNullable<LyricLine["words"]>; offs
     <>
       {words.map((word, index) => (
         // biome-ignore lint/suspicious/noArrayIndexKey: words repeat within a line
-        <span key={index} className={cn("transition-colors duration-150", index < sung ? "text-foreground" : "text-muted-foreground")}>
+        <span key={index} className={index < sung ? "text-foreground" : "text-muted-foreground"}>
           {word.text}{" "}
         </span>
       ))}
@@ -80,10 +80,10 @@ const Line = memo(function Line({
         type="button"
         title={`${clock((line.start + offset) / 1000)} · click to play from here`}
         className={cn(
-          "flex-1 text-left transition-colors duration-200 hover:text-foreground",
-          state === "past" && "text-muted-foreground",
-          state === "future" && "text-faint",
-          state === "active" && "text-foreground",
+          "flex-1 text-left hover:text-foreground",
+          // The line being sung stands out; what's been sung and what's coming are equally quiet around it.
+          state !== "active" && "text-faint",
+          state === "active" && "font-semibold text-foreground",
         )}
         onClick={() => player.seek((line.start + offset) / 1000)}
       >
@@ -184,7 +184,7 @@ export function LyricsView({ song, size }: { song: Song; size: Size }) {
   };
   // biome-ignore lint/correctness/useExhaustiveDependencies: scroll when the line or following changes
   useEffect(() => {
-    if (following) activeElement.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+    if (following) activeElement.current?.scrollIntoView({ block: "center" });
   }, [active, following]);
 
   if (isPending) return <LoadingLines />;
@@ -215,7 +215,7 @@ export function LyricsView({ song, size }: { song: Song; size: Size }) {
       </div>
     );
 
-  const text = size === "full" ? "text-3xl leading-[1.3] gap-4" : "text-[17px] leading-[1.35] gap-1.5";
+  const text = size === "full" ? "text-4xl leading-[1.25] gap-6" : "text-xl leading-[1.3] gap-3";
   return (
     <div className="relative flex flex-col">
       <div className="flex items-center gap-1.5 px-2 pt-2">
