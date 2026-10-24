@@ -1,5 +1,6 @@
 import type { Database } from "bun:sqlite";
 import { createHash, randomBytes } from "node:crypto";
+import type { DeviceCommand } from "@keep/shared/devices";
 import { runChecks } from "@keep/shared/doctor";
 import type { LyricsCoverage } from "@keep/shared/lyrics";
 import type { LyricsSearch } from "@keep/shared/search";
@@ -21,6 +22,7 @@ import { addMoment, deleteMoment, listMoments, momentNotes, updateMoment } from 
 import { changeAlbum, changeSong, readPrefs } from "./prefs";
 import { ban, listBans, unban } from "./radio";
 import type { LoginLimiter } from "./rate-limit";
+import { latestFor, lineAt, NOTHING, type NowPlayingEntry, type RemoteNow, remoteSong } from "./remote";
 import { search } from "./search";
 import type { IndexSync } from "./search-index";
 import type { Session, SessionStore } from "./sessions";
@@ -486,6 +488,70 @@ export function createApi({
     return srv.upgrade(request, { data }) ? undefined : json({ error: "upgrade failed" }, 400);
   }
 
+  /** `POST /api/remote/token`: a sign-in for a terminal's now-playing mod. Listed (and signed out) with the sessions. */
+  function remoteToken(request: Request): Response {
+    if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
+    const session = sessions.get(cookieValue(request));
+    if (!session) return json({ error: "signed out" }, 401);
+    const token = sessions.create({
+      server: session.server,
+      user: session.user,
+      token: session.token,
+      salt: session.salt,
+      agent: "terminal · now playing",
+    });
+    return json({ token });
+  }
+
+  /** The remote signs in with `Authorization: Bearer <token>`, never a cookie, so a page can't ride on it. */
+  const remoteSession = (request: Request) => sessions.get(request.headers.get("authorization")?.match(/^Bearer (\S+)$/)?.[1]);
+  const accountOf = (session: Session) => `${session.server}\u0000${session.user}`;
+
+  /** `GET /api/remote/now`: the song, playhead and lyric line, from the playing player or else Navidrome's now playing. */
+  async function remoteNow(request: Request): Promise<Response> {
+    const session = remoteSession(request);
+    if (!session) return json({ error: "signed out" }, 401);
+    const upstream = upstreamFor(session.server);
+    if (!upstream) return json({ error: "server removed from config" }, 401);
+    const here = devices?.nowPlaying(accountOf(session));
+    let now: RemoteNow = NOTHING;
+    if (here?.state.songs[0])
+      now = {
+        song: remoteSong(here.state.songs[0]),
+        position: here.position,
+        playing: here.state.playing,
+        device: here.device,
+        line: null,
+        controllable: true,
+      };
+    else {
+      const reply = await subsonic<{ nowPlaying?: { entry?: NowPlayingEntry[] } }>(upstream, session, "getNowPlaying");
+      const entry = latestFor(reply?.nowPlaying?.entry ?? [], session.user);
+      if (entry) now = { ...NOTHING, song: remoteSong(entry), playing: true, device: entry.playerName ?? null };
+    }
+    if (now.song && now.position !== null) {
+      const found = await lyrics.get(upstream, session, now.song.id).catch(() => null);
+      if (found) now = { ...now, line: lineAt(found, now.position, lyrics.offset(session.user, now.song.id)) };
+    }
+    return json(now, 200, { "cache-control": "no-store" });
+  }
+
+  /** `POST /api/remote/:action` (`toggle`, `next`, `previous`): sent to the playing player. 409 when none of ours plays. */
+  function remoteAction(request: Request & { params: { action: string } }): Response {
+    const session = remoteSession(request);
+    if (!session) return json({ error: "signed out" }, 401);
+    const account = accountOf(session);
+    const { action } = request.params;
+    const command: DeviceCommand | null =
+      action === "toggle"
+        ? { action: "toggle", playing: !devices?.nowPlaying(account)?.state.playing }
+        : action === "next" || action === "previous"
+          ? { action }
+          : null;
+    if (!command) return json({ error: "unknown action" }, 404);
+    return devices?.command(account, command) ? json({ ok: true }) : json({ error: "nothing of ours is playing" }, 409);
+  }
+
   /** Bun has one WebSocket handler per server: listen-together and device sockets share it. */
   const sockets = {
     open(socket: Socket<SocketData>) {
@@ -896,6 +962,9 @@ export function createApi({
     listenSocket,
     devicesSocket,
     sockets,
+    remoteToken,
+    remoteNow,
+    remoteAction,
     lyricsRefetch,
     lyricsWritten,
     lyterionSummary,

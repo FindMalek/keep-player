@@ -1,4 +1,4 @@
-import { type Device, type DeviceServerMessage, type DeviceState, parseDeviceMessage } from "@keep/shared/devices";
+import { type Device, type DeviceCommand, type DeviceServerMessage, type DeviceState, parseDeviceMessage } from "@keep/shared/devices";
 
 /*
  * One playback session per account (#192), in memory. Each open player (a tab, the desktop app) is a device; at most
@@ -88,6 +88,23 @@ export class DeviceHub {
         this.reply(target, { t: "take", state: entry.state, stamped: this.now(), now: this.now() });
       }
     }
+  }
+
+  /** What the account's playing device plays right now, for the now-playing remote; null when nothing does. */
+  nowPlaying(account: string): { state: DeviceState; position: number; device: string } | null {
+    const entry = this.accounts.get(account);
+    const device = entry?.active ? entry.peers.get(entry.active) : undefined;
+    if (!entry?.state || !device) return null;
+    return { state: entry.state, position: this.position(entry), device: device.name };
+  }
+
+  /** A command from outside the browsers (the now-playing remote) for the playing device. False when none plays. */
+  command(account: string, command: DeviceCommand): boolean {
+    const entry = this.accounts.get(account);
+    const device = entry?.active ? entry.peers.get(entry.active) : undefined;
+    if (!device) return false;
+    this.reply(device, { t: "command", command });
+    return true;
   }
 
   /** A signed-out or revoked browser session loses its devices straight away. */

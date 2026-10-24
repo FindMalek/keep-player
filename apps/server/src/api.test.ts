@@ -2,6 +2,7 @@ import { afterAll, expect, test } from "bun:test";
 import { createApi } from "./api";
 import { CoverCache } from "./covers";
 import { openLibraryDb } from "./db";
+import { DeviceHub } from "./devices";
 import { LyricsService } from "./lyrics";
 import { LoginLimiter } from "./rate-limit";
 import { IndexSync } from "./search-index";
@@ -79,4 +80,49 @@ test("only admins see or rebuild the search index", async () => {
   const admin = sessions.create({ server: "default", user: "boss", token: "t", salt: "s", agent: "", admin: true });
   const response = await api.searchIndex(new Request("http://app/api/index", { headers: { cookie: `kp_session=${admin}`, ...csrf } }));
   expect(await response.json()).toMatchObject({ songs: 0, lastSync: null, building: false });
+});
+
+test("a terminal token reads what the playing player plays and skips it; the cookie alone gets nothing", async () => {
+  const hub = new DeviceHub();
+  const remoteApi = createApi({
+    upstreams: [navidrome],
+    indexes: new Map(),
+    library: openLibraryDb(":memory:"),
+    lyrics: new LyricsService(openLibraryDb(":memory:"), ""),
+    covers: new CoverCache(`${process.env.TMPDIR ?? "/tmp"}/kp-covers-${crypto.randomUUID()}`, 1_000_000),
+    sessions,
+    limiter: new LoginLimiter(),
+    idleSeconds: 60,
+    trustProxy: false,
+    devices: hub,
+  });
+  const got: string[] = [];
+  const mac = { id: "mac", name: "chrome on mac", session: "x", send: (text: string) => got.push(text), close: () => undefined };
+  hub.join("default\u0000demo", mac);
+  hub.handle(
+    "default\u0000demo",
+    mac,
+    JSON.stringify({ t: "state", state: { songs: [{ id: "s1", title: "Angel", artist: "Massive Attack" }], position: 30, playing: true } }),
+  );
+
+  const made = await remoteApi.remoteToken(
+    new Request("http://app/api/remote/token", { method: "POST", headers: { cookie: `kp_session=${cookie}`, "x-keep-player": "1" } }),
+  );
+  const { token } = (await made.json()) as { token: string };
+  expect((await remoteApi.remoteNow(request("/api/remote/now"))).status).toBe(401);
+
+  const bearer = { authorization: `Bearer ${token}` };
+  const now = await (await remoteApi.remoteNow(new Request("http://app/api/remote/now", { headers: bearer }))).json();
+  expect(now).toMatchObject({
+    song: { title: "Angel", artist: "Massive Attack" },
+    playing: true,
+    device: "chrome on mac",
+    controllable: true,
+  });
+
+  const toggle = Object.assign(new Request("http://app/api/remote/toggle", { method: "POST", headers: bearer }), {
+    params: { action: "toggle" },
+  });
+  expect((await remoteApi.remoteAction(toggle)).status).toBe(200);
+  expect(JSON.parse(got.at(-1) as string)).toEqual({ t: "command", command: { action: "toggle", playing: false } });
 });

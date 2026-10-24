@@ -34,7 +34,7 @@ import { MINI_PLAYER_SUPPORTED } from "@/lib/mini-player";
 import { previewNotice } from "@/lib/notify";
 import { type Settings, setSetting, TOAST_LEVELS, TOAST_POSITIONS, type ToastPosition, useSetting } from "@/lib/settings";
 import { isStreamQuality, QUALITIES } from "@/lib/stream-quality";
-import { logout, useUser } from "@/lib/subsonic";
+import { HEADERS, logout, useUser } from "@/lib/subsonic";
 import { setTheme, type Theme, useTheme } from "@/lib/theme";
 
 const EqualizerSheet = lazy(() => import("@/components/equalizer-sheet").then((module) => ({ default: module.EqualizerSheet })));
@@ -254,6 +254,43 @@ function DoctorRow() {
   );
 }
 
+/** A sign-in for the now-playing mod in Claude Code or OpenCode: made here, pasted there as one command. */
+function TerminalRow() {
+  const [command, setCommand] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
+  const make = async () => {
+    const response = await fetch("/api/remote/token", { method: "POST", headers: HEADERS }).catch(() => null);
+    if (!response?.ok) return setFailed(true);
+    const { token } = (await response.json()) as { token: string };
+    setCommand(`/music connect ${location.origin} ${token}`);
+  };
+  return (
+    <Row
+      label="now playing in your terminal"
+      hint={
+        command ? (
+          <>paste it in claude code or opencode · shown once · sign it out under account → sessions</>
+        ) : (
+          <>the song, its lyric line and play/pause above the prompt of claude code or opencode</>
+        )
+      }
+    >
+      {command ? (
+        <>
+          <input readOnly aria-label="connect command" value={command} className="h-8 w-56 border bg-transparent px-2 font-mono text-xs" />
+          <Button variant="outline" size="sm" onClick={() => void navigator.clipboard.writeText(command)}>
+            copy
+          </Button>
+        </>
+      ) : (
+        <Button variant="outline" size="sm" onClick={() => void make()}>
+          {failed ? "try again" : "connect"}
+        </Button>
+      )}
+    </Row>
+  );
+}
+
 /** Settings float over the page you were on: a sidebar of sections on the left, the rows on the right. */
 export function SettingsPage({ section, onClose }: { section: string | null; onClose: () => void }) {
   const [tab, setTab] = useState<Section>((SECTIONS as readonly string[]).includes(section ?? "") ? (section as Section) : "playback");
@@ -401,6 +438,7 @@ export function SettingsPage({ section, onClose }: { section: string | null; onC
                   hint={<>never while this one plays · {SYNCED}</>}
                 />
               )}
+              <TerminalRow />
             </TabsContent>
 
             <TabsContent value="storage">
