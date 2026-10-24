@@ -49,7 +49,8 @@ export function MixRow() {
       const response = await fetch(`/api/mixes?day=${day}`, { headers: HEADERS });
       return response.ok ? ((await response.json()) as { mixes: Mix[] }).mixes : [];
     },
-    staleTime: 60 * 60_000,
+    // An empty answer (no plays yet, or the index still building) is asked again on the next visit, never kept.
+    staleTime: (query) => (query.state.data?.length ? 60 * 60_000 : 0),
   });
   useEffect(() => {
     // No refetch of the playlist list here: it would undo a delete that is still waiting out its undo.

@@ -7,10 +7,13 @@ test("songs you play become daily mixes on home, saved as navidrome playlists to
         (await fetch(url, { ...options, headers: { "x-keep-player": "1", "content-type": "application/json" } })).json(),
       [path, init ?? {}] as const,
     );
+  // Mixes are made from the library index (plays only say which artists you like).
+  await call("/api/index", { method: "POST" });
+  await expect.poll(async () => (await call("/api/index")).building, { timeout: 20_000 }).toBe(false);
   const random = await call("/rest/getRandomSongs?size=6&f=json");
   const songs = random["subsonic-response"].randomSongs.song as { id: string; genre?: string }[];
-  // Six full listens of songs that share a genre: enough for a mix.
-  const song = songs.find((item) => item.genre) ?? songs[0];
+  // Six full listens of one artist: enough for a mix.
+  const song = songs[0];
   for (let i = 0; i < 6; i++)
     await call("/api/history", {
       method: "POST",
