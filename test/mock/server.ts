@@ -489,6 +489,17 @@ const server = Bun.serve({
   async fetch(request) {
     const url = new URL(request.url);
     if (url.pathname.startsWith("/lrclib/")) return lrclib(url);
+    // Groq for playlists from a prompt (GROQ_URL points here): picks the first three artists of the catalog it's sent.
+    if (url.pathname === "/groq/chat/completions") {
+      const body = (await request.json()) as { messages: { content: string }[] };
+      const catalog = (body.messages.at(-1)?.content ?? "").split("Catalog:\n")[1] ?? "";
+      const artists = catalog
+        .split("\n")
+        .slice(0, 3)
+        .map((line) => line.split(" · ")[0]);
+      const content = JSON.stringify({ name: "Rainy Sunday", description: "slow and warm", artists, size: 12 });
+      return Response.json({ choices: [{ message: { content } }] });
+    }
     // Lyterion's player summary, for the import page (LYTERION_URL points here in e2e).
     if (url.pathname === "/lyterion/api/rpc/api-reference/player/summary")
       return request.headers.get("x-lyterion-token") === "e2e-lyterion-token-0123456789"

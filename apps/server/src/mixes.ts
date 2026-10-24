@@ -49,7 +49,7 @@ export const weekdayOf = (day: number) => (day + 4) % 7;
 export const lastFriday = (day: number) => day - ((weekdayOf(day) - 5 + 7) % 7);
 
 /** A small seeded PRNG, so a day's mixes are the same on every device and every reload. */
-function seeded(seed: string): () => number {
+export function seeded(seed: string): () => number {
   let h = 2166136261;
   for (const char of seed) h = Math.imul(h ^ char.charCodeAt(0), 16777619);
   return () => {
@@ -60,7 +60,7 @@ function seeded(seed: string): () => number {
   };
 }
 
-function shuffle<T>(items: T[], random: () => number): T[] {
+export function shuffle<T>(items: T[], random: () => number): T[] {
   const copy = [...items];
   for (let i = copy.length - 1; i > 0; i--) {
     const j = Math.floor(random() * (i + 1));
@@ -69,7 +69,7 @@ function shuffle<T>(items: T[], random: () => number): T[] {
   return copy;
 }
 
-const keyOf = (song: { artist?: string; title?: string }) => `${normalize(song.artist ?? "")}\u0000${normalize(song.title ?? "")}`;
+export const keyOf = (song: { artist?: string; title?: string }) => `${normalize(song.artist ?? "")}\u0000${normalize(song.title ?? "")}`;
 
 interface Listening {
   plays: { song: Song; started: number }[];

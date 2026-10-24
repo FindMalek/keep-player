@@ -26,7 +26,7 @@ export const apiQueries = {
       queryFn: async () => {
         const response = await fetch("/auth/session");
         if (!response.ok) throw new Error(`session: ${response.status}`);
-        return (await response.json()) as { user: string; server: string; admin?: boolean; oneSession?: boolean };
+        return (await response.json()) as { user: string; server: string; admin?: boolean; oneSession?: boolean; ai?: boolean };
       },
       staleTime: Number.POSITIVE_INFINITY,
     }),
