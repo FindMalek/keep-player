@@ -34,6 +34,7 @@ export default defineConfig({
         PORT: String(APP),
         NAVIDROME_URL: `http://127.0.0.1:${MOCK}`,
         DATA_DIR: "test-results/data",
+        UPLOAD_DIR: `${process.cwd()}/test-results/uploads`,
         LRCLIB_URL: `http://127.0.0.1:${MOCK}/lrclib`,
         LYRICS_BACKFILL: "off",
       },
