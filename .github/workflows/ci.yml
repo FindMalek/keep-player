@@ -43,6 +43,8 @@ jobs:
       - run: bun install --frozen-lockfile
       # The runner host has the system libraries already; apt over the home line costs minutes per run.
       - run: bunx playwright install chromium
+      # the-keep-keep-player-2 → ports 4780/4799, so e2e jobs on the same host don't collide.
+      - run: echo "E2E_PORT_OFFSET=$(( ${RUNNER_NAME##*-} * 100 ))" >> "$GITHUB_ENV"
       - run: bun run e2e
       - uses: actions/upload-artifact@v4
         if: failure()
@@ -119,18 +121,27 @@ jobs:
           cache-to: type=local,dest=/home/findmalek/.cache/buildx/keep-player,mode=max
       - name: smoke test (read-only root, non-root user)
         if: github.event_name == 'pull_request'
+        env:
+          KP: kp-${{ github.run_id }}
         run: |
-          docker run -d --name kp --read-only --tmpfs /tmp -v kp-data:/data -p 8080:8080 \
+          # The runner host is shared: a name and a free port per run, removed in the step below.
+          docker run -d --name "$KP" --read-only --tmpfs /tmp -v "$KP-data:/data" -p 127.0.0.1::8080 \
             -e NAVIDROME_URL=http://127.0.0.1:9 keep-player:test
-          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:8080/healthz && break; sleep 1; done
-          curl -fsS http://127.0.0.1:8080/ | grep -q '<div id="root">'
+          URL="http://$(docker port "$KP" 8080 | head -1)"
+          for i in $(seq 1 30); do curl -fsS "$URL/healthz" && break; sleep 1; done
+          curl -fsS "$URL/" | grep -q '<div id="root">'
           # Navidrome isn't there: readiness says so (503) without exposing its address.
-          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/api/health)" = 503
-          test "$(docker exec kp id -u)" = 1000
+          test "$(curl -s -o /dev/null -w '%{http_code}' "$URL/api/health")" = 503
+          test "$(docker exec "$KP" id -u)" = 1000
           # A bad setting stops the server with a message naming it.
           if docker run --rm -e PORT=eighty keep-player:test > bad.log 2>&1; then exit 1; fi
           grep "PORT must be" bad.log
-          docker logs kp
+          docker logs "$KP"
+      - name: remove the smoke test container
+        if: always() && github.event_name == 'pull_request'
+        env:
+          KP: kp-${{ github.run_id }}
+        run: docker rm -f "$KP" && docker volume rm -f "$KP-data"
       - if: github.event_name == 'push'
         id: push
         uses: docker/build-push-action@v6

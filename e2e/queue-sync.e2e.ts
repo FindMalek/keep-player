@@ -5,7 +5,7 @@ import { expect, fakeMediaClock, test, trackTitles } from "./fixtures";
 // One shared play queue on the mock: these run in order, and only here is the sync turned on.
 test.describe.configure({ mode: "serial" });
 
-const MOCK = "http://127.0.0.1:4599";
+const MOCK = process.env.E2E_MOCK_URL as string;
 /** Straight to the mock, as another client would (its own credentials, its own client name). */
 const AUTH = `u=demo&t=${createHash("md5").update("demosalt").digest("hex")}&s=salt&v=1.16.1&f=json`;
 
