@@ -7,6 +7,7 @@ import { readTrack } from "@keep/shared/spotify-import";
 import type { Server } from "bun";
 import type { Upstream } from "./config";
 import { type CoverCache, snapCoverSize } from "./covers";
+import type { DeviceHub, DevicePeer } from "./devices";
 import { libraryItems } from "./doctor";
 import { UpdateCheck } from "./health";
 import { type NewPlay, readPlays, recordPlay } from "./history";
@@ -143,16 +144,31 @@ export interface ApiOptions {
   lyterion?: { url: string; token: string } | null;
   /** Listen-together rooms (#65). */
   rooms?: ListenRooms;
+  /** One playback session per account (#192); null turns it off. */
+  devices?: DeviceHub | null;
 }
 
 /** What a listen socket carries from the upgrade to its handlers. */
 export interface ListenSocketData {
+  kind: "listen";
   code: string;
   session: string;
   user: string;
   server: string;
   peer?: Peer;
 }
+
+/** A device socket (#192): the account it belongs to and this player's id and name. */
+export interface DeviceSocketData {
+  kind: "devices";
+  account: string;
+  device: { id: string; name: string };
+  peer?: DevicePeer;
+}
+
+export type SocketData = ListenSocketData | DeviceSocketData;
+
+type Socket<T> = { data: T; send(text: string): unknown; close(): void };
 
 export function createApi({
   upstreams,
@@ -170,6 +186,7 @@ export function createApi({
   rooms = new ListenRooms(),
   uploadDir = null,
   lyterion = null,
+  devices = null,
 }: ApiOptions) {
   const upstreamFor = (id: string) => upstreams.find((upstream) => upstream.id === id);
 
@@ -432,7 +449,7 @@ export function createApi({
   }
 
   /** `GET /api/listen/:code` as a WebSocket: join (or, for its host, rejoin) the session. Same origin only. */
-  function listenSocket(request: Request & { params: { code: string } }, srv: Server<ListenSocketData>): Response | undefined {
+  function listenSocket(request: Request & { params: { code: string } }, srv: Server<SocketData>): Response | undefined {
     const session = sessions.get(cookieValue(request));
     if (!session) return json({ error: "signed out" }, 401);
     // Browsers can't add the CSRF header to a WebSocket: the Origin must be this site instead.
@@ -440,22 +457,49 @@ export function createApi({
     if (!origin || new URL(origin).host !== request.headers.get("host")) return json({ error: "bad origin" }, 403);
     const code = request.params.code;
     if (!rooms.has(code)) return json({ error: "no such session" }, 404);
-    const data: ListenSocketData = { code, session: session.id, user: session.user, server: session.server };
+    const data: ListenSocketData = { kind: "listen", code, session: session.id, user: session.user, server: session.server };
     return srv.upgrade(request, { data }) ? undefined : json({ error: "upgrade failed" }, 400);
   }
 
-  const listenSockets = {
-    open(socket: { data: ListenSocketData; send(text: string): unknown; close(): void }) {
+  /** `GET /api/devices?id=&name=` as a WebSocket: this player joins its account's playback session. Same origin only. */
+  function devicesSocket(request: Request, srv: Server<SocketData>): Response | undefined {
+    if (!devices) return json({ error: "one session is off" }, 404);
+    const session = sessions.get(cookieValue(request));
+    if (!session) return json({ error: "signed out" }, 401);
+    const origin = request.headers.get("origin");
+    if (!origin || new URL(origin).host !== request.headers.get("host")) return json({ error: "bad origin" }, 403);
+    const params = new URL(request.url).searchParams;
+    const id = params.get("id") ?? "";
+    if (!/^[\w-]{1,64}$/.test(id)) return json({ error: "bad device id" }, 400);
+    const name = (params.get("name") ?? "").slice(0, 60) || "a browser";
+    const data: DeviceSocketData = { kind: "devices", account: `${session.server}\u0000${session.user}`, device: { id, name } };
+    return srv.upgrade(request, { data }) ? undefined : json({ error: "upgrade failed" }, 400);
+  }
+
+  /** Bun has one WebSocket handler per server: listen-together and device sockets share it. */
+  const sockets = {
+    open(socket: Socket<SocketData>) {
+      if (socket.data.kind === "devices") {
+        const peer: DevicePeer = { ...socket.data.device, send: (text) => void socket.send(text) };
+        socket.data.peer = peer;
+        if (!devices?.join(socket.data.account, peer)) socket.close();
+        return;
+      }
       const { code, session, user, server } = socket.data;
       const peer: Peer = { session, user, server, send: (text) => void socket.send(text) };
       socket.data.peer = peer;
       if (!rooms.join(code, peer)) socket.close();
     },
-    message(socket: { data: ListenSocketData }, message: string | Buffer) {
-      if (socket.data.peer && typeof message === "string") rooms.handle(socket.data.code, socket.data.peer, message);
+    message(socket: { data: SocketData }, message: string | Buffer) {
+      if (typeof message !== "string") return;
+      if (socket.data.kind === "devices") {
+        if (socket.data.peer) devices?.handle(socket.data.account, socket.data.peer, message);
+      } else if (socket.data.peer) rooms.handle(socket.data.code, socket.data.peer, message);
     },
-    close(socket: { data: ListenSocketData }) {
-      if (socket.data.peer) rooms.leave(socket.data.code, socket.data.peer);
+    close(socket: { data: SocketData }) {
+      if (socket.data.kind === "devices") {
+        if (socket.data.peer) devices?.leave(socket.data.account, socket.data.peer);
+      } else if (socket.data.peer) rooms.leave(socket.data.code, socket.data.peer);
     },
   };
 
@@ -835,7 +879,8 @@ export function createApi({
     doctor: doctorRoute,
     listenCreate,
     listenSocket,
-    listenSockets,
+    devicesSocket,
+    sockets,
     lyricsRefetch,
     lyricsWritten,
     lyterionSummary,

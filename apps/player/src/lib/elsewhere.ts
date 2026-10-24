@@ -2,6 +2,7 @@ import { useSyncExternalStore } from "react";
 import { notify } from "./notify";
 import { stillPlaying } from "./now-playing";
 import { player } from "./player";
+import { sessionState } from "./session-state";
 import { getSetting } from "./settings";
 import { api, CLIENT_NAME, getUser } from "./subsonic";
 import type { Song } from "./types";
@@ -33,7 +34,8 @@ function set(next: Elsewhere[]): void {
 /** Once per stretch of playing here: say so when another device of yours plays too, whichever started first. */
 let hinted = false;
 function courtesy(): void {
-  const here = player.getState().playing;
+  // A remote's "playing" is the other device's, and that one is in the same session, not competing.
+  const here = player.getState().playing && !player.isRemote();
   if (!here) hinted = false;
   else if (playing[0] && !hinted) {
     hinted = true;
@@ -54,6 +56,8 @@ async function poll(): Promise<void> {
   set(
     (response.nowPlaying?.entry ?? [])
       .filter((entry) => entry.username === me && entry.playerName !== CLIENT_NAME && stillPlaying(entry))
+      // Our other tabs are in the device picker when they share the session.
+      .filter((entry) => !(sessionState.get().connected && entry.playerName?.startsWith("keep-player@")))
       // Another app (your phone) before another browser of ours: the more useful one to show.
       .sort((a, b) => Number(a.playerName?.startsWith("keep-player@")) - Number(b.playerName?.startsWith("keep-player@")))
       .map((entry) => ({ song: entry, device: deviceName(entry.playerName ?? "") })),

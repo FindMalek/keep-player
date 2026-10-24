@@ -63,7 +63,7 @@ function snapshot(): { ids: string[]; position: number } | null {
 
 /** Save the queue (a form POST, so a long queue never hits a URL limit; `keepalive` survives the tab closing). */
 export async function pushQueue(keepalive = false): Promise<void> {
-  if (!getSetting("queueSync")) return;
+  if (!getSetting("queueSync") || player.isRemote()) return;
   const now = snapshot();
   if (!now) return;
   const indexed = await indexBased();
@@ -111,7 +111,7 @@ let lastPull = 0;
 
 /** Look at the server's queue and offer it (or take it, with "always follow" and nothing playing here). */
 export async function pullQueue(force = false): Promise<void> {
-  if (!getSetting("queueSync") || (!force && Date.now() - lastPull < PULL_THROTTLE_MS)) return;
+  if (!getSetting("queueSync") || player.isRemote() || (!force && Date.now() - lastPull < PULL_THROTTLE_MS)) return;
   lastPull = Date.now();
   const remote = await readRemote().catch(() => null);
   if (!remote || remote.changedBy === CLIENT_NAME || remote.changed === stored(DISMISSED_KEY)) return;

@@ -1,9 +1,11 @@
 import { join } from "node:path";
+import { MAX_DEVICE_MESSAGE_BYTES } from "@keep/shared/devices";
 import { createApi } from "./api";
 import { LyricsBackfill, serviceAccount } from "./backfill";
 import { config } from "./config";
 import { CoverCache } from "./covers";
 import { openLibraryDb } from "./db";
+import { DeviceHub } from "./devices";
 import { font } from "./fonts";
 import { HealthCheck, UpdateCheck, VERSION } from "./health";
 import { LrcWriter } from "./lrc-writer";
@@ -67,6 +69,7 @@ const api = createApi({
   lrc,
   uploadDir: config.uploadDir,
   lyterion: config.lyterion,
+  devices: config.oneSession ? new DeviceHub() : null,
 });
 const health = new HealthCheck(config.upstreams);
 
@@ -77,7 +80,7 @@ const server = Bun.serve({
   idleTimeout: 0,
   // Uploads are one file per request; a long hi-res track is over Bun's 128 MB default.
   maxRequestBodySize: MAX_UPLOAD_BYTES,
-  websocket: { ...api.listenSockets, maxPayloadLength: 16 * 1024 },
+  websocket: { ...api.sockets, maxPayloadLength: MAX_DEVICE_MESSAGE_BYTES },
   routes: {
     // Liveness (the container's healthcheck): the process answers. Readiness, with Navidrome: /api/health.
     "/healthz": () => new Response("ok"),
@@ -92,6 +95,7 @@ const server = Bun.serve({
     "/cover/:id/:size": api.cover,
     "/api/listen": { POST: api.listenCreate },
     "/api/listen/:code": { GET: (request, srv) => api.listenSocket(request, srv) },
+    "/api/devices": { GET: (request, srv) => api.devicesSocket(request, srv) },
     "/api/lyrics/coverage": { GET: api.lyricsCoverage },
     "/api/doctor": { GET: api.doctor },
     "/api/lyrics/missing": { GET: api.lyricsMissing },

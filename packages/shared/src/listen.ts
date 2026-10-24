@@ -72,13 +72,13 @@ export function correction(actual: number, expected: number): Correction {
   return Math.abs(actual - expected) > DRIFT_SECONDS ? { kind: "seek", to: Math.max(0, expected) } : { kind: "none" };
 }
 
-const isSong = (value: unknown): value is ListenSong =>
+export const isSong = (value: unknown): value is ListenSong =>
   typeof value === "object" &&
   value !== null &&
   typeof (value as ListenSong).id === "string" &&
   typeof (value as ListenSong).title === "string";
 
-const clean = (song: ListenSong): ListenSong => ({
+export const clean = (song: ListenSong): ListenSong => ({
   id: song.id.slice(0, 200),
   title: song.title.slice(0, 300),
   ...(typeof song.artist === "string" ? { artist: song.artist.slice(0, 300) } : {}),
