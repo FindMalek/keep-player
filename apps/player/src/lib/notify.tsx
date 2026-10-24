@@ -1,5 +1,5 @@
 import { shouldShow } from "./notify-level";
-import { getSetting } from "./settings";
+import { getSetting, type ToastPosition, useSetting } from "./settings";
 import { useTheme } from "./theme";
 
 export interface Notice {
@@ -17,11 +17,20 @@ export interface Notice {
 type Sonner = typeof import("sonner");
 let ready: Promise<Sonner> | null = null;
 
+/** Clear of the player bar and the selection bar over it; on the right also clear of the "up next" card. */
+function offsetFor(position: ToastPosition, upNext: boolean): number | { bottom: number; right?: number; left?: number } {
+  if (position.startsWith("top")) return 64;
+  if (position === "bottom-right") return { bottom: upNext ? 184 : 128, right: 16 };
+  if (position === "bottom-left") return { bottom: 128, left: 16 };
+  return 128;
+}
+
 function ThemedToaster({ Toaster }: { Toaster: typeof import("@/components/ui/sonner").Toaster }) {
   const theme = useTheme();
+  const position = useSetting("toastPosition");
+  const upNext = useSetting("upNext");
   const resolved = theme === "system" ? (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light") : theme;
-  // Above the player bar and the selection bar that floats over it, so a toast never covers its buttons.
-  return <Toaster theme={resolved} position="bottom-center" offset={128} />;
+  return <Toaster theme={resolved} position={position} offset={offsetFor(position, upNext)} />;
 }
 
 /** Toasts load on first use (sonner stays out of the first screen) in their own small React root. */
@@ -43,4 +52,10 @@ export function notify({ message, kind = "info", action, cancel, duration, id }:
   if (!shouldShow(getSetting("toasts"), { kind, action, cancel })) return;
   ready ??= mount();
   void ready.then(({ toast }) => (kind === "error" ? toast.error : toast)(message, { action, cancel, duration, id }));
+}
+
+/** A sample toast for the settings page, shown whatever the level so you can see where they land. */
+export function previewNotice(message: string): void {
+  ready ??= mount();
+  void ready.then(({ toast }) => toast(message, { id: "notifications-preview" }));
 }

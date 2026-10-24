@@ -30,7 +30,8 @@ import { MAX_CROSSFADE } from "@/lib/crossfade";
 import { doctorQuery } from "@/lib/doctor-query";
 import { install, useInstallState } from "@/lib/install";
 import { MINI_PLAYER_SUPPORTED } from "@/lib/mini-player";
-import { type Settings, setSetting, TOAST_LEVELS, useSetting } from "@/lib/settings";
+import { previewNotice } from "@/lib/notify";
+import { type Settings, setSetting, TOAST_LEVELS, TOAST_POSITIONS, type ToastPosition, useSetting } from "@/lib/settings";
 import { isStreamQuality, QUALITIES } from "@/lib/stream-quality";
 import { logout, useUser } from "@/lib/subsonic";
 import { setTheme, type Theme, useTheme } from "@/lib/theme";
@@ -133,7 +134,9 @@ function ToastsRow() {
         value={[level]}
         onValueChange={(value: string[]) => {
           const next = TOAST_LEVELS.find((item) => item === value[0]);
-          if (next) setSetting("toasts", next);
+          if (!next) return;
+          setSetting("toasts", next);
+          previewNotice(next === "errors" ? "only problems pop up now, like this one" : "notifications look like this");
         }}
       >
         {TOAST_LEVELS.map((value) => (
@@ -142,6 +145,45 @@ function ToastsRow() {
           </ToggleGroupItem>
         ))}
       </ToggleGroup>
+    </Row>
+  );
+}
+
+/** Which corner toasts use; picking one shows a sample there. */
+function ToastPositionRow() {
+  const position = useSetting("toastPosition");
+  return (
+    <Row label="notifications show" hint={<>bottom ones stay above the player bar and the up next card · {SYNCED}</>}>
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          render={
+            <Button
+              variant="outline"
+              size="sm"
+              aria-label={`notifications show: ${position}`}
+              className="w-36 justify-between font-mono font-normal"
+            />
+          }
+        >
+          {position.replace("-", " ")}
+          <ChevronDownIcon />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="min-w-36">
+          <DropdownMenuRadioGroup
+            value={position}
+            onValueChange={(value) => {
+              setSetting("toastPosition", value as ToastPosition);
+              previewNotice("notifications show up here");
+            }}
+          >
+            {TOAST_POSITIONS.map((value) => (
+              <DropdownMenuRadioItem key={value} value={value} className="font-mono">
+                {value.replace("-", " ")}
+              </DropdownMenuRadioItem>
+            ))}
+          </DropdownMenuRadioGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </Row>
   );
 }
@@ -303,6 +345,12 @@ export function SettingsPage({ section, onClose }: { section: string | null; onC
                 </DropdownMenu>
               </Row>
               <ToastsRow />
+              <ToastPositionRow />
+              <Toggle
+                setting="upNext"
+                label="up next card"
+                hint={<>the next song and a skip button, shown over the bar as a song ends · {SYNCED}</>}
+              />
               <Toggle setting="loadingBar" label="loading bar" hint={<>a thin line at the top while things refresh · {SYNCED}</>} />
               <Toggle
                 setting="offlineInBar"
