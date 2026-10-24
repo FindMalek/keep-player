@@ -35,6 +35,7 @@ import { notify } from "@/lib/notify";
 import { useCachedIds } from "@/lib/offline";
 import { currentSong, player, usePlayer, usePosition } from "@/lib/player";
 import { contextUpcoming } from "@/lib/queue";
+import { useSetting } from "@/lib/settings";
 import type { Song } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Cover } from "./cover";
@@ -179,6 +180,7 @@ export function PlayerBar({ panel, onPanel }: { panel: Panel; onPanel: (panel: P
   const cached = useCachedIds();
   const songId = usePlayer((state) => currentSong(state)?.id ?? "");
   const offline = cached.has(songId);
+  const offlineInBar = useSetting("offlineInBar");
   const footer = useRef<HTMLElement>(null);
   const hasSong = Boolean(song);
   // The rest of the layout (the sidebar's bottom edge, the selection bar) sits above the bar: tell it how tall it is.
@@ -281,7 +283,7 @@ export function PlayerBar({ panel, onPanel }: { panel: Panel; onPanel: (panel: P
     </span>
   ) : roomy ? (
     <span className="mr-2 truncate font-mono text-[11px] text-muted-foreground">
-      {offline && !buffering && <OfflineMark />}
+      {offline && offlineInBar && !buffering && <OfflineMark />}
       {buffering ? "loading…" : quality(song.suffix, song.bitRate)}
     </span>
   ) : null;

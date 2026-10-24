@@ -1,7 +1,7 @@
 # Dokploy
 
 How [player.findmalek.engineer](https://player.findmalek.engineer) runs: a Dokploy compose that pulls the image CI
-publishes, redeployed by CI after every merge to `main`.
+publishes, redeployed by CI on every release.
 
 ## 1. The compose
 
@@ -34,7 +34,7 @@ Then **Domains → Add domain**: your host, service `player`, port `8080`, HTTPS
 The GHCR package is public, so no registry login is needed. If you fork and keep yours private, add GHCR under
 **Settings → Registry** with a token that has `read:packages`.
 
-## 2. Deploy on every merge
+## 2. Deploy on every release
 
 1. In the compose: **Deployments → Webhook URL**, copy it.
 2. In GitHub: **Settings → Secrets and variables → Actions**
@@ -42,8 +42,9 @@ The GHCR package is public, so no registry login is needed. If you fork and keep
    - variable `PLAYER_URL`: `https://player.findmalek.engineer` (optional: CI then waits until `/api/health` answers
      after each deploy, so a broken deploy turns the run red)
 
-CI (`.github/workflows/ci.yml`) then, on every push to `main`: checks and tests, builds the amd64 + arm64 image,
-pushes `:main` and `:sha-…`, calls the webhook (Dokploy pulls and restarts the container), and waits for health.
+CI (`.github/workflows/ci.yml`) then, when the release PR is merged: checks and tests, builds the amd64 image on the
+self-hosted runner, pushes `:X.Y.Z`, `:latest`, `:main` and `:sha-…`, calls the webhook (Dokploy pulls and restarts the
+container), and waits for health. Plain merges to `main` only run the tests.
 
 ## 3. Releases
 

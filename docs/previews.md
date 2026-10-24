@@ -1,6 +1,6 @@
 # Previews
 
-Every pull request from this repo gets a preview, like Vercel: a build of the PR at `pr-<n>.<PREVIEW_DOMAIN>`, and one
+Every pull request from this repo labelled `preview` gets one, like Vercel: a build of the PR at `pr-<n>.<PREVIEW_DOMAIN>`, and one
 sticky comment on the PR (edited in place, never a new one per push) with its status, an Inspect link to the Dokploy
 app and the Preview link. Closing the PR deletes the app and marks the comment as deleted.
 
