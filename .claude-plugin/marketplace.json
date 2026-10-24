@@ -1,0 +1,11 @@
+{
+  "name": "keep-player",
+  "owner": { "name": "FindMalek" },
+  "plugins": [
+    {
+      "name": "keep-now-playing",
+      "source": "./integrations/claude-code",
+      "description": "What your keep-player plays, with its lyric line and play/pause, above the prompt"
+    }
+  ]
+}

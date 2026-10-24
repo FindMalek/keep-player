@@ -1,0 +1,15 @@
+{
+  "name": "opencode-keep-now-playing",
+  "version": "0.1.0",
+  "description": "What your keep-player plays, with its lyric line, in OpenCode's prompt footer",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    "./tui": "./src/tui.tsx"
+  },
+  "peerDependencies": {
+    "@opentui/core": ">=0.6.6",
+    "@opentui/solid": ">=0.6.6",
+    "solid-js": ">=1.9.0"
+  }
+}
