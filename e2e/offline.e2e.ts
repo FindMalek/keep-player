@@ -39,7 +39,7 @@ test("close to the end, the next song loads once: the service worker drops its c
   }, album);
   const second = ids[1] as string;
   // The service worker's download of the second song will stall for a long time (it can't be routed by the page).
-  const mock = "http://127.0.0.1:4599/mock";
+  const mock = `${process.env.E2E_MOCK_URL}/mock`;
   await page.request.post(`${mock}/slow?id=${encodeURIComponent(second)}&seconds=60`);
   const streams = async () =>
     (await (await page.request.get(`${mock}/streams?id=${encodeURIComponent(second)}`)).json()) as { aborted: boolean }[];
