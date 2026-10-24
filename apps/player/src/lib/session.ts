@@ -8,8 +8,10 @@ import {
   MAX_STATE_SONGS,
 } from "@keep/shared/devices";
 import { clockOffset, expectedPosition } from "@keep/shared/listen";
+import { apiQueries } from "./api-queries";
 import { notify } from "./notify";
 import { player } from "./player";
+import { queryClient } from "./queries";
 import * as Q from "./queue";
 import { sessionState } from "./session-state";
 import type { Song } from "./types";
@@ -285,8 +287,8 @@ export const session = {
     if (started) return;
     started = true;
     // Off on this server (ONE_SESSION=off): every tab keeps playing on its own.
-    const probe = await fetch("/api/devices", { headers: { accept: "application/json" } }).catch(() => null);
-    if (probe?.status === 404) return;
+    const signedIn = await queryClient.fetchQuery(apiQueries.session()).catch(() => null);
+    if (!signedIn?.oneSession) return;
     sessionState.set({ you: deviceId() });
     startPublishing();
     connect();

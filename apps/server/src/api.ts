@@ -277,7 +277,7 @@ export function createApi({
   function current(request: Request): Response {
     const session = sessions.get(cookieValue(request));
     return session
-      ? json({ user: session.user, server: session.server, id: session.id, admin: session.admin })
+      ? json({ user: session.user, server: session.server, id: session.id, admin: session.admin, oneSession: devices !== null })
       : json({ error: "signed out" }, 401);
   }
 
