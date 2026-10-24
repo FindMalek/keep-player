@@ -32,6 +32,7 @@ import type { Session, SessionStore } from "./sessions";
 import { forgottenFavourites, listeningStats } from "./stats";
 import { subsonic, upstreamQuery } from "./subsonic";
 import { MAX_UPLOAD_BYTES, saveUpload, uploadPath } from "./upload";
+import { weeklyPlaylists } from "./weekly-playlists";
 
 const COOKIE = "kp_session";
 const FOLDERS_TTL_MS = 10 * 60_000;
@@ -948,15 +949,10 @@ export function createApi({
     const tzMinutes = Math.min(840, Math.max(-840, Number(params.get("tz")) || 0));
     const account = `${session.server}:${session.user}`;
     const made = madeForYou(library, session.server, account, { day, hour, tzMinutes });
-    const moods = await moodMixes(
-      library,
-      groq,
-      account,
-      day,
-      groq ? listening(library, session.server, account, Date.now()) : null,
-      fetcher,
-    );
-    const mixes = [...made, ...moods];
+    const heard = groq ? listening(library, session.server, account, Date.now()) : null;
+    const moods = await moodMixes(library, groq, account, day, heard, fetcher);
+    const weekly = await weeklyPlaylists(library, groq, account, day, heard, fetcher);
+    const mixes = [...made, ...moods, ...weekly];
     return json({ day, mixes }, 200, {
       "cache-control": "private, no-cache",
     });

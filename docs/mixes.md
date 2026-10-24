@@ -13,6 +13,7 @@ playlists, so your phone and every other Subsonic app have them too.
 | **release radar** | songs added to your library in the last month by artists you play, newest first | as songs arrive |
 | **on this day** | what you played around this date a year ago, most played first | every day |
 | **focus mix, late night mix, energy mix** | with `GROQ_API_KEY`: Groq sorts the artists you play into moods once a week (one call, cached), and each mix is a fresh blend of their songs every day | every day |
+| **… · weekly** | with `GROQ_API_KEY`, after [Sonaraem](https://github.com/FindMalek/sonaraem): up to five playlists Groq names and fills by grouping the artists you play by shared sound and mood; no artist takes over a list | every week |
 
 They need some listening history first (a few days of plays). A card opens its playlist; the play button on a card
 starts it. Plays are matched to the library by artist and title, so a tagger moving files doesn't lose your history.
