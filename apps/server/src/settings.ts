@@ -78,6 +78,13 @@ export const SETTINGS = [
   { name: "GROQ_MODEL", fallback: "openai/gpt-oss-120b", description: "The Groq model for playlists from a prompt." },
   { name: "GROQ_URL", fallback: "https://api.groq.com/openai/v1", description: "Groq's API, or any OpenAI-compatible one." },
   {
+    name: "FEEDBACK_GITHUB_TOKEN",
+    fallback: "",
+    description:
+      'A GitHub token that may open issues and write contents on `FEEDBACK_REPO`: turns on "send feedback" in the user menu, filed as an issue (screenshots go to a `feedback` branch). Empty: off.',
+  },
+  { name: "FEEDBACK_REPO", fallback: "", description: "Where feedback goes, as `owner/repo`. Needed with `FEEDBACK_GITHUB_TOKEN`." },
+  {
     name: "ONE_SESSION",
     fallback: "on",
     description:
@@ -131,6 +138,8 @@ export interface Config {
   lrclibUrl: string;
   lyricsBackfill: boolean;
   oneSession: boolean;
+  /** Null unless both `FEEDBACK_GITHUB_TOKEN` and `FEEDBACK_REPO` are set. */
+  feedback: { token: string; repo: string } | null;
   /** Null unless `GROQ_API_KEY` is set. */
   groq: { key: string; model: string; url: string } | null;
   /** Null unless `LYRICS_WRITE_LRC=on`: the music folder .lrc files are written into. */
@@ -199,6 +208,10 @@ export function readConfig(env: Env): { config: Config; errors: string[] } {
   const lyterionToken = get("LYTERION_TOKEN");
   if (lyterionUrl && !isUrl(lyterionUrl)) errors.push(`LYTERION_URL must be http(s)://host or empty, got "${lyterionUrl}"`);
   if (!!lyterionUrl !== !!lyterionToken) errors.push("LYTERION_URL and LYTERION_TOKEN go together: set both or neither");
+  if (!!get("FEEDBACK_GITHUB_TOKEN") !== !!get("FEEDBACK_REPO"))
+    errors.push("FEEDBACK_GITHUB_TOKEN and FEEDBACK_REPO go together: set both or neither");
+  if (get("FEEDBACK_REPO") && !/^[\w.-]+\/[\w.-]+$/.test(get("FEEDBACK_REPO")))
+    errors.push(`FEEDBACK_REPO must be owner/repo, got "${get("FEEDBACK_REPO")}"`);
   const indexUser = get("INDEX_USER") || undefined;
   const indexPassword = get("INDEX_PASSWORD") || undefined;
   if (!!indexUser !== !!indexPassword) errors.push("INDEX_USER and INDEX_PASSWORD go together: set both or neither");
@@ -216,6 +229,8 @@ export function readConfig(env: Env): { config: Config; errors: string[] } {
     lrclibUrl,
     lyricsBackfill: flag("LYRICS_BACKFILL", ["on"], ["off"]),
     oneSession: flag("ONE_SESSION", ["on"], ["off"]),
+    feedback:
+      get("FEEDBACK_GITHUB_TOKEN") && get("FEEDBACK_REPO") ? { token: get("FEEDBACK_GITHUB_TOKEN"), repo: get("FEEDBACK_REPO") } : null,
     groq: get("GROQ_API_KEY") ? { key: get("GROQ_API_KEY"), model: get("GROQ_MODEL"), url: get("GROQ_URL").replace(/\/+$/, "") } : null,
     lrcDir: writeLrc ? musicDir : null,
     uploadDir: uploadDir || null,
