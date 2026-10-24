@@ -15,7 +15,7 @@ permissions:
 jobs:
   demo:
     if: vars.DOKPLOY_PUBLIC_URL != '' && vars.DEPLOY_ENABLED == 'true'
-    runs-on: [self-hosted, the-keep]
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
       DOKPLOY_URL: ${{ vars.DOKPLOY_PUBLIC_URL }}
@@ -35,8 +35,8 @@ jobs:
           file: infra/demo/Dockerfile
           push: true
           tags: ghcr.io/findmalek/keep-player-demo:latest
-          cache-from: type=registry,ref=ghcr.io/findmalek/keep-player-demo:cache
-          cache-to: type=registry,ref=ghcr.io/findmalek/keep-player-demo:cache,mode=max,ignore-error=true
+          cache-from: type=gha,scope=demo
+          cache-to: type=gha,scope=demo,mode=max
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
