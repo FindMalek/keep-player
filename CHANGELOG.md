@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.1](https://github.com/FindMalek/keep-player/compare/v0.5.0...v0.5.1) (2026-10-24)
+
+
+### Bug Fixes
+
+* **discovery:** mixes by artist, not genre ([#233](https://github.com/FindMalek/keep-player/issues/233)) ([003af53](https://github.com/FindMalek/keep-player/commit/003af53252b7176d244c38428bb20044168be998))
+
 ## [0.5.0](https://github.com/FindMalek/keep-player/compare/v0.4.1...v0.5.0) (2026-10-24)
 
 
