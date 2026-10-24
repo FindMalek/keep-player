@@ -1,10 +1,11 @@
 # Vercel-style previews on Dokploy, built on GitHub runners: one image per PR, one Dokploy app, one sticky comment.
-# Skipped until the repo var DEPLOY_ENABLED is "true", see docs/previews.md.
+# Skipped until the repo var DEPLOY_ENABLED is "true", see docs/previews.md. Only PRs labelled `preview` get one:
+# each build pushes an image over the home line, so it's opt-in.
 name: Preview
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened, closed]
+    types: [opened, synchronize, reopened, labeled, closed]
 
 concurrency:
   group: preview-${{ github.event.pull_request.number }}
@@ -25,7 +26,7 @@ env:
 
 jobs:
   deploy:
-    if: github.event.action != 'closed' && vars.DOKPLOY_PUBLIC_URL != '' && vars.DEPLOY_ENABLED == 'true' && github.event.pull_request.head.repo.full_name == github.repository
+    if: github.event.action != 'closed' && contains(github.event.pull_request.labels.*.name, 'preview') && vars.DOKPLOY_PUBLIC_URL != '' && vars.DEPLOY_ENABLED == 'true' && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: [self-hosted, the-keep]
     timeout-minutes: 30
     steps:
@@ -42,8 +43,8 @@ jobs:
           context: .
           push: true
           tags: ghcr.io/findmalek/keep-player:pr-${{ env.PR_NUMBER }}
-          cache-from: type=registry,ref=ghcr.io/findmalek/keep-player:cache
-          cache-to: type=registry,ref=ghcr.io/findmalek/keep-player:cache,mode=max,ignore-error=true
+          cache-from: type=local,src=/home/findmalek/.cache/buildx/keep-player
+          cache-to: type=local,dest=/home/findmalek/.cache/buildx/keep-player,mode=max
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
