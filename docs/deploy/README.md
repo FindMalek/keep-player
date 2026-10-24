@@ -1,6 +1,6 @@
 # Deploying
 
-keep music is one container (`ghcr.io/findmalek/keep-player`, amd64 and arm64) that needs to reach your Navidrome.
+keep music is one container (`ghcr.io/findmalek/keep-player`, amd64) that needs to reach your Navidrome.
 It keeps its state in one volume at `/data`, runs as an unprivileged user and works with a read-only root filesystem.
 
 | file | setup |
@@ -17,7 +17,7 @@ Every setting is an environment variable: [configuration](../configuration.md). 
 | tag | what |
 |---|---|
 | `latest`, `0.4`, `0.4.1` | releases |
-| `main` | every merge to `main` (what the author runs) |
+| `main` | the latest release, same as `latest` (what the author runs) |
 | `sha-abc1234` | one exact commit |
 
 ## Health
