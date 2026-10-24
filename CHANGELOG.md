@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.1](https://github.com/FindMalek/keep-player/compare/v0.4.0...v0.4.1) (2026-10-24)
+
+
+### Bug Fixes
+
+* **previews:** pull public images without login ([#221](https://github.com/FindMalek/keep-player/issues/221)) ([a971a4c](https://github.com/FindMalek/keep-player/commit/a971a4c65993d7eff75ea3b8b0f33a9ae376f650))
+
 ## [0.4.0](https://github.com/FindMalek/keep-player/compare/v0.3.0...v0.4.0) (2026-10-24)
 
 
