@@ -14,10 +14,10 @@ permissions:
   contents: read
 
 jobs:
+  # Pull requests and merges run on GitHub's runners: free for a public repo, as many at once as there are jobs.
   check:
-    runs-on: [self-hosted, the-keep]
-    # A stalled download on the home line must fail fast, not sit for github's 6 h limit.
-    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
       - uses: oven-sh/setup-bun@v2
@@ -32,25 +32,26 @@ jobs:
       - run: bun scripts/config-docs.ts --check
       - run: bun scripts/shortcuts-docs.ts --check
 
+  # The browser suite split four ways, each on its own machine. Lighthouse waits for a release (job below).
   e2e:
-    runs-on: [self-hosted, the-keep]
-    timeout-minutes: 60
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@v5
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.4.2
       - run: bun install --frozen-lockfile
-      # The runner host has the system libraries already; apt over the home line costs minutes per run.
-      - run: bunx playwright install chromium
-      # the-keep-keep-player-2 → ports 4780/4799, so e2e jobs on the same host don't collide.
-      - run: echo "E2E_PORT_OFFSET=$(( ${RUNNER_NAME##*-} * 100 ))" >> "$GITHUB_ENV"
-      # One suite at a time on the host: three at once starve the 6 cores and time out. Install and build still overlap.
-      - run: flock /tmp/keep-player-e2e.lock bun run e2e
+      - run: bunx playwright install --with-deps chromium
+      - run: bun run e2e --project=chromium --shard=${{ matrix.shard }}/4
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.shard }}
           path: playwright-report
           retention-days: 7
 
@@ -58,8 +59,8 @@ jobs:
   # the image job below publishes that version: a tag pushed with GITHUB_TOKEN wouldn't start another workflow.
   release:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: [self-hosted, the-keep]
-    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     # Needs "Allow GitHub Actions to create pull requests" in the repo settings; never holds up a deploy without it.
     continue-on-error: true
     permissions:
@@ -75,10 +76,54 @@ jobs:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
+  # Pull requests: one image built on GitHub's runner and smoke-tested the way the compose example runs it.
+  smoke:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: keep-player:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: smoke test (read-only root, non-root user)
+        run: |
+          docker run -d --name kp --read-only --tmpfs /tmp -v kp-data:/data -p 8080:8080 \
+            -e NAVIDROME_URL=http://127.0.0.1:9 keep-player:test
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:8080/healthz && break; sleep 1; done
+          curl -fsS http://127.0.0.1:8080/ | grep -q '<div id="root">'
+          # Navidrome isn't there: readiness says so (503) without exposing its address.
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/api/health)" = 503
+          test "$(docker exec kp id -u)" = 1000
+          # A bad setting stops the server with a message naming it.
+          if docker run --rm -e PORT=eighty keep-player:test > bad.log 2>&1; then exit 1; fi
+          grep "PORT must be" bad.log
+
+  # Lighthouse runs alone on a quiet machine, and only for a release: it's slow and a score, not a correctness check.
+  lighthouse:
+    needs: release
+    if: ${{ !cancelled() && (needs.release.outputs.created == 'true' || startsWith(github.ref, 'refs/tags/v')) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+      - run: bun install --frozen-lockfile
+      - run: bunx playwright install --with-deps chromium
+      - run: bun run e2e --project=lighthouse --no-deps
+
+  # Only a release builds and ships an image: merges to main stop at the tests. Built on the-keep, next to Dokploy,
+  # amd64 only (that's what runs here; arm64 through qemu took most of the time), layers cached on the host.
   image:
     needs: [check, e2e, release]
-    # `release` is skipped on pull requests and tags; the image still builds then.
-    if: ${{ !cancelled() && !failure() }}
+    if: ${{ !cancelled() && !failure() && (needs.release.outputs.created == 'true' || startsWith(github.ref, 'refs/tags/v')) }}
     runs-on: [self-hosted, the-keep]
     timeout-minutes: 30
     permissions:
@@ -88,12 +133,8 @@ jobs:
       attestations: write
     steps:
       - uses: actions/checkout@v5
-      # Only the final stage's `apk add` runs as arm64; the executable is cross-compiled (see Dockerfile).
-      - uses: docker/setup-qemu-action@v3
-        if: github.event_name == 'push'
       - uses: docker/setup-buildx-action@v3
       - uses: docker/login-action@v3
-        if: github.event_name == 'push'
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -103,68 +144,33 @@ jobs:
         with:
           images: ghcr.io/findmalek/keep-player
           tags: |
-            type=raw,value=main,enable=${{ github.ref == 'refs/heads/main' }}
+            type=raw,value=main
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
             type=raw,value=${{ needs.release.outputs.version }},enable=${{ needs.release.outputs.created == 'true' }}
             type=raw,value=latest,enable=${{ needs.release.outputs.created == 'true' }}
             type=sha
-      # Pull requests: one architecture, loaded locally and smoke-tested the way the compose example runs it.
-      - if: github.event_name == 'pull_request'
+      - id: push
         uses: docker/build-push-action@v6
         with:
           context: .
-          load: true
-          tags: keep-player:test
-          # Layers stay on the runner host: no registry round trip over the home line for a throwaway image.
-          cache-from: type=local,src=/home/findmalek/.cache/buildx/keep-player
-          cache-to: type=local,dest=/home/findmalek/.cache/buildx/keep-player,mode=max
-      - name: smoke test (read-only root, non-root user)
-        if: github.event_name == 'pull_request'
-        env:
-          KP: kp-${{ github.run_id }}
-        run: |
-          # The runner host is shared: a name and a free port per run, removed in the step below.
-          docker run -d --name "$KP" --read-only --tmpfs /tmp -v "$KP-data:/data" -p 127.0.0.1::8080 \
-            -e NAVIDROME_URL=http://127.0.0.1:9 keep-player:test
-          URL="http://$(docker port "$KP" 8080 | head -1)"
-          for i in $(seq 1 30); do curl -fsS "$URL/healthz" && break; sleep 1; done
-          curl -fsS "$URL/" | grep -q '<div id="root">'
-          # Navidrome isn't there: readiness says so (503) without exposing its address.
-          test "$(curl -s -o /dev/null -w '%{http_code}' "$URL/api/health")" = 503
-          test "$(docker exec "$KP" id -u)" = 1000
-          # A bad setting stops the server with a message naming it.
-          if docker run --rm -e PORT=eighty keep-player:test > bad.log 2>&1; then exit 1; fi
-          grep "PORT must be" bad.log
-          docker logs "$KP"
-      - name: remove the smoke test container
-        if: always() && github.event_name == 'pull_request'
-        env:
-          KP: kp-${{ github.run_id }}
-        run: docker rm -f "$KP" && docker volume rm -f "$KP-data"
-      - if: github.event_name == 'push'
-        id: push
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           push: true
           provenance: mode=max
           sbom: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=registry,ref=ghcr.io/findmalek/keep-player:cache
-          cache-to: type=registry,ref=ghcr.io/findmalek/keep-player:cache,mode=max
-      - if: github.event_name == 'push'
-        uses: actions/attest-build-provenance@v3
+          cache-from: type=local,src=/home/findmalek/.cache/buildx/keep-player
+          cache-to: type=local,dest=/home/findmalek/.cache/buildx/keep-player,mode=max
+      - uses: actions/attest-build-provenance@v3
         with:
           subject-name: ghcr.io/findmalek/keep-player
           subject-digest: ${{ steps.push.outputs.digest }}
           push-to-registry: true
 
   deploy:
-    if: ${{ !cancelled() && !failure() && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    if: ${{ !cancelled() && needs.image.result == 'success' }}
     needs: image
     runs-on: [self-hosted, the-keep]
     timeout-minutes: 30
