@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.0](https://github.com/FindMalek/keep-player/compare/v0.5.1...v0.6.0) (2026-10-24)
+
+
+### Features
+
+* **discovery:** discover weekly and daylist ([#237](https://github.com/FindMalek/keep-player/issues/237)) ([10f9a12](https://github.com/FindMalek/keep-player/commit/10f9a12f961e030d3424f2661d32d571b4b19ee6))
+
 ## [0.5.1](https://github.com/FindMalek/keep-player/compare/v0.5.0...v0.5.1) (2026-10-24)
 
 
