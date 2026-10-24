@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.1.0](https://github.com/FindMalek/keep-player/compare/v1.0.0...v1.1.0) (2026-10-24)
+
+
+### Features
+
+* **remote:** now playing in claude code and opencode ([127efc5](https://github.com/FindMalek/keep-player/commit/127efc5a232c4661d9560b5b176f4a19590de273))
+* **session:** one playback session across devices ([79010e1](https://github.com/FindMalek/keep-player/commit/79010e17f062737489ad1f795077a1c1f9c700ec))
+
+
+### Bug Fixes
+
+* **preview:** dokploy project link ([#252](https://github.com/FindMalek/keep-player/issues/252)) ([85cc59e](https://github.com/FindMalek/keep-player/commit/85cc59eef0fcbac504ae59fabf83a02827385393))
+
 ## [1.0.0](https://github.com/FindMalek/keep-player/compare/v0.7.0...v1.0.0) (2026-10-24)
 
 
