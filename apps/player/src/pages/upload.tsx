@@ -25,8 +25,12 @@ function send(item: Item, onProgress: (sent: number) => void): Promise<void> {
     request.upload.onprogress = (event) => onProgress(event.loaded);
     request.onload = () => {
       if (request.status < 300) return resolve();
-      const body = JSON.parse(request.responseText || "{}") as { error?: string };
-      reject(new Error(body.error ?? `failed (${request.status})`));
+      // A proxy's 413 or 502 is html: a throw here would leave the promise, and the whole queue, hanging.
+      let error: string | undefined;
+      try {
+        error = (JSON.parse(request.responseText) as { error?: string }).error;
+      } catch {}
+      reject(new Error(error ?? `failed (${request.status})`));
     };
     request.onerror = () => reject(new Error("connection lost"));
     request.send(item.file);
