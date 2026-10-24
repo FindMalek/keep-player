@@ -35,6 +35,8 @@ export default defineConfig({
         NAVIDROME_URL: `http://127.0.0.1:${MOCK}`,
         DATA_DIR: "test-results/data",
         UPLOAD_DIR: `${process.cwd()}/test-results/uploads`,
+        LYTERION_URL: `http://127.0.0.1:${MOCK}/lyterion`,
+        LYTERION_TOKEN: "e2e-lyterion-token-0123456789",
         LRCLIB_URL: `http://127.0.0.1:${MOCK}/lrclib`,
         LYRICS_BACKFILL: "off",
       },

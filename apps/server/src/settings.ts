@@ -59,6 +59,17 @@ export const SETTINGS = [
       '`on`: lyrics found on LRCLIB are also saved as `<track>.lrc` next to the audio file, so other clients get them. Needs `MUSIC_DIR` and Navidrome\'s "Report Real Path". Never overwrites; undo from the lyrics page.',
   },
   {
+    name: "LYTERION_URL",
+    fallback: "",
+    description:
+      "Lyterion's API, as this container reaches it, to show what of your Spotify library is in Navidrome on the import page. Empty: the import page asks for a Spotify export file instead.",
+  },
+  {
+    name: "LYTERION_TOKEN",
+    fallback: "",
+    description: "The `LYTERION_PLAYER_TOKEN` set on Lyterion. Needed with `LYTERION_URL`.",
+  },
+  {
     name: "UPLOAD_DIR",
     fallback: "",
     description:
@@ -109,6 +120,8 @@ export interface Config {
   lrcDir: string | null;
   /** Null when uploads are off. */
   uploadDir: string | null;
+  /** Null unless both `LYTERION_URL` and `LYTERION_TOKEN` are set. */
+  lyterion: { url: string; token: string } | null;
   indexUser: string | undefined;
   indexPassword: string | undefined;
   demoSeed: boolean;
@@ -165,6 +178,10 @@ export function readConfig(env: Env): { config: Config; errors: string[] } {
   if (writeLrc && !musicDir.startsWith("/")) errors.push(`LYRICS_WRITE_LRC=on needs MUSIC_DIR, an absolute path, got "${musicDir}"`);
   const uploadDir = get("UPLOAD_DIR").replace(/(.)\/+$/, "$1");
   if (uploadDir && !uploadDir.startsWith("/")) errors.push(`UPLOAD_DIR must be an absolute path or empty, got "${uploadDir}"`);
+  const lyterionUrl = get("LYTERION_URL").replace(/\/+$/, "");
+  const lyterionToken = get("LYTERION_TOKEN");
+  if (lyterionUrl && !isUrl(lyterionUrl)) errors.push(`LYTERION_URL must be http(s)://host or empty, got "${lyterionUrl}"`);
+  if (!!lyterionUrl !== !!lyterionToken) errors.push("LYTERION_URL and LYTERION_TOKEN go together: set both or neither");
   const indexUser = get("INDEX_USER") || undefined;
   const indexPassword = get("INDEX_PASSWORD") || undefined;
   if (!!indexUser !== !!indexPassword) errors.push("INDEX_USER and INDEX_PASSWORD go together: set both or neither");
@@ -183,6 +200,7 @@ export function readConfig(env: Env): { config: Config; errors: string[] } {
     lyricsBackfill: flag("LYRICS_BACKFILL", ["on"], ["off"]),
     lrcDir: writeLrc ? musicDir : null,
     uploadDir: uploadDir || null,
+    lyterion: lyterionUrl && lyterionToken ? { url: lyterionUrl, token: lyterionToken } : null,
     indexUser,
     indexPassword,
     demoSeed,

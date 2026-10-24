@@ -139,6 +139,8 @@ export interface ApiOptions {
   lrc?: { count(server: string): number; undoAll(server: string): { removed: number; kept: number } } | null;
   /** Where uploads land; null or missing turns them off. */
   uploadDir?: string | null;
+  /** Lyterion's API for the import page; null or missing turns it off. */
+  lyterion?: { url: string; token: string } | null;
   /** Listen-together rooms (#65). */
   rooms?: ListenRooms;
 }
@@ -167,6 +169,7 @@ export function createApi({
   lrc = null,
   rooms = new ListenRooms(),
   uploadDir = null,
+  lyterion = null,
 }: ApiOptions) {
   const upstreamFor = (id: string) => upstreams.find((upstream) => upstream.id === id);
 
@@ -502,6 +505,22 @@ export function createApi({
     return json({ saved: saved.slice(uploadDir.length + 1) });
   }
 
+  /**
+   * `GET /api/lyterion`: Lyterion's view of your Spotify library (each playlist and liked songs: how much is in
+   * Navidrome, what's missing). 404 when Lyterion isn't set up. The token stays on the server.
+   */
+  async function lyterionSummary(request: Request): Promise<Response> {
+    if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
+    if (!sessions.get(cookieValue(request))) return json({ error: "signed out" }, 401);
+    if (!lyterion) return json({ error: "lyterion isn't set up" }, 404);
+    const response = await fetch(`${lyterion.url}/api/rpc/api-reference/player/summary`, {
+      headers: { "x-lyterion-token": lyterion.token },
+      signal: AbortSignal.timeout(20_000),
+    }).catch(() => null);
+    if (!response?.ok) return json({ error: "lyterion didn't answer" }, 502);
+    return json(await response.json(), 200, { "cache-control": "private, no-cache" });
+  }
+
   /** `DELETE /api/lyrics/written`: remove every .lrc keep music wrote that is still as written. Admins only. */
   async function lyricsWritten(request: Request): Promise<Response> {
     if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
@@ -819,6 +838,7 @@ export function createApi({
     listenSockets,
     lyricsRefetch,
     lyricsWritten,
+    lyterionSummary,
     upload,
     searchIndex,
     searchLyrics,
