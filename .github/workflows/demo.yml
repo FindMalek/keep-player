@@ -37,12 +37,24 @@ jobs:
           tags: ghcr.io/findmalek/keep-player-demo:latest
           cache-from: type=gha,scope=demo
           cache-to: type=gha,scope=demo,mode=max
+
+  # On the-keep: the demo host is tailnet-only, and creating its account needs to reach it.
+  deploy:
+    needs: demo
+    runs-on: [self-hosted, the-keep]
+    timeout-minutes: 20
+    env:
+      DOKPLOY_URL: ${{ vars.DOKPLOY_PUBLIC_URL }}
+      DOKPLOY_PUBLIC_URL: ${{ vars.DOKPLOY_PUBLIC_URL }}
+      DOKPLOY_API_KEY: ${{ secrets.DOKPLOY_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
       - name: Deploy the demo Navidrome
         env:
           GHCR_USERNAME: ${{ github.actor }}
-          GHCR_READ_TOKEN: ${{ secrets.GHCR_READ_TOKEN || github.token }}
+          GHCR_READ_TOKEN: ${{ secrets.GHCR_READ_TOKEN }}
           DEMO_HOST: demo.${{ vars.PREVIEW_DOMAIN }}
         run: node scripts/deploy/dokploy.mjs demo-up

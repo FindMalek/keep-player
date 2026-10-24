@@ -25,7 +25,8 @@ env:
   GITHUB_TOKEN: ${{ github.token }}
 
 jobs:
-  deploy:
+  # The image builds on GitHub's runner (fast network to the registry)...
+  build:
     if: github.event.action != 'closed' && vars.DOKPLOY_PUBLIC_URL != '' && vars.DEPLOY_ENABLED == 'true' && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -50,6 +51,20 @@ jobs:
           tags: ghcr.io/findmalek/keep-player:pr-${{ env.PR_NUMBER }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+      - name: Mark failed
+        if: failure()
+        run: node scripts/deploy/dokploy.mjs comment-failed
+
+  # ...and the deploy runs on the-keep: previews are tailnet-only, so only a runner there can wait for one to come up.
+  deploy:
+    needs: build
+    runs-on: [self-hosted, the-keep]
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
       - name: Deploy the preview
         env:
           GHCR_USERNAME: ${{ github.actor }}
