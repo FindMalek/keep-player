@@ -27,16 +27,33 @@ const HEARTBEAT_MS = 5000;
 const MIRROR_MS = 1000;
 const RETRY_MS = [1000, 5000, 15_000, 60_000];
 
-/** Per tab (sessionStorage): two tabs are two devices, a reload stays the same one. */
+const CLAIM_KEY = "keep-player:device-claim:";
+const CLAIM_MS = 10_000;
+
+const random = () => crypto.randomUUID().slice(0, 12);
+
+/**
+ * Per tab: kept in sessionStorage so a reload stays the same device. A duplicated tab gets a copy of sessionStorage,
+ * so an open tab also keeps a claim on its id in localStorage (dropped on pagehide, which a reload fires first); an id
+ * someone still claims is taken, and this tab picks a new one.
+ */
 function deviceId(): string {
   try {
-    const saved = sessionStorage.getItem(ID_KEY);
-    if (saved) return saved;
-    const id = crypto.randomUUID().slice(0, 12);
-    sessionStorage.setItem(ID_KEY, id);
+    let id = sessionStorage.getItem(ID_KEY);
+    const claimed = id ? Number(localStorage.getItem(CLAIM_KEY + id) || 0) : 0;
+    if (!id || Date.now() - claimed < CLAIM_MS) {
+      id = random();
+      sessionStorage.setItem(ID_KEY, id);
+    }
+    const key = CLAIM_KEY + id;
+    const claim = () => localStorage.setItem(key, String(Date.now()));
+    claim();
+    setInterval(claim, CLAIM_MS / 2);
+    window.addEventListener("pagehide", () => localStorage.removeItem(key));
+    window.addEventListener("pageshow", (event) => event.persisted && claim());
     return id;
   } catch {
-    return crypto.randomUUID().slice(0, 12);
+    return random();
   }
 }
 
@@ -242,6 +259,7 @@ function onMessage(message: DeviceServerMessage): void {
       const at = expectedPosition({ song: null, ...wanted }, message.stamped, offset, Date.now());
       if (ids(wanted.songs) !== upcomingHere()) player.adopt(wanted.songs as Song[], 0, at);
       else player.seek(at);
+      player.takenOverAt(at);
       if (wanted.playing) player.toggle(true);
     }
   }

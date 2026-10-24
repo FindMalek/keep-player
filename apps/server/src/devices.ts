@@ -9,7 +9,10 @@ export interface DevicePeer {
   /** Stable per tab, so a reload comes back as the same device. */
   id: string;
   name: string;
+  /** The browser session it signed in with: signing that out closes it. */
+  session: string;
   send(message: string): void;
+  close(): void;
 }
 
 interface Account {
@@ -44,7 +47,10 @@ export class DeviceHub {
     entry.peers.delete(peer.id);
     if (entry.active === peer.id) {
       entry.active = null;
-      if (entry.state) entry.state = { ...entry.state, position: this.position(entry), playing: false };
+      if (entry.state) {
+        entry.state = { ...entry.state, position: this.position(entry), playing: false };
+        entry.stamped = this.now();
+      }
     }
     if (!entry.peers.size) this.accounts.delete(account);
     else this.broadcastDevices(entry);
@@ -74,11 +80,19 @@ export class DeviceHub {
       case "transfer": {
         const target = entry.peers.get(message.to);
         if (!target || entry.active === target.id) return;
-        if (entry.state) entry.state = { ...entry.state, position: this.position(entry) };
+        if (entry.state) {
+          entry.state = { ...entry.state, position: this.position(entry) };
+          entry.stamped = this.now();
+        }
         this.activate(entry, target.id);
         this.reply(target, { t: "take", state: entry.state, stamped: this.now(), now: this.now() });
       }
     }
+  }
+
+  /** A signed-out or revoked browser session loses its devices straight away. */
+  dropSession(session: string): void {
+    for (const entry of this.accounts.values()) for (const peer of entry.peers.values()) if (peer.session === session) peer.close();
   }
 
   /** Make `id` the playing device; the one before it is told to stop. */

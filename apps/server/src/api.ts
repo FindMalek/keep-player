@@ -162,6 +162,7 @@ export interface ListenSocketData {
 export interface DeviceSocketData {
   kind: "devices";
   account: string;
+  session: string;
   device: { id: string; name: string };
   peer?: DevicePeer;
 }
@@ -270,6 +271,8 @@ export function createApi({
 
   function logout(request: Request): Response {
     const cookie = cookieValue(request);
+    const signedOut = sessions.get(cookie);
+    if (signedOut) devices?.dropSession(signedOut.id);
     if (cookie) sessions.delete(cookie);
     return json({ ok: true }, 200, { "set-cookie": sessionCookie(request, "", 0) });
   }
@@ -291,7 +294,9 @@ export function createApi({
     if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
     const session = sessions.get(cookieValue(request));
     if (!session) return json({ error: "signed out" }, 401);
-    return sessions.revoke(session.server, session.user, request.params.id) ? json({ ok: true }) : json({ error: "not found" }, 404);
+    if (!sessions.revoke(session.server, session.user, request.params.id)) return json({ error: "not found" }, 404);
+    devices?.dropSession(request.params.id);
+    return json({ ok: true });
   }
 
   /** Subsonic calls with the session's credentials added upstream. Keeps Range so audio can seek. */
@@ -472,7 +477,12 @@ export function createApi({
     const id = params.get("id") ?? "";
     if (!/^[\w-]{1,64}$/.test(id)) return json({ error: "bad device id" }, 400);
     const name = (params.get("name") ?? "").slice(0, 60) || "a browser";
-    const data: DeviceSocketData = { kind: "devices", account: `${session.server}\u0000${session.user}`, device: { id, name } };
+    const data: DeviceSocketData = {
+      kind: "devices",
+      account: `${session.server}\u0000${session.user}`,
+      session: session.id,
+      device: { id, name },
+    };
     return srv.upgrade(request, { data }) ? undefined : json({ error: "upgrade failed" }, 400);
   }
 
@@ -480,7 +490,12 @@ export function createApi({
   const sockets = {
     open(socket: Socket<SocketData>) {
       if (socket.data.kind === "devices") {
-        const peer: DevicePeer = { ...socket.data.device, send: (text) => void socket.send(text) };
+        const peer: DevicePeer = {
+          ...socket.data.device,
+          session: socket.data.session,
+          send: (text) => void socket.send(text),
+          close: () => socket.close(),
+        };
         socket.data.peer = peer;
         if (!devices?.join(socket.data.account, peer)) socket.close();
         return;

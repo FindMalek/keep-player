@@ -870,6 +870,11 @@ export const player = {
     remote = next;
   },
   isRemote: (): boolean => remote !== null,
+  /** Taking over mid-song: the device before already scrobbled it once it was this far in. */
+  takenOverAt(seconds: number): void {
+    const duration = current()?.duration ?? 0;
+    if (seconds >= SCROBBLE_AFTER_SEC || (duration > 0 && seconds >= duration / 2)) scrobbled = true;
+  },
   /** Show another device's play state and playhead without touching this tab's audio. */
   mirror(playing: boolean, seconds: number): void {
     if (state.playing !== playing) set({ playing, buffering: false });

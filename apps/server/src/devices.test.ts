@@ -4,7 +4,7 @@ import { DeviceHub, type DevicePeer } from "./devices";
 
 function device(id: string): DevicePeer & { got: DeviceServerMessage[] } {
   const got: DeviceServerMessage[] = [];
-  return { id, name: id, got, send: (message) => got.push(JSON.parse(message)) };
+  return { id, name: id, session: `s-${id}`, got, send: (message) => got.push(JSON.parse(message)), close: () => undefined };
 }
 
 const playing = (position: number, isPlaying = true) =>
@@ -46,6 +46,10 @@ test("commands reach only the playing device; a transfer hands it the playhead",
   hub.handle("default:malek", mac, JSON.stringify({ t: "transfer", to: "phone" }));
   expect(phone.got.at(-1)).toMatchObject({ t: "take", state: { position: 15, playing: true } });
   expect(mac.got.some((message) => message.t === "yield")).toBe(true);
+
+  // A second transfer straight after doesn't count the same five seconds again.
+  hub.handle("default:malek", phone, JSON.stringify({ t: "transfer", to: "mac" }));
+  expect(mac.got.at(-1)).toMatchObject({ t: "take", state: { position: 15 } });
 });
 
 test("the playing device closing keeps where it stopped for the next one", () => {
