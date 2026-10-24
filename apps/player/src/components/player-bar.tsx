@@ -249,7 +249,7 @@ export function PlayerBar({ panel, onPanel }: { panel: Panel; onPanel: (panel: P
     <div className="flex min-w-0 items-center gap-2.5">
       <Elapsed />
       <div className="relative flex flex-1 items-center">
-        <AudioPlayerSeek aria-label="seek" className={cn(buffering && "animate-pulse motion-reduce:animate-none")} />
+        <AudioPlayerSeek aria-label="seek" className={cn(buffering && "opacity-60")} />
         <Suspense>
           <MomentTicks songId={song?.id} duration={duration} />
         </Suspense>

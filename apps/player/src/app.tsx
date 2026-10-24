@@ -17,7 +17,6 @@ import { openListFilter } from "@/lib/list-filter";
 import { runListCommand } from "@/lib/list-nav";
 import { startListeningHistory } from "@/lib/listening";
 import { openMiniPlayer, setAutoMiniPlayer, useMiniWindow } from "@/lib/mini-player";
-import { transition } from "@/lib/motion";
 import { notify } from "@/lib/notify";
 import { PageScrollContext } from "@/lib/page-scroll";
 import { currentSong, player, usePlayer } from "@/lib/player";
@@ -163,10 +162,7 @@ export function App() {
   const user = useUser();
   const checkingSession = useCheckingSession();
   const { unreachable } = useReachability();
-  const [panel, setPanelNow] = useState<Panel>(null);
-  // Panels slide in and out as a view transition (app.css), the page reflows under a cross-fade.
-  const setPanel = (update: Panel | ((value: Panel) => Panel)) => transition(() => setPanelNow(update));
-  const reduceMotion = useSetting("reduceMotion");
+  const [panel, setPanel] = useState<Panel>(null);
   const miniWindow = useMiniWindow();
   const playlistDialog = usePlaylistDialog();
   const autoMini = useSetting("miniPlayerWhenHidden");
@@ -184,9 +180,6 @@ export function App() {
       // No storage, no resume.
     }
   }, [user]);
-  useEffect(() => {
-    document.documentElement.dataset.motion = reduceMotion ? "reduce" : "system";
-  }, [reduceMotion]);
   const [searching, setSearching] = useState(false);
   const [cheatSheet, setCheatSheet] = useState(false);
   // First sign-in in this browser: a short setup and tour, once.

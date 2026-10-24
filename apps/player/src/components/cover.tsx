@@ -40,10 +40,7 @@ export function Cover({ id, size, className, alt = "", priority = false }: Cover
           loading={priority ? "eager" : "lazy"}
           fetchPriority={priority ? "high" : "auto"}
           decoding="async"
-          className={cn(
-            "size-full object-cover transition-opacity duration-200 motion-reduce:transition-none",
-            ready ? "opacity-100" : "opacity-0",
-          )}
+          className={cn("size-full object-cover", ready ? "opacity-100" : "opacity-0")}
           ref={(image) => {
             // Cached covers can finish before React attaches onLoad.
             if (image?.complete && image.naturalWidth) setLoaded(src);

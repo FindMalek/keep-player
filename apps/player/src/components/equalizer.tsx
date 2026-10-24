@@ -1,14 +1,11 @@
 import { cn } from "@/lib/utils";
 
-/** Three bars that bounce while the track plays and rest when paused. */
+/** Three bars, tall while the track plays and low when paused. They don't bounce: the app has no motion. */
 export function Equalizer({ playing }: { playing: boolean }) {
   return (
     <span className="inline-flex h-[11px] items-end gap-0.5" role="img" aria-label={playing ? "playing" : "paused"}>
-      {["[animation-delay:0ms]", "[animation-delay:-300ms]", "[animation-delay:-600ms]"].map((delay) => (
-        <i
-          key={delay}
-          className={cn("h-1 w-0.5 bg-foreground", playing && "animate-eq motion-reduce:h-2 motion-reduce:animate-none", delay)}
-        />
+      {["h-2", "h-[11px]", "h-1.5"].map((height) => (
+        <i key={height} className={cn("w-0.5 bg-foreground", playing ? height : "h-1")} />
       ))}
     </span>
   );
