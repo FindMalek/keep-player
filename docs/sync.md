@@ -1,5 +1,8 @@
 # Queue hand-off with Arpeggi (and other clients)
 
+> Between keep music tabs and computers, playback is one session with a device picker: [devices](devices.md). This page
+> is about Subsonic apps on your phone, which hand the queue off through Navidrome.
+
 keep music and Arpeggi share one thing on the server: the Subsonic **play queue** (what's queued, which song is
 current, and how far into it). Each browser saves under its own client name, `keep-player@<id>`, so the app can
 tell its own saves from the phone's.

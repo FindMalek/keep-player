@@ -4,6 +4,11 @@ The plan for making keep music the best self-hosted music player. Every item is 
 sub-issues. Run [`scripts/setup-project.sh`](../scripts/setup-project.sh) once to put them all on a GitHub Project
 board with a `Phase` and `Priority` field.
 
+**Where it stands:** the [1.0 milestone](https://github.com/FindMalek/keep-player/milestone/1) is done (mixes, uploads,
+Lyterion, previews). [2.0](https://github.com/FindMalek/keep-player/milestone/2) is under way: one session across
+devices, now playing in the terminal, the recap reel and prompt playlists are in; a macOS app, AudioMuse and more are
+next.
+
 ## Principles
 
 - **shadcn ecosystem only.** UI is shadcn/ui (Base UI) + Tailwind v4 + the [`@audiocn`](https://github.com/audiocn/ui)
