@@ -70,6 +70,14 @@ export const SETTINGS = [
     description: "The `LYTERION_PLAYER_TOKEN` set on Lyterion. Needed with `LYTERION_URL`.",
   },
   {
+    name: "GROQ_API_KEY",
+    fallback: "",
+    description:
+      'Turns on playlists from a prompt ("rainy sunday, slow, warm"): Groq picks artists from your library and the player builds the list from songs you own. Kept server-side. Empty: off.',
+  },
+  { name: "GROQ_MODEL", fallback: "openai/gpt-oss-120b", description: "The Groq model for playlists from a prompt." },
+  { name: "GROQ_URL", fallback: "https://api.groq.com/openai/v1", description: "Groq's API, or any OpenAI-compatible one." },
+  {
     name: "ONE_SESSION",
     fallback: "on",
     description:
@@ -123,6 +131,8 @@ export interface Config {
   lrclibUrl: string;
   lyricsBackfill: boolean;
   oneSession: boolean;
+  /** Null unless `GROQ_API_KEY` is set. */
+  groq: { key: string; model: string; url: string } | null;
   /** Null unless `LYRICS_WRITE_LRC=on`: the music folder .lrc files are written into. */
   lrcDir: string | null;
   /** Null when uploads are off. */
@@ -206,6 +216,7 @@ export function readConfig(env: Env): { config: Config; errors: string[] } {
     lrclibUrl,
     lyricsBackfill: flag("LYRICS_BACKFILL", ["on"], ["off"]),
     oneSession: flag("ONE_SESSION", ["on"], ["off"]),
+    groq: get("GROQ_API_KEY") ? { key: get("GROQ_API_KEY"), model: get("GROQ_MODEL"), url: get("GROQ_URL").replace(/\/+$/, "") } : null,
     lrcDir: writeLrc ? musicDir : null,
     uploadDir: uploadDir || null,
     lyterion: lyterionUrl && lyterionToken ? { url: lyterionUrl, token: lyterionToken } : null,

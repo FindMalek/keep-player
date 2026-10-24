@@ -70,6 +70,7 @@ const api = createApi({
   uploadDir: config.uploadDir,
   lyterion: config.lyterion,
   devices: config.oneSession ? new DeviceHub() : null,
+  groq: config.groq,
 });
 const health = new HealthCheck(config.upstreams);
 
@@ -97,6 +98,7 @@ const server = Bun.serve({
     "/api/listen/:code": { GET: (request, srv) => api.listenSocket(request, srv) },
     "/api/devices": { GET: (request, srv) => api.devicesSocket(request, srv) },
     "/api/remote/token": { POST: api.remoteToken },
+    "/api/ai/playlist": { POST: api.aiPlaylist },
     "/api/remote/now": { GET: api.remoteNow },
     "/api/remote/:action": { POST: api.remoteAction },
     "/api/lyrics/coverage": { GET: api.lyricsCoverage },

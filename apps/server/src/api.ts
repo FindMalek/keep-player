@@ -6,6 +6,7 @@ import type { LyricsCoverage } from "@keep/shared/lyrics";
 import type { LyricsSearch } from "@keep/shared/search";
 import { readTrack } from "@keep/shared/spotify-import";
 import type { Server } from "bun";
+import { askGroq, buildPlaylist, libraryArtists } from "./ai-playlist";
 import type { Upstream } from "./config";
 import { type CoverCache, snapCoverSize } from "./covers";
 import type { DeviceHub, DevicePeer } from "./devices";
@@ -148,6 +149,10 @@ export interface ApiOptions {
   rooms?: ListenRooms;
   /** One playback session per account (#192); null turns it off. */
   devices?: DeviceHub | null;
+  /** Playlists from a prompt (#57); null turns them off. */
+  groq?: { key: string; model: string; url: string } | null;
+  /** Stands in for Groq in tests. */
+  fetcher?: typeof fetch;
 }
 
 /** What a listen socket carries from the upgrade to its handlers. */
@@ -190,6 +195,8 @@ export function createApi({
   uploadDir = null,
   lyterion = null,
   devices = null,
+  groq = null,
+  fetcher = fetch,
 }: ApiOptions) {
   const upstreamFor = (id: string) => upstreams.find((upstream) => upstream.id === id);
 
@@ -282,7 +289,14 @@ export function createApi({
   function current(request: Request): Response {
     const session = sessions.get(cookieValue(request));
     return session
-      ? json({ user: session.user, server: session.server, id: session.id, admin: session.admin, oneSession: devices !== null })
+      ? json({
+          user: session.user,
+          server: session.server,
+          id: session.id,
+          admin: session.admin,
+          oneSession: devices !== null,
+          ai: groq !== null,
+        })
       : json({ error: "signed out" }, 401);
   }
 
@@ -550,6 +564,24 @@ export function createApi({
           : null;
     if (!command) return json({ error: "unknown action" }, 404);
     return devices?.command(account, command) ? json({ ok: true }) : json({ error: "nothing of ours is playing" }, 409);
+  }
+
+  /** `POST /api/ai/playlist` `{ prompt }`: a playlist from your own songs for a description. Not saved: the page reviews it first. */
+  async function aiPlaylist(request: Request): Promise<Response> {
+    if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
+    const session = sessions.get(cookieValue(request));
+    if (!session) return json({ error: "signed out" }, 401);
+    if (!groq) return json({ error: "no GROQ_API_KEY on this server" }, 404);
+    const body = (await request.json().catch(() => null)) as { prompt?: unknown } | null;
+    const prompt = typeof body?.prompt === "string" ? body.prompt.trim() : "";
+    if (!prompt) return json({ error: "say what you want to hear" }, 400);
+    const account = `${session.server}:${session.user}`;
+    const { artists, played } = libraryArtists(library, session.server, account);
+    if (!artists.size) return json({ error: "the library index is still building" }, 409);
+    const plan = await askGroq(groq, prompt, artists, fetcher);
+    if (!plan) return json({ error: "couldn't make that one, try saying it differently" }, 502);
+    const songs = buildPlaylist(plan, artists, played, `${account}:${prompt}:${Date.now()}`);
+    return json({ name: plan.name, description: plan.description, artists: plan.artists, songs });
   }
 
   /** Bun has one WebSocket handler per server: listen-together and device sockets share it. */
@@ -962,6 +994,7 @@ export function createApi({
     listenSocket,
     devicesSocket,
     sockets,
+    aiPlaylist,
     remoteToken,
     remoteNow,
     remoteAction,

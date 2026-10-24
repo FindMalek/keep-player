@@ -37,6 +37,8 @@ export default defineConfig({
         UPLOAD_DIR: `${process.cwd()}/test-results/uploads`,
         // Every test signs in as the same user: one shared session would have their tabs take over from each other.
         ONE_SESSION: "off",
+        GROQ_API_KEY: "e2e-groq-key",
+        GROQ_URL: `http://127.0.0.1:${MOCK}/groq`,
         LYTERION_URL: `http://127.0.0.1:${MOCK}/lyterion`,
         LYTERION_TOKEN: "e2e-lyterion-token-0123456789",
         LRCLIB_URL: `http://127.0.0.1:${MOCK}/lrclib`,
