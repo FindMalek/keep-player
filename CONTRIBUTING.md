@@ -74,7 +74,7 @@ Pull requests and merges to `main` run the checks and the e2e suite (4 shards) o
 build the image and smoke-test it read-only. Nothing ships on a merge: release-please keeps a release PR open, and
 merging it builds `ghcr.io/findmalek/keep-player` (amd64, with SBOM and provenance) on the self-hosted runner, tags
 `:X.Y.Z`, `:latest` and `:main`, runs Lighthouse, and, when the `DOKPLOY_WEBHOOK_URL` secret is set, calls the Dokploy
-webhook and waits for `$PLAYER_URL/api/health`. A PR labelled `preview` gets its own Dokploy preview.
+webhook and waits for `$PLAYER_URL/api/health`. Every PR gets its own Dokploy preview and a sticky comment with its status, logs and link.
 Setup: [docs/deploy/dokploy.md](docs/deploy/dokploy.md).
 
 New settings go in `apps/server/src/settings.ts` (parsed and checked at boot), then `bun run config-docs`.

@@ -130,7 +130,7 @@ async function waitForApp(app, onChange) {
 
 const inspectUrl = (app) => `${DOKPLOY_PUBLIC_URL}/dashboard/project/${app.projectId}/services/application/${app.applicationId}`;
 
-const STATUS = { building: "🔄 Building", ready: "✅ Ready", failed: "❌ Failed", deleted: "🗑 Deleted" };
+const STATUS = { building: "🔄 Building", deploying: "🚀 Deploying", ready: "✅ Ready", failed: "❌ Failed", deleted: "🗑 Deleted" };
 
 function formatUpdated(date) {
   return date
@@ -139,11 +139,21 @@ function formatUpdated(date) {
     .replace(" PM", "pm");
 }
 
-// Vercel's layout: one row per project, the latest status, an Inspect link and the Preview link.
+/** This workflow run's page: the image build and every step's log. */
+function buildLogUrl() {
+  const { GITHUB_SERVER_URL = "https://github.com", GITHUB_REPOSITORY, GITHUB_RUN_ID } = process.env;
+  return GITHUB_REPOSITORY && GITHUB_RUN_ID ? `${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}` : null;
+}
+
+// Vercel's layout: one row per project, the latest status, the logs, and the Preview link once it's up.
 function renderComment(row) {
-  const inspect = row.applicationId ? ` ([Inspect](${inspectUrl(row)}))` : "";
+  const logs = [
+    buildLogUrl() && `[Build logs](${buildLogUrl()})`,
+    row.applicationId && `[Deploy logs](${inspectUrl(row)})`,
+  ].filter(Boolean);
+  const inspect = logs.length && row.status !== "deleted" ? ` (${logs.join(" · ")})` : "";
   const name = row.applicationId ? `[${row.name}](${inspectUrl(row)})` : row.name;
-  const preview = row.status === "ready" ? `[Preview](https://${row.host})` : "";
+  const preview = row.status === "ready" ? `[Visit Preview](https://${row.host})` : "";
   return [
     COMMENT_MARKER,
     "**The latest updates on your projects**. Learn more about [keep-player previews](../blob/main/docs/previews.md).",
@@ -187,7 +197,7 @@ async function upsertComment(row) {
 async function previewUp() {
   const pr = requireEnv("PR_NUMBER");
   const tag = `pr-${pr}`;
-  const host = `${tag}.${requireEnv("PREVIEW_DOMAIN")}`;
+  const host = previewHost(pr);
   const environment = await ensureEnvironment();
   const demo = environment.applications?.find((a) => a.name === DEMO_APP);
   if (!demo) throw new Error(`${DEMO_APP} isn't deployed yet: run the Demo workflow first (docs/previews.md)`);
@@ -212,7 +222,7 @@ async function previewUp() {
       DEMO_SEED: "on",
     },
   });
-  Object.assign(row, deployed, { status: "building" });
+  Object.assign(row, deployed, { status: "deploying" });
   await upsertComment(row);
   if (!(await waitForApp(row, () => upsertComment(row)))) process.exitCode = 1;
 }
@@ -225,6 +235,17 @@ async function previewDown() {
   if (!app) return;
   await dokploy("application.delete", { applicationId: app.applicationId });
   await upsertComment({ name, status: "deleted" });
+}
+
+// `player-pr-<n>`: other repos' previews share the domain and already use `pr-<n>`.
+function previewHost(pr) {
+  return `player-pr-${pr}.${requireEnv("PREVIEW_DOMAIN")}`;
+}
+
+/** First thing in the job, before the image builds: the PR shows "Building" with the build log right away. */
+async function commentBuilding() {
+  const pr = requireEnv("PR_NUMBER");
+  await upsertComment({ name: `keep-player-pr-${pr}`, status: "building", host: previewHost(pr) });
 }
 
 async function commentFailed() {
@@ -271,7 +292,13 @@ async function demoUp() {
   throw new Error("couldn't reach the demo Navidrome to create the demo account");
 }
 
-const MODES = { "preview-up": previewUp, "preview-down": previewDown, "comment-failed": commentFailed, "demo-up": demoUp };
+const MODES = {
+  "comment-building": commentBuilding,
+  "preview-up": previewUp,
+  "preview-down": previewDown,
+  "comment-failed": commentFailed,
+  "demo-up": demoUp,
+};
 const run = MODES[MODE];
 if (!run) {
   console.error(`unknown mode "${MODE}", expected ${Object.keys(MODES).join(" | ")}`);
