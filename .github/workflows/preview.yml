@@ -27,7 +27,7 @@ env:
 jobs:
   deploy:
     if: github.event.action != 'closed' && contains(github.event.pull_request.labels.*.name, 'preview') && vars.DOKPLOY_PUBLIC_URL != '' && vars.DEPLOY_ENABLED == 'true' && github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: [self-hosted, the-keep]
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
@@ -43,8 +43,8 @@ jobs:
           context: .
           push: true
           tags: ghcr.io/findmalek/keep-player:pr-${{ env.PR_NUMBER }}
-          cache-from: type=local,src=/home/findmalek/.cache/buildx/keep-player
-          cache-to: type=local,dest=/home/findmalek/.cache/buildx/keep-player,mode=max
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
@@ -59,7 +59,7 @@ jobs:
 
   cleanup:
     if: github.event.action == 'closed' && vars.DOKPLOY_PUBLIC_URL != '' && vars.DEPLOY_ENABLED == 'true' && github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: [self-hosted, the-keep]
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
