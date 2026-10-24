@@ -86,12 +86,15 @@ const envText = (vars) =>
 async function deployApp(environment, app) {
   const application = await ensureApplication(environment, app.name);
   const { applicationId } = application;
+  // The images are public: no login. A workflow's own token expires with the run, and Dokploy would keep sending it on
+  // every later pull (production too) and get "denied". A long-lived read token is used only when one is set on purpose.
+  const token = process.env.GHCR_READ_TOKEN;
   await dokploy("application.saveDockerProvider", {
     applicationId,
     dockerImage: app.image,
-    registryUrl: "ghcr.io",
-    username: requireEnv("GHCR_USERNAME"),
-    password: requireEnv("GHCR_READ_TOKEN"),
+    registryUrl: token ? "ghcr.io" : null,
+    username: token ? requireEnv("GHCR_USERNAME") : null,
+    password: token ?? null,
   });
   await dokploy("application.saveEnvironment", {
     applicationId,
