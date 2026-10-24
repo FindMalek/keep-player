@@ -49,7 +49,8 @@ async function ensureEnvironment() {
   }
   const environment = project?.environments?.[0];
   if (!environment) throw new Error(`no environment in project ${PROJECT}`);
-  return environment;
+  // The environment row has no projectId of its own, and the dashboard links need it.
+  return { ...environment, projectId: environment.projectId ?? project.projectId };
 }
 
 async function ensureApplication(environment, name) {
