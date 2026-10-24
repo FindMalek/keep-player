@@ -9,10 +9,16 @@ import type { StreamQuality } from "./stream-quality";
 /** Which toasts show: all of them, the ones with something to press (undo, resume), or only the errors. */
 export const TOAST_LEVELS = ["all", "important", "errors"] as const;
 export type ToastLevel = (typeof TOAST_LEVELS)[number];
+/** Where toasts pop up. Bottom ones sit above the player bar, and above the "up next" card on the right. */
+export const TOAST_POSITIONS = ["bottom-center", "bottom-right", "bottom-left", "top-center", "top-right"] as const;
+export type ToastPosition = (typeof TOAST_POSITIONS)[number];
 
 export interface Settings {
   /** Which notices pop up at the bottom: errors always do. */
   toasts: ToastLevel;
+  toastPosition: ToastPosition;
+  /** The "up next · skip it" card that shows over the bar near the end of a song. */
+  upNext: boolean;
   /** 1–5 star ratings (setRating) as a column in track lists, for smart playlists in other clients. */
   ratings: boolean;
   /** The "saved for offline" arrow next to the format in the player bar; track rows always show it. */
@@ -41,6 +47,8 @@ export interface Settings {
 /** Follow the user to every browser; the others (the mini player) depend on this device. */
 export const SYNCED = [
   "toasts",
+  "toastPosition",
+  "upNext",
   "ratings",
   "offlineInBar",
   "loadingBar",
@@ -56,6 +64,8 @@ export const SYNCED = [
 const KEY = "keep-player:settings";
 const DEFAULTS: Settings = {
   toasts: "all",
+  toastPosition: "bottom-center",
+  upNext: true,
   ratings: false,
   offlineInBar: false,
   loadingBar: false,

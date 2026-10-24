@@ -114,6 +114,7 @@ const PEEK_SECONDS = 15;
 
 /** The last 15 s of a song: what comes next, and a way to skip it before it starts. */
 function UpNextPeek() {
+  const enabled = useSetting("upNext");
   const nearEnd = usePosition((seconds) => {
     const { duration } = player.getState();
     return duration > PEEK_SECONDS * 2 && duration - seconds <= PEEK_SECONDS;
@@ -121,7 +122,7 @@ function UpNextPeek() {
   const next = usePlayer((state) =>
     state.queue.repeat === "one" ? undefined : (state.queue.upNext[0] ?? contextUpcoming(state.queue)[0]),
   );
-  if (!nearEnd || !next) return null;
+  if (!enabled || !nearEnd || !next) return null;
   return (
     <div
       role="status"

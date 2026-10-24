@@ -86,3 +86,11 @@ test("the notifications setting hides plain confirmations but never errors or th
   await addToQueue();
   await expect(page.getByText(`added ${titles[3]} to the queue`)).toBeVisible();
 });
+
+test("picking where notifications show pops a sample there", async ({ page, signedIn }) => {
+  await signedIn.goto("/settings/appearance");
+  await page.getByRole("button", { name: /^notifications show:/ }).click();
+  await page.getByRole("menuitemradio", { name: "bottom right" }).click();
+  const toaster = page.locator("[data-sonner-toaster][data-x-position=right][data-y-position=bottom]");
+  await expect(toaster.getByText("notifications show up here")).toBeVisible();
+});
