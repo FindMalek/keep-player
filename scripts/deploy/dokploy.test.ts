@@ -85,11 +85,11 @@ test("a preview is deployed, tied to the demo navidrome, and one sticky comment 
   const provider = calls.find((c) => c.path === "/api/application.saveDockerProvider");
   expect((provider?.body as { dockerImage: string } | undefined)?.dockerImage).toBe("ghcr.io/findmalek/keep-player:pr-7");
   const domain = calls.find((c) => c.path === "/api/domain.create");
-  expect((domain?.body as { host: string } | undefined)?.host).toBe("pr-7.preview.example.test");
+  expect((domain?.body as { host: string } | undefined)?.host).toBe("player-pr-7.preview.example.test");
   expect(comments).toHaveLength(1);
   expect(comments[0]?.body).toContain("<!-- keep-player-preview -->");
   expect(comments[0]?.body).toContain("✅ Ready");
-  expect(comments[0]?.body).toContain("[Preview](https://pr-7.preview.example.test)");
+  expect(comments[0]?.body).toContain("[Visit Preview](https://player-pr-7.preview.example.test)");
 });
 
 test("a second push edits the same comment instead of adding one", async () => {
