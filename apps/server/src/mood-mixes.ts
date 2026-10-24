@@ -24,75 +24,89 @@ Use names copied exactly from the list. An artist can be in more than one mood o
 
 type Moods = Partial<Record<Mood, string[]>>;
 
-function cached(db: Database, key: string): Moods | null {
-  const row = db.query<{ value: string }, [string]>("select value from meta where key = ?").get(key);
-  if (!row) return null;
-  try {
-    return JSON.parse(row.value) as Moods;
-  } catch {
-    return null;
-  }
-}
+export type Groq = { key: string; model: string; url: string };
 
-/** The week's moods for an account: from the cache, else one Groq call (null when it fails; asked again next time). */
-async function moodsFor(
+/**
+ * One JSON answer from Groq for a week, cached in `meta` under `${prefix}:${account}:${week}`: asked once a week per
+ * account (and again next time only if it failed); the week before is deleted when a new one is stored.
+ */
+export async function weeklyAnswer<T>(
   db: Database,
-  groq: { key: string; model: string; url: string },
+  groq: Groq,
+  prefix: string,
   account: string,
   week: number,
-  l: Listening,
+  ask: { system: string; user: string },
   fetcher: typeof fetch,
-): Promise<Moods | null> {
+): Promise<T | null> {
   db.run("create table if not exists meta (key text primary key, value text not null)");
-  const key = `moods:${account}:${week}`;
-  const hit = cached(db, key);
-  if (hit) return hit;
-  const names = [...l.counts.entries()]
-    .filter(([artist]) => l.byArtist.has(artist))
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, ARTISTS_ASKED)
-    .map(([artist]) => l.byArtist.get(artist)?.[0]?.artist ?? artist);
-  if (names.length < 3) return null;
+  const key = `${prefix}:${account}:${week}`;
+  const row = db.query<{ value: string }, [string]>("select value from meta where key = ?").get(key);
+  if (row) {
+    try {
+      return JSON.parse(row.value) as T;
+    } catch {
+      // A broken entry is asked again below.
+    }
+  }
   const response = await fetcher(`${groq.url}/chat/completions`, {
     method: "POST",
     headers: { authorization: `Bearer ${groq.key}`, "content-type": "application/json" },
     body: JSON.stringify({
       model: groq.model,
       temperature: 0.2,
-      max_completion_tokens: 1200,
+      max_completion_tokens: 2000,
       response_format: { type: "json_object" },
       messages: [
-        { role: "system", content: SYSTEM },
-        { role: "user", content: names.join("\n") },
+        { role: "system", content: ask.system },
+        { role: "user", content: ask.user },
       ],
     }),
     signal: AbortSignal.timeout(30_000),
   }).catch(() => null);
   if (!response?.ok) return null;
   const body = (await response.json().catch(() => null)) as { choices?: { message?: { content?: string } }[] } | null;
-  let moods: Moods;
+  let answer: T;
   try {
-    moods = JSON.parse(body?.choices?.[0]?.message?.content ?? "") as Moods;
+    answer = JSON.parse(body?.choices?.[0]?.message?.content ?? "") as T;
   } catch {
     return null;
   }
-  db.query("insert or replace into meta (key, value) values (?, ?)").run(key, JSON.stringify(moods));
-  // Last week's answer is no use any more.
-  db.query("delete from meta where key like ? and key != ?").run(`moods:${account}:%`, key);
-  return moods;
+  db.query("insert or replace into meta (key, value) values (?, ?)").run(key, JSON.stringify(answer));
+  db.query("delete from meta where key like ? and key != ?").run(`${prefix}:${account}:%`, key);
+  return answer;
+}
+
+/** The artists you play most, as the library spells them. */
+export function topArtistNames(l: Listening, limit: number): string[] {
+  return [...l.counts.entries()]
+    .filter(([artist]) => l.byArtist.has(artist))
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit)
+    .map(([artist]) => l.byArtist.get(artist)?.[0]?.artist ?? artist);
 }
 
 /** Focus, late night and energy for today; none without Groq or enough listening. */
 export async function moodMixes(
   db: Database,
-  groq: { key: string; model: string; url: string } | null,
+  groq: Groq | null,
   account: string,
   day: number,
   l: Listening | null,
   fetcher: typeof fetch = fetch,
 ): Promise<Mix[]> {
   if (!groq || !l) return [];
-  const moods = await moodsFor(db, groq, account, Math.floor(day / 7), l, fetcher);
+  const names = topArtistNames(l, ARTISTS_ASKED);
+  if (names.length < 3) return [];
+  const moods = await weeklyAnswer<Moods>(
+    db,
+    groq,
+    "moods",
+    account,
+    Math.floor(day / 7),
+    { system: SYSTEM, user: names.join("\n") },
+    fetcher,
+  );
   if (!moods) return [];
   return MOODS.flatMap((mood) => {
     const artists = [...new Set((moods[mood] ?? []).filter((name) => typeof name === "string").map(normalize))].filter((artist) =>
