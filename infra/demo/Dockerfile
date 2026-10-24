@@ -11,7 +11,7 @@ FROM deluan/navidrome:0.64.2
 COPY --from=library /music /music
 ENV ND_MUSICFOLDER=/music \
     ND_DATAFOLDER=/data \
-    ND_SCANSCHEDULE=@every 24h \
+    ND_SCANSCHEDULE="@every 24h" \
     ND_AUTOIMPORTPLAYLISTS=true \
     ND_COVERARTPRIORITY="cover.*, embedded" \
     ND_ENABLESHARING=false \
