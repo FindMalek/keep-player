@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from "react";
 import { notify } from "./notify";
+import { stillPlaying } from "./now-playing";
 import { player } from "./player";
 import { getSetting } from "./settings";
 import { api, CLIENT_NAME, getUser } from "./subsonic";
@@ -18,8 +19,6 @@ export interface Elsewhere {
 }
 
 const POLL_MS = 30_000;
-/** Navidrome keeps a now-playing entry a while after it stops; older than this isn't "playing". */
-const FRESH_MINUTES = 2;
 
 let playing: Elsewhere[] = [];
 const listeners = new Set<() => void>();
@@ -54,7 +53,7 @@ async function poll(): Promise<void> {
   const me = getUser();
   set(
     (response.nowPlaying?.entry ?? [])
-      .filter((entry) => entry.username === me && entry.playerName !== CLIENT_NAME && (entry.minutesAgo ?? 0) <= FRESH_MINUTES)
+      .filter((entry) => entry.username === me && entry.playerName !== CLIENT_NAME && stillPlaying(entry))
       // Another app (your phone) before another browser of ours: the more useful one to show.
       .sort((a, b) => Number(a.playerName?.startsWith("keep-player@")) - Number(b.playerName?.startsWith("keep-player@")))
       .map((entry) => ({ song: entry, device: deviceName(entry.playerName ?? "") })),
