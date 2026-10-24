@@ -34,7 +34,7 @@ jobs:
 
   e2e:
     runs-on: [self-hosted, the-keep]
-    timeout-minutes: 30
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v5
       - uses: oven-sh/setup-bun@v2
@@ -45,7 +45,8 @@ jobs:
       - run: bunx playwright install chromium
       # the-keep-keep-player-2 → ports 4780/4799, so e2e jobs on the same host don't collide.
       - run: echo "E2E_PORT_OFFSET=$(( ${RUNNER_NAME##*-} * 100 ))" >> "$GITHUB_ENV"
-      - run: bun run e2e
+      # One suite at a time on the host: three at once starve the 6 cores and time out. Install and build still overlap.
+      - run: flock /tmp/keep-player-e2e.lock bun run e2e
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
