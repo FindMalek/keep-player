@@ -29,6 +29,7 @@ import { apiQueries } from "@/lib/api-queries";
 import { MAX_CROSSFADE } from "@/lib/crossfade";
 import { doctorQuery } from "@/lib/doctor-query";
 import { install, useInstallState } from "@/lib/install";
+import { installHelp, isArc } from "@/lib/install-help";
 import { MINI_PLAYER_SUPPORTED } from "@/lib/mini-player";
 import { previewNotice } from "@/lib/notify";
 import { type Settings, setSetting, TOAST_LEVELS, TOAST_POSITIONS, type ToastPosition, useSetting } from "@/lib/settings";
@@ -460,7 +461,9 @@ export function SettingsPage({ section, onClose }: { section: string | null; onC
                     install
                   </Button>
                 ) : (
-                  <span className="font-mono text-muted-foreground text-xs">from your browser's menu</span>
+                  <span className="max-w-64 text-right font-mono text-muted-foreground text-xs">
+                    {installHelp(navigator.userAgent, isArc())}
+                  </span>
                 )}
               </Row>
               <Row
