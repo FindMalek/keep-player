@@ -54,6 +54,7 @@ import {
   SongLink,
   SongsPage,
   StatsPage,
+  UploadPage,
 } from "@/routes";
 import { appShortcuts } from "./app-shortcuts";
 
@@ -145,6 +146,8 @@ function Page({ path }: { path: string }) {
       return <ImportPage />;
     case "doctor":
       return <DoctorPage />;
+    case "upload":
+      return <UploadPage />;
     case "listen":
       return <ListenPage code={param} />;
     case "song":

@@ -59,6 +59,12 @@ export const SETTINGS = [
       '`on`: lyrics found on LRCLIB are also saved as `<track>.lrc` next to the audio file, so other clients get them. Needs `MUSIC_DIR` and Navidrome\'s "Report Real Path". Never overwrites; undo from the lyrics page.',
   },
   {
+    name: "UPLOAD_DIR",
+    fallback: "",
+    description:
+      "Where music uploaded from the player lands (admins only), mounted writable. An import inbox (beets, Lyterion) or Navidrome's music folder. Empty turns uploads off.",
+  },
+  {
     name: "MUSIC_DIR",
     fallback: "",
     description: "Navidrome's music folder mounted writable here, for `LYRICS_WRITE_LRC`. Unused otherwise.",
@@ -101,6 +107,8 @@ export interface Config {
   lyricsBackfill: boolean;
   /** Null unless `LYRICS_WRITE_LRC=on`: the music folder .lrc files are written into. */
   lrcDir: string | null;
+  /** Null when uploads are off. */
+  uploadDir: string | null;
   indexUser: string | undefined;
   indexPassword: string | undefined;
   demoSeed: boolean;
@@ -155,6 +163,8 @@ export function readConfig(env: Env): { config: Config; errors: string[] } {
   const writeLrc = flag("LYRICS_WRITE_LRC", ["on"], ["off"]);
   const musicDir = get("MUSIC_DIR").replace(/(.)\/+$/, "$1");
   if (writeLrc && !musicDir.startsWith("/")) errors.push(`LYRICS_WRITE_LRC=on needs MUSIC_DIR, an absolute path, got "${musicDir}"`);
+  const uploadDir = get("UPLOAD_DIR").replace(/(.)\/+$/, "$1");
+  if (uploadDir && !uploadDir.startsWith("/")) errors.push(`UPLOAD_DIR must be an absolute path or empty, got "${uploadDir}"`);
   const indexUser = get("INDEX_USER") || undefined;
   const indexPassword = get("INDEX_PASSWORD") || undefined;
   if (!!indexUser !== !!indexPassword) errors.push("INDEX_USER and INDEX_PASSWORD go together: set both or neither");
@@ -172,6 +182,7 @@ export function readConfig(env: Env): { config: Config; errors: string[] } {
     lrclibUrl,
     lyricsBackfill: flag("LYRICS_BACKFILL", ["on"], ["off"]),
     lrcDir: writeLrc ? musicDir : null,
+    uploadDir: uploadDir || null,
     indexUser,
     indexPassword,
     demoSeed,

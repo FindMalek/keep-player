@@ -12,6 +12,7 @@ import { pwaRoutes } from "./pwa";
 import { LoginLimiter } from "./rate-limit";
 import { IndexSync } from "./search-index";
 import { SessionStore } from "./sessions";
+import { MAX_UPLOAD_BYTES } from "./upload";
 
 // Dead-code eliminated per build: the executable only contains the static server, dev only the bundler route.
 const { webRoutes } = process.env.NODE_ENV === "production" ? await import("./static") : await import("./dev");
@@ -64,6 +65,7 @@ const api = createApi({
   updates: new UpdateCheck(config.updateCheck),
   backfills,
   lrc,
+  uploadDir: config.uploadDir,
 });
 const health = new HealthCheck(config.upstreams);
 
@@ -72,6 +74,8 @@ const server = Bun.serve({
   development: process.env.NODE_ENV !== "production",
   // Long streams must not be cut by the idle timeout.
   idleTimeout: 0,
+  // Uploads are one file per request; a long hi-res track is over Bun's 128 MB default.
+  maxRequestBodySize: MAX_UPLOAD_BYTES,
   websocket: { ...api.listenSockets, maxPayloadLength: 16 * 1024 },
   routes: {
     // Liveness (the container's healthcheck): the process answers. Readiness, with Navidrome: /api/health.
@@ -92,6 +96,7 @@ const server = Bun.serve({
     "/api/lyrics/missing": { GET: api.lyricsMissing },
     "/api/lyrics/refetch": { POST: api.lyricsRefetch },
     "/api/lyrics/written": { DELETE: api.lyricsWritten },
+    "/api/upload": { GET: api.upload, PUT: api.upload },
     "/api/lyrics/:songId": { GET: api.songLyrics },
     "/api/lyrics/:songId/offset": { GET: api.lyricsOffset, PUT: api.lyricsOffset },
     "/api/playlists/:id/hidden": { GET: api.playlistHidden, PUT: api.playlistHidden },

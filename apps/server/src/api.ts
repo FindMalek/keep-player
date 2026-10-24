@@ -24,6 +24,7 @@ import type { IndexSync } from "./search-index";
 import type { Session, SessionStore } from "./sessions";
 import { forgottenFavourites, listeningStats } from "./stats";
 import { subsonic, upstreamQuery } from "./subsonic";
+import { MAX_UPLOAD_BYTES, saveUpload, uploadPath } from "./upload";
 
 const COOKIE = "kp_session";
 const FOLDERS_TTL_MS = 10 * 60_000;
@@ -135,6 +136,8 @@ export interface ApiOptions {
   backfills?: Map<string, { restart(): void }>;
   /** The .lrc sidecar writer, when `LYRICS_WRITE_LRC=on`. */
   lrc?: { count(server: string): number; undoAll(server: string): { removed: number; kept: number } } | null;
+  /** Where uploads land; null or missing turns them off. */
+  uploadDir?: string | null;
   /** Listen-together rooms (#65). */
   rooms?: ListenRooms;
 }
@@ -162,6 +165,7 @@ export function createApi({
   backfills = new Map(),
   lrc = null,
   rooms = new ListenRooms(),
+  uploadDir = null,
 }: ApiOptions) {
   const upstreamFor = (id: string) => upstreams.find((upstream) => upstream.id === id);
 
@@ -477,6 +481,26 @@ export function createApi({
     return json({ forgotten, backfill: Boolean(backfill) });
   }
 
+  /**
+   * `/api/upload`: whether uploads are on (GET), or one file into the upload folder (PUT, the raw bytes as the body,
+   * `?path=Artist/Album/01 Song.flac`). Admins only; the importer or Navidrome's scan takes it from there.
+   */
+  async function upload(request: Request): Promise<Response> {
+    if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
+    const session = sessions.get(cookieValue(request));
+    if (!session) return json({ error: "signed out" }, 401);
+    if (!session.admin) return json({ error: "admins only" }, 403);
+    if (request.method === "GET") return json({ enabled: Boolean(uploadDir) });
+    if (!uploadDir) return json({ error: "uploads are off (UPLOAD_DIR)" }, 404);
+    const relative = new URL(request.url).searchParams.get("path") ?? "";
+    const path = uploadPath(uploadDir, relative);
+    if (!path) return json({ error: "not a music file" }, 400);
+    if (Number(request.headers.get("content-length") ?? 0) > MAX_UPLOAD_BYTES) return json({ error: "too big" }, 413);
+    if (!request.body) return json({ error: "empty" }, 400);
+    const saved = await saveUpload(path, request.body);
+    return json({ saved: saved.slice(uploadDir.length + 1) });
+  }
+
   /** `DELETE /api/lyrics/written`: remove every .lrc keep music wrote that is still as written. Admins only. */
   async function lyricsWritten(request: Request): Promise<Response> {
     if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
@@ -775,6 +799,7 @@ export function createApi({
     listenSockets,
     lyricsRefetch,
     lyricsWritten,
+    upload,
     searchIndex,
     searchLyrics,
     searchLibrary,

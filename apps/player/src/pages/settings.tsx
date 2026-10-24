@@ -378,6 +378,13 @@ export function SettingsPage({ section, onClose }: { section: string | null; onC
                 </Button>
               </Row>
               {session?.admin && <DoctorRow />}
+              {session?.admin && (
+                <Row label="upload music" hint="your own files or album folders, straight into the library's import folder">
+                  <Button variant="outline" size="sm" render={<Link href="/upload" />}>
+                    open
+                  </Button>
+                </Row>
+              )}
               <LibraryRules />
             </TabsContent>
 
