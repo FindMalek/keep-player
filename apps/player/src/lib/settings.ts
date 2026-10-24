@@ -15,6 +15,8 @@ export interface Settings {
   toasts: ToastLevel;
   /** 1–5 star ratings (setRating) as a column in track lists, for smart playlists in other clients. */
   ratings: boolean;
+  /** The "saved for offline" arrow next to the format in the player bar; track rows always show it. */
+  offlineInBar: boolean;
   /** No animations or view transitions, whatever the OS says. */
   reduceMotion: boolean;
   /** Open the mini player by itself when you leave the tab while music plays (Chromium). */
@@ -40,6 +42,7 @@ export interface Settings {
 export const SYNCED = [
   "toasts",
   "ratings",
+  "offlineInBar",
   "reduceMotion",
   "queueSync",
   "followOtherDevices",
@@ -54,6 +57,7 @@ const KEY = "keep-player:settings";
 const DEFAULTS: Settings = {
   toasts: "all",
   ratings: false,
+  offlineInBar: false,
   reduceMotion: false,
   miniPlayerWhenHidden: false,
   queueSync: true,
