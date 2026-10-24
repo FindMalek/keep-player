@@ -1,24 +1,38 @@
-<div align="center">
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/header/graph.svg?title=keep+music&subtitle=your+own+music%2C+played+like+a+streaming+app&align=left&font=jetbrains-mono&radius=0&mode=dark" />
+    <img alt="keep music: your own music, played like a streaming app" src="https://shieldcn.dev/header/graph.svg?title=keep+music&subtitle=your+own+music%2C+played+like+a+streaming+app&align=left&font=jetbrains-mono&radius=0&mode=light" />
+  </picture>
+</p>
 
-# keep music
+<p align="center">
+  <a href="https://github.com/FindMalek/keep-player/actions/workflows/ci.yml"><img alt="CI" src="https://shieldcn.dev/github/ci/FindMalek/keep-player.svg?workflow=ci.yml&variant=secondary" /></a>
+  <a href="https://github.com/FindMalek/keep-player/releases"><img alt="Latest release" src="https://shieldcn.dev/github/release/FindMalek/keep-player.svg?variant=secondary" /></a>
+  <a href="https://github.com/FindMalek/keep-player/pkgs/container/keep-player"><img alt="Docker image" src="https://shieldcn.dev/badge/ghcr.io-keep--player-18181b.svg?logo=docker&variant=secondary" /></a>
+  <a href="LICENSE"><img alt="License" src="https://shieldcn.dev/github/license/FindMalek/keep-player.svg?variant=secondary" /></a>
+  <a href="https://github.com/FindMalek/keep-player/commits/main"><img alt="Last commit" src="https://shieldcn.dev/github/last-commit/FindMalek/keep-player.svg?variant=secondary" /></a>
+</p>
 
-**A monochrome web player for your Navidrome library.**
-Square covers, hairline borders, synced lyrics, a queue you can see, and nothing on screen when nothing is playing.
+<p align="center">
+  <a href="https://www.navidrome.org"><img alt="Navidrome" src="https://shieldcn.dev/badge/-Navidrome-18181b.svg?logo=navidrome&variant=secondary&mode=dark" /></a>
+  <a href="https://bun.sh"><img alt="Bun" src="https://shieldcn.dev/badge/-Bun-18181b.svg?logo=bun&variant=secondary&mode=dark" /></a>
+  <a href="https://react.dev"><img alt="React 19" src="https://shieldcn.dev/badge/-React_19-18181b.svg?logo=react&variant=secondary&mode=dark" /></a>
+  <a href="https://ui.shadcn.com"><img alt="shadcn/ui" src="https://shieldcn.dev/badge/-shadcn%2Fui-18181b.svg?logo=shadcnui&variant=secondary&mode=dark" /></a>
+  <a href="https://opensubsonic.netlify.app"><img alt="OpenSubsonic" src="https://shieldcn.dev/badge/-OpenSubsonic-18181b.svg?variant=secondary&mode=dark" /></a>
+</p>
 
-[![CI](https://img.shields.io/github/actions/workflow/status/FindMalek/keep-player/ci.yml?branch=main&style=flat-square&labelColor=101010&label=ci)](https://github.com/FindMalek/keep-player/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/FindMalek/keep-player?style=flat-square&labelColor=101010&color=303030)](https://github.com/FindMalek/keep-player/releases)
-[![Image](https://img.shields.io/badge/ghcr.io-keep--player-101010?style=flat-square&labelColor=101010)](https://github.com/FindMalek/keep-player/pkgs/container/keep-player)
-![Bun](https://img.shields.io/badge/runtime-Bun-101010?style=flat-square&labelColor=101010)
-![React](https://img.shields.io/badge/ui-React%2019-101010?style=flat-square&labelColor=101010)
-![OpenSubsonic](https://img.shields.io/badge/api-OpenSubsonic-101010?style=flat-square&labelColor=101010)
-[![MIT](https://img.shields.io/badge/license-MIT-101010?style=flat-square&labelColor=101010)](LICENSE)
-
+<p align="center">
 <picture>
   <source media="(prefers-color-scheme: light)" srcset="docs/album-lyrics-light.png">
   <img alt="An album open next to its synced lyrics, a song playing" src="docs/album-lyrics.png">
 </picture>
+</p>
 
-</div>
+> A monochrome web player for your [Navidrome](https://www.navidrome.org) library. Square covers, hairline borders,
+> synced lyrics, a queue you can see, mixes made from what you play, and one session across all your devices.
+
+**Jump to:** [Self-host](#self-host) · [Features](#features) · [With Lyterion](#with-lyterion) ·
+[Docs](#docs) · [FAQ](#faq) · [Develop](#develop)
 
 ## Why
 
@@ -27,32 +41,95 @@ Your own music deserves a player as good as the streaming apps, and better where
 | | keep music | Spotify web player |
 |---|---|---|
 | your files, your server | ✓ | — |
-| search that forgives typos, accents, missing spaces | ✓ | partly |
-| search by a half-remembered lyric, and play **from that line** | ✓ | exact words only, plays from the start |
+| daily mixes, discover weekly, a daylist, made from **your** library | ✓ | ✓ (their catalog) |
+| a playlist from a sentence ("rainy sunday, slow, warm"), only songs you own | ✓ | ✓ (their catalog) |
+| one session across devices: play here, control from there | ✓ | ✓ (Connect) |
+| search by a half-remembered lyric, and play **from that line** | ✓ | exact words only, from the start |
 | lyrics timing you can nudge per song, saved across devices | ✓ | — |
 | next songs downloaded ahead, playing offline in the browser | ✓ | — |
-| every action on the keyboard, a searchable cheat sheet (`?`), rebindable | ✓ | some shortcuts |
-| start on your phone, continue here (any Subsonic app, e.g. Arpeggi) | ✓ | ✓ (Connect) |
+| now playing and play/pause in your terminal (Claude Code, OpenCode) | ✓ | — |
+| every action on the keyboard, a searchable cheat sheet (`?`) | ✓ | some shortcuts |
+
+## Self-host
+
+Next to your Navidrome:
+
+```yaml
+# compose.yaml
+services:
+  player:
+    image: ghcr.io/findmalek/keep-player:latest   # amd64
+    restart: unless-stopped
+    environment:
+      NAVIDROME_URL: http://navidrome:4533        # as this container reaches Navidrome
+    ports:
+      - "8080:8080"
+    volumes:
+      - player-data:/data
+volumes:
+  player-data:
+```
+
+`docker compose up -d`, open `http://localhost:8080`, sign in with your Navidrome account. No Navidrome yet?
+[`docs/deploy/full-stack.compose.yaml`](docs/deploy/full-stack.compose.yaml) runs both.
+
+The whole stack (Navidrome, keep music, uploads into a tagging inbox, AI playlists, a domain with HTTPS, Lyterion) is
+in **[self-hosting](docs/self-hosting.md)**, written so a person or a coding agent can follow it step by step.
+
+### With a coding agent
+
+Paste this into Claude Code, OpenCode, Codex or Cursor on the machine that will run it:
+
+```text
+Set up keep music (https://github.com/FindMalek/keep-player) on this machine by following
+docs/self-hosting.md in that repo, top to bottom. Ask me before each choice the guide marks as
+"ask", never print secrets, and finish with the guide's "check it works" list, showing me each result.
+```
+
+The guide has a decision list up front (fresh Navidrome or existing, domain or local, which extras), commands with the
+output to expect, and a closing checklist, so the agent can tell you what it did and what to look at.
 
 ## Features
 
-- **Search** (`⌘K`): one box for songs, albums, artists, playlists, lyrics and commands. Typo-tolerant, ranked by what
-  you play, with filters (`artist:` `year:1990..1999` `is:liked` `format:flac` …). [search](docs/search.md)
-- **Lyrics** for nearly every song: Navidrome's, else LRCLIB's, cached and fetched ahead. They follow the song
-  word by word, full screen with `⇧F`, and `[` `]` fix the timing per song. [lyrics](docs/lyrics.md)
-- **Playback** that doesn't stutter: two decks for gapless handover, ReplayGain (album gain in album order), the
-  next songs precached by a service worker (instant seeks, plays offline), stalls recovered in place.
-- **Queue** you can see and steer: your queue apart from the album or playlist it came from, balanced shuffle,
-  undo for removals, stop after this song, sleep timer.
-- **Keyboard first**: everything has a key, `?` shows them all, lists move with `j`/`k`, `x` selects.
-  [shortcuts](docs/shortcuts.md)
-- **Library**: home (recently added, played, most played, rediscover), albums, artists with bio and top songs,
-  songs, genres, liked songs, your folders as on disk, playlists in folders (`Chill / Night`).
-- **With your phone**: the play queue hands off both ways with Arpeggi or any OpenSubsonic app; likes, ratings,
-  playlists and plays are the server's, so every app agrees. [sync](docs/sync.md)
-- **Fast**: a 10k-song list renders ~40 rows, the library is cached in the browser so a reload paints instantly,
-  covers are resized WebP served forever-cached, the first screen is under 160 KB of JS (gzip).
-- **Mac media keys, Now Playing, a mini player** (always on top) and scrobbling back to Navidrome.
+**Listen**
+
+- **Lyrics** for nearly every song: Navidrome's, else LRCLIB's, cached and fetched ahead. Word by word, full screen
+  with `⇧F`, `[` `]` fix the timing per song. [lyrics](docs/lyrics.md)
+- **Playback** that doesn't stutter: two decks for gapless handover, ReplayGain, the next songs precached by a service
+  worker (instant seeks, plays offline), stalls recovered in place, crossfade and a ten-band equalizer.
+- **Queue** you can see and steer: your queue apart from the album it came from, balanced shuffle, undo, stop after
+  this song, sleep timer.
+
+**Discover** · [mixes](docs/mixes.md)
+
+- **Made for you** on home: daily mixes grouped by the artists you play together, **discover weekly** every Friday
+  (songs you own and never played), and a **daylist** that changes four times a day. All saved as Navidrome playlists,
+  so your phone has them too.
+- **Playlists from a prompt**: "late night drive, 90s, no vocals" → Groq picks artists from your library, the server
+  builds the list from songs you own. Review it, make it again, save.
+- **Recap**: your month or year as a reel: minutes, top artists and songs, your listening hours, your biggest day,
+  and your top songs played back or saved.
+- **Stats**, history, forgotten favourites, and a radio that learns what you skip.
+
+**Everywhere** · [devices](docs/devices.md)
+
+- **One session across devices**, like Spotify Connect: start on one tab or computer, control it from another, move
+  playback with the device picker in the player bar.
+- **Your phone**: the queue hands off both ways with Arpeggi or any OpenSubsonic app; likes, ratings, playlists and
+  plays are the server's, so every app agrees. [sync](docs/sync.md)
+- **Now playing in your terminal**: the song, its lyric line and ⏮ ⏸ ⏭ above the prompt in Claude Code and OpenCode.
+- **Listen together** with friends on the same server. [listen together](docs/listen-together.md)
+
+**Your library**
+
+- **Search** (`⌘K`): songs, albums, artists, playlists, lyrics and commands, typo-tolerant, with filters
+  (`artist:` `year:1990..1999` `is:liked` `format:flac` …). [search](docs/search.md)
+- **Upload** songs or whole album folders from the browser into your tagging inbox (beets, Lyterion).
+- **Library doctor**: missing covers, tags and ReplayGain, duplicates, low-quality files, with one-click fixes through
+  Lyterion.
+- **Keyboard first**: everything has a key, `?` shows them all, lists move with `j`/`k`. [shortcuts](docs/shortcuts.md)
+- **Fast**: a 10k-song list renders ~40 rows, the library is cached so a reload paints instantly, the first screen is
+  under 160 KB of JS (gzip).
 
 <table>
   <tr>
@@ -78,38 +155,26 @@ Your own music deserves a player as good as the streaming apps, and better where
 All screenshots are the [generated demo library](docs/demo-library.md): synthesized tracks and dithered covers, no real music.
 The album shot has a light twin, served automatically on a light system theme.
 
-## Quick start
+## With Lyterion
 
-```yaml
-# compose.yaml, next to your Navidrome
-services:
-  player:
-    image: ghcr.io/findmalek/keep-player:latest   # amd64
-    restart: unless-stopped
-    environment:
-      NAVIDROME_URL: http://navidrome:4533        # as this container reaches Navidrome
-    ports:
-      - "8080:8080"
-    volumes:
-      - player-data:/data
-volumes:
-  player-data:
-```
-
-`docker compose up -d`, open `http://localhost:8080`, sign in with your Navidrome account. The sign-in screen checks
-the server first and tells you what to fix if it can't reach it. [Getting started](docs/getting-started.md)
+[Lyterion](https://github.com/FindMalek/lyterion) brings a Spotify library over to your own Navidrome. keep music
+connects to it: the import page shows each Spotify playlist and how much of it is already in your library, the doctor's
+"fix with Lyterion" hands songs over for a better copy, and Lyterion keeps every playlist editable in Navidrome.
+Setting them up together: [lyterion](docs/lyterion.md).
 
 ## Docs
 
 | | |
 |---|---|
-| [getting started](docs/getting-started.md) | run it, sign in, first run |
+| [self-hosting](docs/self-hosting.md) | the whole stack, step by step, agent-friendly |
+| [getting started](docs/getting-started.md) | run it next to Navidrome, sign in, first run |
 | [configuration](docs/configuration.md) | every setting (generated from the code) |
-| [deploy](docs/deploy/README.md) | full stack, Traefik, Caddy, nginx, Dokploy, image tags, health |
-| [shortcuts](docs/shortcuts.md) | every key (generated from the code) |
-| [search](docs/search.md) · [lyrics](docs/lyrics.md) · [sync](docs/sync.md) · [spotify import](docs/spotify-import.md) · [listen together](docs/listen-together.md) | how they work |
+| [deploy](docs/deploy/README.md) | Traefik, Caddy, nginx, Dokploy, image tags, health |
+| [devices](docs/devices.md) · [sync](docs/sync.md) · [listen together](docs/listen-together.md) | one session, your phone, friends |
+| [mixes](docs/mixes.md) · [search](docs/search.md) · [lyrics](docs/lyrics.md) · [shortcuts](docs/shortcuts.md) | how they work |
+| [lyterion](docs/lyterion.md) · [spotify import](docs/spotify-import.md) | bringing a Spotify library over |
 | [architecture](docs/architecture.md) · [security](docs/security.md) | how it's built, what's protected |
-| [demo library](docs/demo-library.md) · [previews](docs/previews.md) | the generated library, and per-PR preview deployments |
+| [demo library](docs/demo-library.md) · [previews](docs/previews.md) | the generated library, per-PR previews |
 | [troubleshooting](docs/troubleshooting.md) | when something's off |
 | [contributing](CONTRIBUTING.md) · [roadmap](docs/ROADMAP.md) | working on it |
 
@@ -126,7 +191,8 @@ them.
 stored by Navidrome; keep music keeps only its own data (sessions, its search and lyrics cache, history) in `/data`.
 
 **Does it phone home?** No. It talks to your Navidrome and, for missing lyrics, to LRCLIB (`LRCLIB_URL=` turns that
-off). The release check is off unless you set `UPDATE_CHECK=on`.
+off). Groq is called only for playlists from a prompt, and only when you set `GROQ_API_KEY`; it gets your artist names,
+never your files. The release check is off unless you set `UPDATE_CHECK=on`.
 
 **Several Navidrome servers?** `NAVIDROME_SERVERS=home=http://a:4533,friend=https://b` and pick at sign-in.
 
