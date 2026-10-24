@@ -119,12 +119,12 @@ jobs:
       - run: bunx playwright install --with-deps chromium
       - run: bun run e2e --project=lighthouse --no-deps
 
-  # Only a release builds and ships an image: merges to main stop at the tests. Built on the-keep, next to Dokploy,
-  # amd64 only (that's what runs here; arm64 through qemu took most of the time), layers cached on the host.
+  # Only a release builds and ships an image: merges to main stop at the tests. Built on GitHub's runner (fast network
+  # to the registry; the home line only downloads it once when Dokploy pulls), amd64 only: that's what runs on the-keep.
   image:
     needs: [check, e2e, release]
     if: ${{ !cancelled() && !failure() && (needs.release.outputs.created == 'true' || startsWith(github.ref, 'refs/tags/v')) }}
-    runs-on: [self-hosted, the-keep]
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
       contents: read
@@ -161,8 +161,8 @@ jobs:
           sbom: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=local,src=/home/findmalek/.cache/buildx/keep-player
-          cache-to: type=local,dest=/home/findmalek/.cache/buildx/keep-player,mode=max
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
       - uses: actions/attest-build-provenance@v3
         with:
           subject-name: ghcr.io/findmalek/keep-player
@@ -172,7 +172,7 @@ jobs:
   deploy:
     if: ${{ !cancelled() && needs.image.result == 'success' }}
     needs: image
-    runs-on: [self-hosted, the-keep]
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     environment: production
     steps:
