@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.4.0](https://github.com/FindMalek/keep-player/compare/v0.3.0...v0.4.0) (2026-10-24)
+
+
+### Features
+
+* **player:** declutter the player bar ([#205](https://github.com/FindMalek/keep-player/issues/205)) ([f299d75](https://github.com/FindMalek/keep-player/commit/f299d75d9dc0d8633e3881350f72e5e8cac2f012))
+* **search:** menus, header box, playing playlist ([#207](https://github.com/FindMalek/keep-player/issues/207)) ([e15716c](https://github.com/FindMalek/keep-player/commit/e15716c3981ca1484592bf531ca30d4032019707))
+* **settings:** loading bar toggle ([#204](https://github.com/FindMalek/keep-player/issues/204)) ([5ed03f4](https://github.com/FindMalek/keep-player/commit/5ed03f4b5a31e9b924c0b5cc75db534faeb39dbb))
+* **settings:** offline mark toggle ([#211](https://github.com/FindMalek/keep-player/issues/211)) ([d70cfcc](https://github.com/FindMalek/keep-player/commit/d70cfcc03f4090786673fdbd00952e4c36e2aebe))
+* **ui:** remove all motion ([#203](https://github.com/FindMalek/keep-player/issues/203)) ([2d2e87e](https://github.com/FindMalek/keep-player/commit/2d2e87e388a656e5bc8762c3fdf071a9cdae0882))
+
+
+### Bug Fixes
+
+* **playlist:** aura png in the menu ([#206](https://github.com/FindMalek/keep-player/issues/206)) ([8bd99bb](https://github.com/FindMalek/keep-player/commit/8bd99bbc8ff773488563cae23782a0eea9f3ad30))
+
 ## [0.3.0](https://github.com/FindMalek/keep-player/compare/v0.2.0...v0.3.0) (2026-10-16)
 
 
