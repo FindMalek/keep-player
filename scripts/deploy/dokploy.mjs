@@ -49,7 +49,8 @@ async function ensureEnvironment() {
   }
   const environment = project?.environments?.[0];
   if (!environment) throw new Error(`no environment in project ${PROJECT}`);
-  return environment;
+  // project.all leaves projectId off its environments; the Inspect links need it.
+  return { ...environment, projectId: project.projectId };
 }
 
 async function ensureApplication(environment, name) {
