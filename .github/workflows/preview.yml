@@ -1,11 +1,11 @@
 # Vercel-style previews on Dokploy, built on GitHub runners: one image per PR, one Dokploy app, one sticky comment.
-# Skipped until the repo var DEPLOY_ENABLED is "true", see docs/previews.md. Only PRs labelled `preview` get one:
-# each build pushes an image over the home line, so it's opt-in.
+# Skipped until the repo var DEPLOY_ENABLED is "true", see docs/previews.md. Every PR gets one: merges don't deploy,
+# so this is where a change is seen running before a release.
 name: Preview
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened, labeled, closed]
+    types: [opened, synchronize, reopened, closed]
 
 concurrency:
   group: preview-${{ github.event.pull_request.number }}
@@ -25,12 +25,18 @@ env:
   GITHUB_TOKEN: ${{ github.token }}
 
 jobs:
-  deploy:
-    if: github.event.action != 'closed' && contains(github.event.pull_request.labels.*.name, 'preview') && vars.DOKPLOY_PUBLIC_URL != '' && vars.DEPLOY_ENABLED == 'true' && github.event.pull_request.head.repo.full_name == github.repository
+  # The image builds on GitHub's runner (fast network to the registry)...
+  build:
+    if: github.event.action != 'closed' && vars.DOKPLOY_PUBLIC_URL != '' && vars.DEPLOY_ENABLED == 'true' && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Say it's building
+        run: node scripts/deploy/dokploy.mjs comment-building
       - uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -45,6 +51,17 @@ jobs:
           tags: ghcr.io/findmalek/keep-player:pr-${{ env.PR_NUMBER }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+      - name: Mark failed
+        if: failure()
+        run: node scripts/deploy/dokploy.mjs comment-failed
+
+  # ...and the deploy runs on the-keep: previews are tailnet-only, so only a runner there can wait for one to come up.
+  deploy:
+    needs: build
+    runs-on: [self-hosted, the-keep]
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
