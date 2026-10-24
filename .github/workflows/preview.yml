@@ -51,7 +51,7 @@ jobs:
       - name: Deploy the preview
         env:
           GHCR_USERNAME: ${{ github.actor }}
-          GHCR_READ_TOKEN: ${{ secrets.GHCR_READ_TOKEN || github.token }}
+          GHCR_READ_TOKEN: ${{ secrets.GHCR_READ_TOKEN }}
         run: node scripts/deploy/dokploy.mjs preview-up
       - name: Mark failed
         if: failure()
