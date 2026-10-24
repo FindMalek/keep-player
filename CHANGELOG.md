@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.2.0](https://github.com/FindMalek/keep-player/compare/v1.1.0...v1.2.0) (2026-10-24)
+
+
+### Features
+
+* **ai:** playlists from a prompt ([#259](https://github.com/FindMalek/keep-player/issues/259)) ([2612f4f](https://github.com/FindMalek/keep-player/commit/2612f4f35988371aef600bdf802e8f59f7a00f18))
+* **recap:** yearly recap as a reel ([#258](https://github.com/FindMalek/keep-player/issues/258)) ([d530f01](https://github.com/FindMalek/keep-player/commit/d530f016b2594e81621178e674a5343a16214d58))
+
+
+### Bug Fixes
+
+* **remote:** rename to keep-music ([#256](https://github.com/FindMalek/keep-player/issues/256)) ([4138c89](https://github.com/FindMalek/keep-player/commit/4138c89ce2bb3d3241efd053373ae204fbf67614))
+
 ## [1.1.0](https://github.com/FindMalek/keep-player/compare/v1.0.0...v1.1.0) (2026-10-24)
 
 
