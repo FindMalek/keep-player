@@ -24,6 +24,7 @@ import { openPlaylistDialog, usePlaylistDialog } from "@/lib/playlist-dialogs";
 import { loadPrefs } from "@/lib/prefs";
 import { prefetchHome } from "@/lib/queries";
 import { useReachability } from "@/lib/reachability";
+import { startRecentSources } from "@/lib/recent-sources";
 import { go, replace, usePath } from "@/lib/router";
 import { useSetting } from "@/lib/settings";
 import { installShortcuts, useShortcuts } from "@/lib/shortcuts";
@@ -241,6 +242,7 @@ export function App() {
     void loadLikes();
     void loadPrefs();
     startListeningHistory();
+    startRecentSources();
     void import("@/lib/settings-sync").then((sync) => sync.startSettingsSync());
     // The queue hand-off (Arpeggi, other browsers) waits until the first screen is done.
     const id = setTimeout(() => {

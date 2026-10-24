@@ -2,6 +2,7 @@ import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { HeartIcon, PlayIcon, ShuffleIcon } from "lucide-react";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ListContextMenu, type MenuTarget } from "@/components/item-menu";
+import { JumpBackIn } from "@/components/jump-back-in";
 import { AlbumGrid, AlbumGridSkeleton, Content, EmptyState, PageHeader, Section, TrackList } from "@/components/library";
 import { Link } from "@/components/link";
 import { ListFilterBar } from "@/components/list-filter-bar";
@@ -87,6 +88,7 @@ export function HomePage() {
         </Content>
       ) : (
         <>
+          <JumpBackIn />
           <AlbumRow title="recently added" query={newest} priority={8} />
           <AlbumRow title="recently played" query={recent} />
           <AlbumRow title="most played" query={frequent} />
