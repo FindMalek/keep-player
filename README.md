@@ -84,7 +84,7 @@ The album shot has a light twin, served automatically on a light system theme.
 # compose.yaml, next to your Navidrome
 services:
   player:
-    image: ghcr.io/findmalek/keep-player:latest   # amd64 and arm64
+    image: ghcr.io/findmalek/keep-player:latest   # amd64
     restart: unless-stopped
     environment:
       NAVIDROME_URL: http://navidrome:4533        # as this container reaches Navidrome
