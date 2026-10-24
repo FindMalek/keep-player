@@ -99,6 +99,7 @@ const server = Bun.serve({
     "/api/devices": { GET: (request, srv) => api.devicesSocket(request, srv) },
     "/api/remote/token": { POST: api.remoteToken },
     "/api/ai/playlist": { POST: api.aiPlaylist },
+    "/api/artists/:id/appears-on": { GET: api.artistAppearsOn },
     "/api/remote/now": { GET: api.remoteNow },
     "/api/remote/:action": { POST: api.remoteAction },
     "/api/lyrics/coverage": { GET: api.lyricsCoverage },
