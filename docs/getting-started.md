@@ -1,6 +1,8 @@
 # Getting started
 
-You need a running [Navidrome](https://www.navidrome.org) (or any OpenSubsonic server) and Docker.
+You need a running [Navidrome](https://www.navidrome.org) (or any OpenSubsonic server) and Docker. Setting up
+everything from scratch (Navidrome, uploads, AI playlists, a domain, Lyterion), or having a coding agent do it:
+[self-hosting](self-hosting.md).
 
 ## 1. Run it
 
@@ -56,4 +58,5 @@ Right after the first sign-in in a browser:
 - Learn the keyboard: press `?`, or read [shortcuts](shortcuts.md).
 - Search tricks: [search](search.md).
 - Lyrics everywhere: [lyrics](lyrics.md).
-- Use your phone too: [sync](sync.md).
+- Use your phone too: [sync](sync.md). Your other computers: [devices](devices.md).
+- Mixes, prompt playlists and the recap: [mixes](mixes.md).

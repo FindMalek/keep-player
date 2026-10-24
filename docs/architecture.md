@@ -38,6 +38,13 @@
 
 In production the web app is bundled, minified and precompressed (brotli, gzip) and embedded in the executable with
 the server (`scripts/build.ts`). The image is that executable on Alpine, multi-arch.
+- **Devices** (`devices.ts`): one in-memory hub per account over WebSockets (`/api/devices`): which device plays,
+  its last state, commands from remotes routed to it, transfers. The remote API (`remote.ts`, `/api/remote/*`) reads
+  it with a Bearer session for the terminal mods.
+- **Mixes** (`mixes.ts`): daily mixes, discover weekly and the daylist from your plays (matched to the library by
+  artist and title) and the index, seeded per day so every device gets the same picks.
+- **Prompt playlists** (`ai-playlist.ts`): a catalog of your artists to Groq, artists back, the list built from songs
+  you own.
 
 ## Web app (`apps/player/src`)
 

@@ -18,6 +18,11 @@ services:
     depends_on: [navidrome]
     environment:
       NAVIDROME_URL: http://navidrome:4533
+      # Optional, see docs/self-hosting.md:
+      # UPLOAD_DIR: /inbox                     # + a writable volume mounted at /inbox
+      # GROQ_API_KEY: ${GROQ_API_KEY}          # playlists from a prompt
+      # LYTERION_URL: http://lyterion-api:3001
+      # LYTERION_TOKEN: ${LYTERION_TOKEN}
     ports:
       - "8080:8080"
     volumes:

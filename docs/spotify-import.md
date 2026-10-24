@@ -1,5 +1,7 @@
 # Import from Spotify
 
+> With [Lyterion](lyterion.md) connected, the import page shows your Spotify library live instead, with nothing to upload.
+
 Rebuild your Spotify playlists and liked songs from a Spotify data export. Settings → library → *import from spotify*
 (or `/import`).
 

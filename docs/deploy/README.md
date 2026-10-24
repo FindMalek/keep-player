@@ -16,7 +16,7 @@ Every setting is an environment variable: [configuration](../configuration.md). 
 
 | tag | what |
 |---|---|
-| `latest`, `0.4`, `0.4.1` | releases |
+| `latest`, `1.2`, `1.2.0` | releases |
 | `main` | the latest release, same as `latest` (what the author runs) |
 | `sha-abc1234` | one exact commit |
 
@@ -29,7 +29,8 @@ Every setting is an environment variable: [configuration](../configuration.md). 
 ## Reverse proxies
 
 Audio is streamed with HTTP Range requests and can run for many minutes: don't buffer it and don't cut long
-responses.
+responses. The device picker and listen together use WebSockets (`/api/devices`, `/api/listen/*`): let upgrades
+through.
 
 **Caddy**
 
@@ -46,6 +47,9 @@ location / {
   proxy_pass http://player:8080;
   proxy_set_header Host $host;
   proxy_set_header X-Real-IP $remote_addr;
+  proxy_http_version 1.1;    # WebSockets (devices, listen together)
+  proxy_set_header Upgrade $http_upgrade;
+  proxy_set_header Connection "upgrade";
   proxy_buffering off;       # stream audio as it arrives
   proxy_read_timeout 1h;     # long tracks
 }
