@@ -3,16 +3,31 @@ import { useQuery } from "@tanstack/react-query";
 import { Content, EmptyState, PageHeader, Section } from "@/components/library";
 import { Link } from "@/components/link";
 import { TrackListSkeleton } from "@/components/skeletons";
+import { Button } from "@/components/ui/button";
 import { Progress, ProgressLabel, ProgressValue } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { apiQueries } from "@/lib/api-queries";
 import { doctorQuery } from "@/lib/doctor-query";
 import { plural } from "@/lib/format";
+import { queries } from "@/lib/queries";
+import type { Playlist } from "@/lib/types";
+import { sendToUpgrade, upgradePlaylist } from "@/lib/upgrade";
 
-function CheckSection({ check }: { check: Check }) {
+/** `upgrade`: Lyterion's "⇪ Upgrade" playlist when it's connected; its fix buttons hand findings over to it. */
+function CheckSection({ check, upgrade }: { check: Check; upgrade?: Playlist }) {
   const clean = check.count === 0;
+  const fixable = check.findings.filter((finding) => finding.songId || finding.albumId);
   return (
-    <Section title={`${check.title} · ${check.count.toLocaleString()}`}>
+    <Section
+      title={`${check.title} · ${check.count.toLocaleString()}`}
+      action={
+        upgrade && fixable.length > 0 ? (
+          <Button variant="outline" size="xs" className="font-mono" onClick={() => void sendToUpgrade(upgrade, fixable)}>
+            fix all shown with lyterion
+          </Button>
+        ) : undefined
+      }
+    >
       <div className="flex flex-col gap-2 px-4 pb-4">
         <p className="text-muted-foreground text-sm">{clean ? "nothing to fix" : check.hint}</p>
         {!clean && (
@@ -30,6 +45,20 @@ function CheckSection({ check }: { check: Check }) {
                     )}
                   </TableCell>
                   <TableCell className="max-w-96 truncate text-muted-foreground">{finding.detail}</TableCell>
+                  {upgrade && (
+                    <TableCell className="w-0 text-right">
+                      {(finding.songId || finding.albumId) && (
+                        <Button
+                          variant="ghost"
+                          size="xs"
+                          aria-label={`fix ${finding.label} with lyterion`}
+                          onClick={() => void sendToUpgrade(upgrade, [finding])}
+                        >
+                          fix
+                        </Button>
+                      )}
+                    </TableCell>
+                  )}
                 </TableRow>
               ))}
             </TableBody>
@@ -49,6 +78,7 @@ export function DoctorPage() {
   const admin = session.isError ? false : session.data?.admin;
   const report = useQuery({ ...doctorQuery, enabled: Boolean(admin) });
   const data = report.data;
+  const upgrade = upgradePlaylist(useQuery(queries.playlists()).data);
   return (
     <>
       <PageHeader
@@ -86,7 +116,7 @@ export function DoctorPage() {
         )}
       </Content>
       {data?.checks.map((check) => (
-        <CheckSection key={check.id} check={check} />
+        <CheckSection key={check.id} check={check} upgrade={upgrade} />
       ))}
     </>
   );
