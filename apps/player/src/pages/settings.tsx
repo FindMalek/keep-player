@@ -1,11 +1,26 @@
 import { useQuery } from "@tanstack/react-query";
-import { DatabaseIcon, DownloadIcon, ExternalLinkIcon, HardDriveDownloadIcon, LogOutIcon, MonitorSmartphoneIcon } from "lucide-react";
+import {
+  ChevronDownIcon,
+  DatabaseIcon,
+  DownloadIcon,
+  ExternalLinkIcon,
+  HardDriveDownloadIcon,
+  LogOutIcon,
+  MonitorSmartphoneIcon,
+} from "lucide-react";
 import { lazy, type ReactNode, Suspense, useState } from "react";
-import { Content, PageHeader } from "@/components/library";
 import { LibraryRules } from "@/components/library-rules";
 import { Link } from "@/components/link";
 import { OutputDevice } from "@/components/output-device";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -196,7 +211,8 @@ function DoctorRow() {
   );
 }
 
-export function SettingsPage({ section }: { section: string | null }) {
+/** Settings float over the page you were on: a sidebar of sections on the left, the rows on the right. */
+export function SettingsPage({ section, onClose }: { section: string | null; onClose: () => void }) {
   const [tab, setTab] = useState<Section>((SECTIONS as readonly string[]).includes(section ?? "") ? (section as Section) : "playback");
   const theme = useTheme();
   const queueSync = useSetting("queueSync");
@@ -211,195 +227,211 @@ export function SettingsPage({ section }: { section: string | null }) {
   const [indexOpen, setIndexOpen] = useState(false);
 
   return (
-    <>
-      <PageHeader title="settings" />
-      <Content>
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="flex h-[min(640px,85vh)] gap-0 p-0 sm:max-w-3xl">
         <Tabs
+          orientation="vertical"
           value={tab}
           onValueChange={(value) => {
             setTab(value as Section);
             window.history.replaceState(window.history.state, "", `/settings/${value}`);
           }}
-          className="max-w-2xl"
+          className="min-h-0 w-full gap-0"
         >
-          <TabsList variant="line" className="flex-wrap font-mono">
-            {SECTIONS.map((section) => (
-              <TabsTrigger key={section} value={section}>
-                {section}
-              </TabsTrigger>
-            ))}
-          </TabsList>
+          <nav className="flex w-40 shrink-0 flex-col gap-3 border-r p-3 max-sm:w-32">
+            <DialogTitle className="px-2 font-mono text-sm">settings</DialogTitle>
+            <DialogDescription className="sr-only">preferences for playback, look, library, sync and your account</DialogDescription>
+            <TabsList variant="line" className="w-full items-stretch font-mono">
+              {SECTIONS.map((section) => (
+                <TabsTrigger key={section} value={section}>
+                  {section}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </nav>
+          <div className="min-w-0 flex-1 overflow-y-auto px-5 py-3">
+            <TabsContent value="playback">
+              <Row label="output device" hint={<>speakers or headphones to play through · {DEVICE}</>}>
+                <OutputDevice />
+              </Row>
+              {MINI_PLAYER_SUPPORTED && (
+                <Toggle
+                  setting="miniPlayerWhenHidden"
+                  label="mini player when you leave the tab"
+                  hint={<>an always-on-top window while music plays · {DEVICE}</>}
+                />
+              )}
+              <Crossfade />
+              <Loudness />
+              <StreamQualityRow />
+              <Row label="equalizer" hint={<>ten bands with presets, off by default · {SYNCED}</>}>
+                <div className="flex items-center gap-3">
+                  <Switch aria-label="equalizer on" checked={eqOn} onCheckedChange={(checked) => setSetting("eqOn", checked === true)} />
+                  <Button variant="outline" size="sm" onClick={() => setEqOpen(true)}>
+                    adjust
+                  </Button>
+                </div>
+              </Row>
+              <p className="py-3 text-muted-foreground text-xs">songs play gapless with replaygain from your tags.</p>
+            </TabsContent>
 
-          <TabsContent value="playback">
-            <Row label="output device" hint={<>speakers or headphones to play through · {DEVICE}</>}>
-              <OutputDevice />
-            </Row>
-            {MINI_PLAYER_SUPPORTED && (
+            <TabsContent value="appearance">
+              <Row label="theme" hint={SYNCED}>
+                <DropdownMenu>
+                  <DropdownMenuTrigger
+                    render={
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        aria-label={`theme: ${theme}`}
+                        className="w-28 justify-between font-mono font-normal"
+                      />
+                    }
+                  >
+                    {theme}
+                    <ChevronDownIcon />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="min-w-28">
+                    <DropdownMenuRadioGroup value={theme} onValueChange={(value) => setTheme(value as Theme)}>
+                      {(["system", "dark", "light"] as const).map((value) => (
+                        <DropdownMenuRadioItem key={value} value={value} className="font-mono">
+                          {value}
+                        </DropdownMenuRadioItem>
+                      ))}
+                    </DropdownMenuRadioGroup>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </Row>
+              <ToastsRow />
+              <Toggle setting="loadingBar" label="loading bar" hint={<>a thin line at the top while things refresh · {SYNCED}</>} />
               <Toggle
-                setting="miniPlayerWhenHidden"
-                label="mini player when you leave the tab"
-                hint={<>an always-on-top window while music plays · {DEVICE}</>}
+                setting="offlineInBar"
+                label="offline mark in the player bar"
+                hint={<>the arrow next to the format when a song is saved for offline · track rows always show it · {SYNCED}</>}
               />
-            )}
-            <Crossfade />
-            <Loudness />
-            <StreamQualityRow />
-            <Row label="equalizer" hint={<>ten bands with presets, off by default · {SYNCED}</>}>
-              <div className="flex items-center gap-3">
-                <Switch aria-label="equalizer on" checked={eqOn} onCheckedChange={(checked) => setSetting("eqOn", checked === true)} />
-                <Button variant="outline" size="sm" onClick={() => setEqOpen(true)}>
-                  adjust
-                </Button>
-              </div>
-            </Row>
-            <p className="py-3 text-muted-foreground text-xs">songs play gapless with replaygain from your tags.</p>
-          </TabsContent>
+              <Toggle
+                setting="ratings"
+                label="show ratings"
+                hint={<>1–5 stars in track lists, for smart playlists in other clients · {SYNCED}</>}
+              />
+            </TabsContent>
 
-          <TabsContent value="appearance">
-            <Row label="theme" hint={SYNCED}>
-              <ToggleGroup
-                variant="outline"
-                size="sm"
-                aria-label="theme"
-                value={[theme]}
-                onValueChange={(value: string[]) => value[0] && setTheme(value[0] as Theme)}
+            <TabsContent value="library">
+              <p className="pb-2 text-muted-foreground text-xs">
+                your rules for songs and albums, on every browser. <span className="font-mono">follows you to every browser</span>
+              </p>
+              <Row
+                label="import from spotify"
+                hint="rebuild your playlists and liked songs from a Spotify export, with a screen to check each match"
               >
-                {(["system", "dark", "light"] as const).map((value) => (
-                  <ToggleGroupItem key={value} value={value} className="font-mono font-normal">
-                    {value}
-                  </ToggleGroupItem>
-                ))}
-              </ToggleGroup>
-            </Row>
-            <ToastsRow />
-            <Toggle setting="loadingBar" label="loading bar" hint={<>a thin line at the top while things refresh · {SYNCED}</>} />
-            <Toggle
-              setting="offlineInBar"
-              label="offline mark in the player bar"
-              hint={<>the arrow next to the format when a song is saved for offline · track rows always show it · {SYNCED}</>}
-            />
-            <Toggle
-              setting="ratings"
-              label="show ratings"
-              hint={<>1–5 stars in track lists, for smart playlists in other clients · {SYNCED}</>}
-            />
-          </TabsContent>
+                <Button variant="outline" size="sm" render={<Link href="/import" />}>
+                  open
+                </Button>
+              </Row>
+              {session?.admin && <DoctorRow />}
+              <LibraryRules />
+            </TabsContent>
 
-          <TabsContent value="library">
-            <p className="pb-2 text-muted-foreground text-xs">
-              your rules for songs and albums, on every browser. <span className="font-mono">follows you to every browser</span>
-            </p>
-            <Row
-              label="import from spotify"
-              hint="rebuild your playlists and liked songs from a Spotify export, with a screen to check each match"
-            >
-              <Button variant="outline" size="sm" render={<Link href="/import" />}>
-                open
-              </Button>
-            </Row>
-            {session?.admin && <DoctorRow />}
-            <LibraryRules />
-          </TabsContent>
-
-          <TabsContent value="sync">
-            <Toggle
-              setting="queueSync"
-              label="sync with your other devices"
-              hint={<>saves the queue to navidrome and offers queues from arpeggi or other browsers · {SYNCED}</>}
-            />
-            {queueSync && (
+            <TabsContent value="sync">
               <Toggle
-                setting="followOtherDevices"
-                label="pick up their queue without asking"
-                hint={<>never while this one plays · {SYNCED}</>}
+                setting="queueSync"
+                label="sync with your other devices"
+                hint={<>saves the queue to navidrome and offers queues from arpeggi or other browsers · {SYNCED}</>}
               />
-            )}
-          </TabsContent>
+              {queueSync && (
+                <Toggle
+                  setting="followOtherDevices"
+                  label="pick up their queue without asking"
+                  hint={<>never while this one plays · {SYNCED}</>}
+                />
+              )}
+            </TabsContent>
 
-          <TabsContent value="storage">
-            <Row label="offline storage" hint={<>songs kept for offline and the next few precached · {DEVICE}</>}>
-              <Button variant="outline" size="sm" onClick={() => setStorageOpen(true)}>
-                <HardDriveDownloadIcon />
-                manage
-              </Button>
-            </Row>
-          </TabsContent>
-
-          <TabsContent value="lyrics">
-            <Row label="lyrics coverage" hint="how much of your library has synced lyrics, and what's missing">
-              <Button variant="outline" size="sm" render={<Link href="/lyrics" />}>
-                open
-              </Button>
-            </Row>
-            <p className="py-3 text-muted-foreground text-xs">
-              lyrics come from navidrome first, then lrclib. the server can also save them as .lrc files next to your music (
-              <span className="font-mono">LYRICS_WRITE_LRC</span>).
-            </p>
-          </TabsContent>
-
-          <TabsContent value="shortcuts">
-            <Row label="every shortcut" hint="press ? anywhere to see them all">
-              <Button variant="outline" size="sm" onClick={() => window.dispatchEvent(new Event("keep:cheat-sheet"))}>
-                show
-              </Button>
-            </Row>
-          </TabsContent>
-
-          <TabsContent value="account">
-            <Row
-              label={user ?? "signed out"}
-              hint={session?.server ? `on ${session.server}${session.admin ? " · navidrome admin" : ""}` : undefined}
-            >
-              <Button variant="outline" size="sm" onClick={() => void logout()}>
-                <LogOutIcon />
-                log out
-              </Button>
-            </Row>
-            {session?.admin && (
-              <Row label="library index" hint="the search and lyrics index the server keeps; rebuild it after big changes">
-                <Button variant="outline" size="sm" onClick={() => setIndexOpen(true)}>
-                  <DatabaseIcon />
+            <TabsContent value="storage">
+              <Row label="offline storage" hint={<>songs kept for offline and the next few precached · {DEVICE}</>}>
+                <Button variant="outline" size="sm" onClick={() => setStorageOpen(true)}>
+                  <HardDriveDownloadIcon />
                   manage
                 </Button>
               </Row>
-            )}
-            <Row label="sessions" hint="every browser signed in as you, and a way to sign one out">
-              <Button variant="outline" size="sm" onClick={() => setSessionsOpen(true)}>
-                <MonitorSmartphoneIcon />
-                manage
-              </Button>
-            </Row>
-          </TabsContent>
+            </TabsContent>
 
-          <TabsContent value="about">
-            <Row label="install keep music" hint="its own window, in your dock or start menu, with media keys">
-              {installState === "installed" ? (
-                <span className="font-mono text-muted-foreground text-xs">installed</span>
-              ) : installState === "available" ? (
-                <Button variant="outline" size="sm" onClick={() => void install()}>
-                  <DownloadIcon />
-                  install
+            <TabsContent value="lyrics">
+              <Row label="lyrics coverage" hint="how much of your library has synced lyrics, and what's missing">
+                <Button variant="outline" size="sm" render={<Link href="/lyrics" />}>
+                  open
                 </Button>
-              ) : (
-                <span className="font-mono text-muted-foreground text-xs">from your browser's menu</span>
-              )}
-            </Row>
-            <Row
-              label={version ? `keep music v${version.version}` : "keep music"}
-              hint={version?.updateAvailable ? `v${version.latest} is out` : "a monochrome web player for navidrome"}
-            >
-              <Button
-                variant="outline"
-                size="sm"
-                render={<a href="https://github.com/FindMalek/keep-player" target="_blank" rel="noreferrer" />}
+              </Row>
+              <p className="py-3 text-muted-foreground text-xs">
+                lyrics come from navidrome first, then lrclib. the server can also save them as .lrc files next to your music (
+                <span className="font-mono">LYRICS_WRITE_LRC</span>).
+              </p>
+            </TabsContent>
+
+            <TabsContent value="shortcuts">
+              <Row label="every shortcut" hint="press ? anywhere to see them all">
+                <Button variant="outline" size="sm" onClick={() => window.dispatchEvent(new Event("keep:cheat-sheet"))}>
+                  show
+                </Button>
+              </Row>
+            </TabsContent>
+
+            <TabsContent value="account">
+              <Row
+                label={user ?? "signed out"}
+                hint={session?.server ? `on ${session.server}${session.admin ? " · navidrome admin" : ""}` : undefined}
               >
-                <ExternalLinkIcon />
-                github
-              </Button>
-            </Row>
-          </TabsContent>
+                <Button variant="outline" size="sm" onClick={() => void logout()}>
+                  <LogOutIcon />
+                  log out
+                </Button>
+              </Row>
+              {session?.admin && (
+                <Row label="library index" hint="the search and lyrics index the server keeps; rebuild it after big changes">
+                  <Button variant="outline" size="sm" onClick={() => setIndexOpen(true)}>
+                    <DatabaseIcon />
+                    manage
+                  </Button>
+                </Row>
+              )}
+              <Row label="sessions" hint="every browser signed in as you, and a way to sign one out">
+                <Button variant="outline" size="sm" onClick={() => setSessionsOpen(true)}>
+                  <MonitorSmartphoneIcon />
+                  manage
+                </Button>
+              </Row>
+            </TabsContent>
+
+            <TabsContent value="about">
+              <Row label="install keep music" hint="its own window, in your dock or start menu, with media keys">
+                {installState === "installed" ? (
+                  <span className="font-mono text-muted-foreground text-xs">installed</span>
+                ) : installState === "available" ? (
+                  <Button variant="outline" size="sm" onClick={() => void install()}>
+                    <DownloadIcon />
+                    install
+                  </Button>
+                ) : (
+                  <span className="font-mono text-muted-foreground text-xs">from your browser's menu</span>
+                )}
+              </Row>
+              <Row
+                label={version ? `keep music v${version.version}` : "keep music"}
+                hint={version?.updateAvailable ? `v${version.latest} is out` : "a monochrome web player for navidrome"}
+              >
+                <Button
+                  variant="outline"
+                  size="sm"
+                  render={<a href="https://github.com/FindMalek/keep-player" target="_blank" rel="noreferrer" />}
+                >
+                  <ExternalLinkIcon />
+                  github
+                </Button>
+              </Row>
+            </TabsContent>
+          </div>
         </Tabs>
-      </Content>
+      </DialogContent>
       {storageOpen && (
         <Suspense>
           <StorageDialog open={storageOpen} onOpenChange={setStorageOpen} />
@@ -420,6 +452,6 @@ export function SettingsPage({ section }: { section: string | null }) {
           <SessionsDialog open={sessionsOpen} onOpenChange={setSessionsOpen} />
         </Suspense>
       )}
-    </>
+    </Dialog>
   );
 }

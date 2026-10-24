@@ -4,14 +4,20 @@ test("settings has every section, links to each tab, and changes apply at once",
   await signedIn.getByRole("button", { name: /demo$/ }).click();
   await page.getByRole("menuitem", { name: "settings" }).click();
   await expect(page).toHaveURL(/\/settings$/);
+  // A dialog over the page you were on; closing it takes you back there.
+  await expect(page.getByRole("dialog", { name: "settings" })).toBeVisible();
   for (const tab of ["playback", "appearance", "sync", "storage", "lyrics", "shortcuts", "account", "about"])
     await expect(page.getByRole("tab", { name: tab })).toBeVisible();
 
   await page.getByRole("tab", { name: "appearance" }).click();
   await expect(page).toHaveURL(/\/settings\/appearance$/);
   await expect(page.getByRole("switch", { name: "loading bar" })).not.toBeChecked();
-  await page.getByRole("group", { name: "theme" }).getByRole("button", { name: "light" }).click();
+  await page.getByRole("button", { name: /^theme:/ }).click();
+  await page.getByRole("menuitemradio", { name: "light" }).click();
   await expect(page.locator("html")).toHaveClass(/\blight\b/);
+  await page.getByRole("dialog", { name: "settings" }).getByRole("button", { name: "Close" }).click();
+  await expect(page.getByRole("dialog", { name: "settings" })).toBeHidden();
+  await expect(page).toHaveURL(/\/$/);
 
   // A link to a tab opens it.
   await page.goto("/settings/shortcuts");
