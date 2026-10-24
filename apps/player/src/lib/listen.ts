@@ -24,6 +24,8 @@ export interface ListenState {
   code: string | null;
   members: Member[];
   anyoneCanSkip: boolean;
+  /** Party mode: only the host's device plays; listeners control it. */
+  partyMode: boolean;
   /** Who added or skipped what, newest last (kept short). */
   notes: string[];
 }
@@ -40,7 +42,7 @@ function remember(value: { code: string; host: boolean } | null): void {
   }
 }
 
-const IDLE: ListenState = { status: "off", code: null, members: [], anyoneCanSkip: false, notes: [] };
+const IDLE: ListenState = { status: "off", code: null, members: [], anyoneCanSkip: false, partyMode: false, notes: [] };
 const HEARTBEAT_MS = 5000;
 const FOLLOW_MS = 1500;
 
@@ -99,10 +101,40 @@ function startHosting(): void {
   };
 }
 
+/** In party mode a listener is a remote: its buttons go to the host, picking a song adds it there. */
+const PARTY_REMOTE = {
+  toggle: () => send({ t: "toggle" }),
+  next: () => send({ t: "skip" }),
+  previous: () => undefined,
+  seek: () => undefined,
+  play: (songs: Song[], start: number) => {
+    const song = songs[start];
+    if (song) listen.add(song);
+  },
+  add: (songs: Song[]) => {
+    for (const song of songs) listen.add(song);
+  },
+};
+
+/** A listener in party mode shows the host's playback without playing it; otherwise it plays along. */
+function applyParty(): void {
+  const party = state.status === "listener" && state.partyMode;
+  if (party && !player.isRemote()) {
+    if (player.getState().playing) player.toggle(false);
+    player.setRemote(PARTY_REMOTE);
+  } else if (!party && player.isRemote()) player.setRemote(null);
+}
+
 /** Make this player match the host: same song, play state and (within the drift allowance) position. */
 function follow(): void {
   if (!last || state.status !== "listener") return;
   const wanted = last.state;
+  if (state.partyMode) {
+    const at = expectedPosition(wanted, last.stamped, offset, Date.now());
+    if (wanted.song && player.getState().queue.current?.song.id !== wanted.song.id) player.adopt([wanted.song as Song], 0, at);
+    player.mirror(wanted.playing, at);
+    return;
+  }
   if (!wanted.song) {
     if (player.getState().playing) player.toggle(false);
     return;
@@ -122,7 +154,8 @@ function onMessage(message: ServerMessage): void {
   switch (message.t) {
     case "hello":
       offset = clockOffset(message.now, Date.now());
-      set({ status: message.role, members: message.members, anyoneCanSkip: message.anyoneCanSkip });
+      set({ status: message.role, members: message.members, anyoneCanSkip: message.anyoneCanSkip, partyMode: message.partyMode });
+      applyParty();
       if (message.role === "host") startHosting();
       else {
         if (message.state) last = { state: message.state, stamped: message.stamped };
@@ -139,7 +172,13 @@ function onMessage(message: ServerMessage): void {
       set({ members: message.members });
       return;
     case "setting":
-      set({ anyoneCanSkip: message.anyoneCanSkip });
+      set({ anyoneCanSkip: message.anyoneCanSkip, partyMode: message.partyMode });
+      applyParty();
+      follow();
+      return;
+    case "toggle":
+      note(`${message.by} ${player.getState().playing ? "paused" : "played"}`);
+      if (state.status === "host") player.toggle();
       return;
     case "add":
       note(`${message.by} added ${message.song.title}`);
@@ -157,6 +196,7 @@ function onMessage(message: ServerMessage): void {
 }
 
 function cleanup(): void {
+  if (state.partyMode && state.status === "listener") player.setRemote(null);
   stopHost?.();
   clearInterval(followTimer);
   followTimer = undefined;
@@ -195,13 +235,13 @@ export const listen = {
     return () => listeners.delete(listener);
   },
   /** Start a session and host it; resolves to the code to share. */
-  async host(anyoneCanSkip = false): Promise<string | null> {
+  async host(anyoneCanSkip = false, partyMode = false): Promise<string | null> {
     cleanup();
-    set({ ...IDLE, anyoneCanSkip, status: "connecting" });
+    set({ ...IDLE, anyoneCanSkip, partyMode, status: "connecting" });
     const response = await fetch("/api/listen", {
       method: "POST",
       headers: { ...HEADERS, "content-type": "application/json" },
-      body: JSON.stringify({ anyoneCanSkip }),
+      body: JSON.stringify({ anyoneCanSkip, partyMode }),
     }).catch(() => null);
     if (!response?.ok) {
       set({ status: "failed" });
@@ -237,6 +277,11 @@ export const listen = {
   setAnyoneCanSkip(value: boolean): void {
     send({ t: "setting", anyoneCanSkip: value });
   },
+  setPartyMode(value: boolean): void {
+    send({ t: "setting", partyMode: value });
+  },
+  /** Play or pause the host (party mode, when anyone can skip). */
+  toggle: () => send({ t: "toggle" }),
 };
 
 export function useListen(): ListenState {

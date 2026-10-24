@@ -74,3 +74,22 @@ test("ending the room tells everyone; a host who stays away ends it after the gr
   expect(rooms.has(code)).toBe(false);
   expect(sam.got.at(-1)).toEqual({ t: "ended" });
 });
+
+test("in party mode with anyone can skip, a listener can play or pause the host; otherwise only the host can", () => {
+  const rooms = new ListenRooms();
+  const code = rooms.create("default", "h", false, true) as string;
+  const host = peer("h", "malek");
+  const listener = peer("l", "sam");
+  rooms.join(code, host);
+  rooms.join(code, listener);
+  expect(listener.got[0]).toMatchObject({ t: "hello", partyMode: true });
+
+  const toggle = JSON.stringify({ t: "toggle" });
+  rooms.handle(code, listener, toggle);
+  expect(host.got.some((message) => message.t === "toggle")).toBe(false);
+
+  rooms.handle(code, host, JSON.stringify({ t: "setting", anyoneCanSkip: true }));
+  expect(listener.got.at(-1)).toEqual({ t: "setting", anyoneCanSkip: true, partyMode: true });
+  rooms.handle(code, listener, toggle);
+  expect(host.got.at(-1)).toEqual({ t: "toggle", by: "sam" });
+});

@@ -19,6 +19,7 @@ interface Room {
   server: string;
   hostSession: string;
   anyoneCanSkip: boolean;
+  partyMode: boolean;
   state: HostState | null;
   stamped: number;
   peers: Set<Peer>;
@@ -38,11 +39,11 @@ export class ListenRooms {
   ) {}
 
   /** A new room hosted by this session; null when the server is full. */
-  create(server: string, hostSession: string, anyoneCanSkip = false): string | null {
+  create(server: string, hostSession: string, anyoneCanSkip = false, partyMode = false): string | null {
     if (this.rooms.size >= MAX_ROOMS) return null;
     const bytes = randomBytes(6);
     const code = Array.from(bytes, (byte) => ALPHABET[byte % ALPHABET.length]).join("");
-    this.rooms.set(code, { code, server, hostSession, anyoneCanSkip, state: null, stamped: 0, peers: new Set() });
+    this.rooms.set(code, { code, server, hostSession, anyoneCanSkip, partyMode, state: null, stamped: 0, peers: new Set() });
     return code;
   }
 
@@ -65,6 +66,7 @@ export class ListenRooms {
       code,
       role,
       anyoneCanSkip: room.anyoneCanSkip,
+      partyMode: room.partyMode,
       members: this.members(room),
       state: room.state,
       stamped: room.stamped,
@@ -117,10 +119,14 @@ export class ListenRooms {
       case "skip":
         if (host || room.anyoneCanSkip) this.broadcast(room, { t: "skip", by: peer.user });
         return;
+      case "toggle":
+        if (host || (room.partyMode && room.anyoneCanSkip)) this.broadcast(room, { t: "toggle", by: peer.user });
+        return;
       case "setting":
         if (!host) return;
-        room.anyoneCanSkip = message.anyoneCanSkip;
-        this.broadcast(room, { t: "setting", anyoneCanSkip: message.anyoneCanSkip });
+        room.anyoneCanSkip = message.anyoneCanSkip ?? room.anyoneCanSkip;
+        room.partyMode = message.partyMode ?? room.partyMode;
+        this.broadcast(room, { t: "setting", anyoneCanSkip: room.anyoneCanSkip, partyMode: room.partyMode });
         return;
       case "end":
         if (host) this.end(room.code);

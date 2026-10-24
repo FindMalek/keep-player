@@ -61,6 +61,7 @@ export function ListenPage({ code }: { code: string | null }) {
   const session = useListen();
   const [joinCode, setJoinCode] = useState("");
   const [anyoneCanSkip, setAnyoneCanSkip] = useState(false);
+  const [partyMode, setPartyMode] = useState(false);
   const [copied, setCopied] = useState(false);
 
   // Opening a shared link joins it (once).
@@ -113,6 +114,19 @@ export function ListenPage({ code }: { code: string | null }) {
                 anyone can skip
               </div>
             )}
+            {session.status === "host" && (
+              <div className="flex items-center gap-2 text-sm">
+                <Switch
+                  aria-label="party mode"
+                  checked={session.partyMode}
+                  onCheckedChange={(checked) => listen.setPartyMode(checked === true)}
+                />
+                party mode · only this device plays, the others are remotes
+              </div>
+            )}
+            {session.status === "listener" && session.partyMode && (
+              <p className="font-mono text-muted-foreground text-xs">party mode: the host's device plays · your controls go to it</p>
+            )}
             {session.status === "listener" && (
               <div className="flex flex-col gap-3">
                 <AddSong />
@@ -158,7 +172,15 @@ export function ListenPage({ code }: { code: string | null }) {
               />
               anyone can skip
             </div>
-            <Button size="sm" className="w-fit" onClick={() => void listen.host(anyoneCanSkip)}>
+            <div className="flex items-center gap-2 text-sm">
+              <Switch
+                aria-label="party mode before starting"
+                checked={partyMode}
+                onCheckedChange={(checked) => setPartyMode(checked === true)}
+              />
+              party mode · only this device plays
+            </div>
+            <Button size="sm" className="w-fit" onClick={() => void listen.host(anyoneCanSkip, partyMode)}>
               start a session
             </Button>
           </div>
