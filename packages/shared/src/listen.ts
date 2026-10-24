@@ -25,7 +25,9 @@ export type ClientMessage =
   | { t: "state"; state: HostState }
   | { t: "add"; song: ListenSong }
   | { t: "skip" }
-  | { t: "setting"; anyoneCanSkip: boolean }
+  /** Play or pause the host: the host, or anyone in party mode when anyone can skip. */
+  | { t: "toggle" }
+  | { t: "setting"; anyoneCanSkip?: boolean; partyMode?: boolean }
   | { t: "end" };
 
 export interface Member {
@@ -40,6 +42,8 @@ export type ServerMessage =
       code: string;
       role: "host" | "listener";
       anyoneCanSkip: boolean;
+      /** Only the host's device plays; listeners are remotes for it. */
+      partyMode: boolean;
       members: Member[];
       state: HostState | null;
       stamped: number;
@@ -47,9 +51,10 @@ export type ServerMessage =
     }
   | { t: "state"; state: HostState; stamped: number; now: number }
   | { t: "members"; members: Member[] }
-  | { t: "setting"; anyoneCanSkip: boolean }
+  | { t: "setting"; anyoneCanSkip: boolean; partyMode: boolean }
   | { t: "add"; song: ListenSong; by: string }
   | { t: "skip"; by: string }
+  | { t: "toggle"; by: string }
   | { t: "ended" };
 
 export const MAX_MESSAGE_BYTES = 8192;
@@ -114,8 +119,14 @@ export function parseClientMessage(raw: string): ClientMessage | null {
       return isSong(message.song) ? { t: "add", song: clean(message.song) } : null;
     case "skip":
       return { t: "skip" };
-    case "setting":
-      return typeof message.anyoneCanSkip === "boolean" ? { t: "setting", anyoneCanSkip: message.anyoneCanSkip } : null;
+    case "toggle":
+      return { t: "toggle" };
+    case "setting": {
+      const skip = typeof message.anyoneCanSkip === "boolean" ? message.anyoneCanSkip : undefined;
+      const party = typeof message.partyMode === "boolean" ? message.partyMode : undefined;
+      if (skip === undefined && party === undefined) return null;
+      return { t: "setting", ...(skip !== undefined ? { anyoneCanSkip: skip } : {}), ...(party !== undefined ? { partyMode: party } : {}) };
+    }
     case "end":
       return { t: "end" };
     default:

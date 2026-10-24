@@ -466,8 +466,8 @@ export function createApi({
     if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
     const session = sessions.get(cookieValue(request));
     if (!session) return json({ error: "signed out" }, 401);
-    const body = (await request.json().catch(() => null)) as { anyoneCanSkip?: unknown } | null;
-    const code = rooms.create(session.server, session.id, body?.anyoneCanSkip === true);
+    const body = (await request.json().catch(() => null)) as { anyoneCanSkip?: unknown; partyMode?: unknown } | null;
+    const code = rooms.create(session.server, session.id, body?.anyoneCanSkip === true, body?.partyMode === true);
     return code ? json({ code }) : json({ error: "too many sessions" }, 429);
   }
 

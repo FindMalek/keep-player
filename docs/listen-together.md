@@ -12,6 +12,8 @@ One person hosts, others on the same Navidrome server follow. Open the menu unde
 
 The host's browser sends its state (song, position, playing) over a WebSocket (`/api/listen/<code>`) when the song or play state changes and every 5 s. The server stamps each state with its own clock; a listener places the playhead from that stamp and its measured clock offset, so two machines' clocks never have to agree. Sessions live in the server's memory: a restart ends them.
 
-## Not built yet
+## Party mode
 
-"Listening on this device only" (a party mode where one machine plays and the others are remotes) is not in this version.
+Turn on **party mode** (before starting, or any time as the host) and only the host's device plays: one speaker for
+the room. Listeners see the same song and progress but play nothing; their player bar is a remote. Picking a song adds
+it to the host's queue, and with *anyone can skip* on, their play/pause and next buttons control the host.
