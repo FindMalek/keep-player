@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { DownloadIcon, SearchIcon, UploadIcon } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import { Content, EmptyState, PageHeader, Section } from "@/components/library";
+import { LyterionImport } from "@/components/lyterion-import";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
@@ -232,6 +233,7 @@ export function ImportPage() {
         title="import from spotify"
         meta={set ? `${plural(set.playlists.length, "playlist")} · ${plural(set.liked.length, "liked song")}` : undefined}
       />
+      <LyterionImport />
       <Content>
         <input
           ref={input}

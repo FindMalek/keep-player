@@ -17,6 +17,8 @@ boot with a message naming the variable.
 | `LRCLIB_URL` | `https://lrclib.net` | Where lyrics Navidrome doesn't have are looked up. Empty turns LRCLIB off. |
 | `LYRICS_BACKFILL` | `on` | `on`: walk the library in the background (about one song a second) to fetch lyrics nobody opened yet. `off` to disable. |
 | `LYRICS_WRITE_LRC` | `off` | `on`: lyrics found on LRCLIB are also saved as `<track>.lrc` next to the audio file, so other clients get them. Needs `MUSIC_DIR` and Navidrome's "Report Real Path". Never overwrites; undo from the lyrics page. |
+| `LYTERION_URL` | — | Lyterion's API, as this container reaches it, to show what of your Spotify library is in Navidrome on the import page. Empty: the import page asks for a Spotify export file instead. |
+| `LYTERION_TOKEN` | — | The `LYTERION_PLAYER_TOKEN` set on Lyterion. Needed with `LYTERION_URL`. |
 | `UPLOAD_DIR` | — | Where music uploaded from the player lands (admins only), mounted writable. An import inbox (beets, Lyterion) or Navidrome's music folder. Empty turns uploads off. |
 | `MUSIC_DIR` | — | Navidrome's music folder mounted writable here, for `LYRICS_WRITE_LRC`. Unused otherwise. |
 | `INDEX_USER` | — | Navidrome account for background jobs (search index, lyrics backfill). Unset: the admin who signed in most recently. |

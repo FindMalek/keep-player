@@ -489,6 +489,16 @@ const server = Bun.serve({
   async fetch(request) {
     const url = new URL(request.url);
     if (url.pathname.startsWith("/lrclib/")) return lrclib(url);
+    // Lyterion's player summary, for the import page (LYTERION_URL points here in e2e).
+    if (url.pathname === "/lyterion/api/rpc/api-reference/player/summary")
+      return request.headers.get("x-lyterion-token") === "e2e-lyterion-token-0123456789"
+        ? Response.json({
+            playlists: [
+              { name: "Late night", total: 3, inLibrary: 2, missing: [{ artist: "Big Roshi", title: "Somewhere" }] },
+              { name: "Liked Songs", total: 2, inLibrary: 2, missing: [] },
+            ],
+          })
+        : new Response("unauthorized", { status: 401 });
     if (url.pathname.startsWith("/mock/")) return control(url, request);
     const match = /^\/rest\/(\w+?)(?:\.view)?$/.exec(url.pathname);
     if (!match?.[1]) return new Response("not found", { status: 404 });

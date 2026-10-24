@@ -66,6 +66,7 @@ const api = createApi({
   backfills,
   lrc,
   uploadDir: config.uploadDir,
+  lyterion: config.lyterion,
 });
 const health = new HealthCheck(config.upstreams);
 
@@ -97,6 +98,7 @@ const server = Bun.serve({
     "/api/lyrics/refetch": { POST: api.lyricsRefetch },
     "/api/lyrics/written": { DELETE: api.lyricsWritten },
     "/api/upload": { GET: api.upload, PUT: api.upload },
+    "/api/lyterion": { GET: api.lyterionSummary },
     "/api/lyrics/:songId": { GET: api.songLyrics },
     "/api/lyrics/:songId/offset": { GET: api.lyricsOffset, PUT: api.lyricsOffset },
     "/api/playlists/:id/hidden": { GET: api.playlistHidden, PUT: api.playlistHidden },
