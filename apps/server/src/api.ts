@@ -18,8 +18,9 @@ import { ListenRooms, type Peer } from "./listen";
 import type { LyricsService } from "./lyrics";
 import { forgetMisses, lyricsCoverageReport, missingLyrics } from "./lyrics-coverage";
 import { lyricsCoverage, queryLyrics } from "./lyrics-search";
-import { madeForYou } from "./mixes";
+import { listening, madeForYou } from "./mixes";
 import { addMoment, deleteMoment, listMoments, momentNotes, updateMoment } from "./moments";
+import { moodMixes } from "./mood-mixes";
 import { changeAlbum, changeSong, readPrefs } from "./prefs";
 import { ban, listBans, unban } from "./radio";
 import type { LoginLimiter } from "./rate-limit";
@@ -933,7 +934,17 @@ export function createApi({
     const day = Number(params.get("day")) || Math.floor(Date.now() / 86_400_000);
     const hour = Math.min(23, Math.max(0, Number(params.get("hour")) || 0));
     const tzMinutes = Math.min(840, Math.max(-840, Number(params.get("tz")) || 0));
-    const mixes = madeForYou(library, session.server, `${session.server}:${session.user}`, { day, hour, tzMinutes });
+    const account = `${session.server}:${session.user}`;
+    const made = madeForYou(library, session.server, account, { day, hour, tzMinutes });
+    const moods = await moodMixes(
+      library,
+      groq,
+      account,
+      day,
+      groq ? listening(library, session.server, account, Date.now()) : null,
+      fetcher,
+    );
+    const mixes = [...made, ...moods];
     return json({ day, mixes }, 200, {
       "cache-control": "private, no-cache",
     });

@@ -73,3 +73,52 @@ test("discover weekly is only songs you never played; the daylist follows what y
   expect(at(9).find((mix) => mix.id === "daylist")?.description).toContain("morning: Hurt");
   expect(at(23).find((mix) => mix.id === "daylist")?.description).toContain("night: Mitski");
 });
+
+test("release radar is new songs by artists you play; on this day is what you played a year ago", async () => {
+  const { madeForYou, listening } = await import("./mixes");
+  const { moodMixes } = await import("./mood-mixes");
+  const db = openLibraryDb(":memory:");
+  createIndexTables(db);
+  const fresh = new Date(NOW - 5 * DAY_MS).toISOString();
+  const old = new Date(NOW - 200 * DAY_MS).toISOString();
+  const library = [
+    { ...song("h1", "Hurt", "Rapture"), created: old },
+    { ...song("h2", "Hurt", "New One"), created: fresh },
+    { ...song("z1", "Zola", "Brand New"), created: fresh },
+  ];
+  for (const item of library)
+    db.query(
+      "insert into idx_items (server, kind, id, folder, name, norm, plays, data, generation) values ('s', 'song', ?, '1', 'n', 'n', 0, ?, 1)",
+    ).run(item.id, JSON.stringify(item));
+  recordPlay(db, "s:u", "", { song: song("x", "Hurt", "Rapture"), started: NOW - DAY_MS, listened: 200, finished: true });
+  recordPlay(db, "s:u", "", { song: song("y", "Hurt", "Rapture"), started: NOW - 366 * DAY_MS, listened: 200, finished: true });
+
+  const mixes = madeForYou(db, "s", "s:u", { day: 20_385, hour: 12, tzMinutes: 0 }, NOW);
+  // Zola is new too, but you don't play Zola.
+  expect(mixes.find((mix) => mix.id === "release-radar")?.songs.map((item) => item.id)).toEqual(["h2"]);
+  expect(mixes.find((mix) => mix.id === "on-this-day")?.songs.map((item) => item.id)).toEqual(["h1"]);
+
+  // Moods: one Groq call a week, the answer cached.
+  let calls = 0;
+  const groq = (async () => {
+    calls++;
+    return Response.json({ choices: [{ message: { content: JSON.stringify({ focus: ["Hurt", "Not Mine"] }) } }] });
+  }) as unknown as typeof fetch;
+  const settings = { key: "k", model: "m", url: "http://groq" };
+  // Moods need a few artists you play.
+  for (const [id, artist] of [
+    ["a1", "Abba"],
+    ["t1", "Tool"],
+  ] as const) {
+    db.query(
+      "insert into idx_items (server, kind, id, folder, name, norm, plays, data, generation) values ('s', 'song', ?, '1', 'n', 'n', 0, ?, 1)",
+    ).run(id, JSON.stringify({ ...song(id, artist, "x"), created: old }));
+    recordPlay(db, "s:u", "", { song: song(id, artist, "x"), started: NOW - 2 * DAY_MS, listened: 200, finished: true });
+  }
+  const l = listening(db, "s", "s:u", NOW);
+  const first = await moodMixes(db, settings, "s:u", 20_385, l, groq);
+  expect(first.map((mix) => mix.name)).toEqual(["focus mix"]);
+  expect(first[0]?.songs.every((item) => item.artist === "Hurt")).toBe(true);
+  await moodMixes(db, settings, "s:u", 20_386, l, groq);
+  expect(calls).toBe(1);
+});
