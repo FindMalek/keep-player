@@ -67,13 +67,16 @@ test("the bar folds its rarely used controls into a menu as the window narrows",
   await playPlaylist(page);
   const bar = page.getByRole("contentinfo");
 
+  // Even on a wide screen the sleep timer stays in the menu and song info waits on the cover until you hover it.
   await page.setViewportSize({ width: 2560, height: 1440 });
-  await expect(bar.getByRole("button", { name: "song info" })).toBeVisible();
-  await expect(bar.getByRole("button", { name: "sleep timer" })).toBeVisible();
-  await expect(bar.getByRole("button", { name: "more controls" })).toHaveCount(0);
+  await expect(bar.getByRole("button", { name: "sleep timer" })).toHaveCount(0);
+  await expect(bar.getByRole("button", { name: "song info" })).toHaveCount(0);
+  await bar.locator("img").first().hover();
+  await bar.getByRole("button", { name: "song info" }).click();
+  await expect(bar.getByRole("button", { name: "song info" })).toHaveAttribute("aria-pressed", "true");
+  await bar.getByRole("button", { name: "song info" }).click();
 
   await page.setViewportSize({ width: 1366, height: 768 });
-  await expect(bar.getByRole("button", { name: "song info" })).toHaveCount(0);
   await expect(bar.getByRole("button", { name: "shuffle" })).toBeVisible();
   await bar.getByRole("button", { name: "more controls" }).click();
   await expect(page.getByRole("menuitemcheckbox", { name: "song info" })).toBeVisible();

@@ -8,7 +8,6 @@ import { current as currentDrag, endDrag, leftTarget, startDrag } from "@/lib/dr
 import { clock } from "@/lib/format";
 import { closeListFilter, songMatches, useListFilter } from "@/lib/list-filter";
 import { focusWhenRendered, type ListCommand, rememberedFocus, rememberFocus, useListNav } from "@/lib/list-nav";
-import { setMorph } from "@/lib/motion";
 import { useCachedIds } from "@/lib/offline";
 import { currentSong, player, type QueueSource, usePlayer } from "@/lib/player";
 import { anyHidden, isHidden, type RuleMarks, ruleMarks, usePrefsVersion } from "@/lib/prefs";
@@ -83,16 +82,7 @@ const AlbumCard = memo(function AlbumCard({ album, priority = false }: { album: 
     // Drag a card onto a playlist, the queue or the player bar (the link inside is the control; this only carries drags).
     // biome-ignore lint/a11y/noStaticElementInteractions: a drag source wrapper, not a control
     <div className="group/album relative" onDragStart={(event) => startDrag(event, { kind: "album", album })} onDragEnd={endDrag}>
-      <Link
-        href={`/album/${album.id}`}
-        className="flex flex-col gap-px"
-        onClick={(event) => {
-          // Only the clicked card gets the name: an album can be on the page twice (home rows).
-          const cover = event.currentTarget.firstElementChild as HTMLElement | null;
-          if (cover) cover.style.viewTransitionName = "album-cover";
-          setMorph(album.id);
-        }}
-      >
+      <Link href={`/album/${album.id}`} className="flex flex-col gap-px">
         <Cover id={album.coverArt} size={180} className="mb-1.5 group-hover/album:[&_img]:opacity-85" priority={priority} />
         <Truncated text={album.name} className="text-[12.5px]" />
         <span className="truncate text-[11.5px] text-muted-foreground">
@@ -270,7 +260,11 @@ const TrackRow = memo(function TrackRow({
       data-playing={status ? true : undefined}
       data-hidden={hidden || undefined}
       data-drop-target={dropTarget || undefined}
-      className="group/row h-[34px] data-drop-target:shadow-[inset_0_2px_0_var(--foreground)] data-hidden:opacity-45 scroll-my-12 border-muted outline-none hover:bg-card focus-visible:bg-card focus-visible:shadow-[inset_2px_0_0_var(--foreground)]"
+      className={cn(
+        "group/row data-drop-target:shadow-[inset_0_2px_0_var(--foreground)] data-hidden:opacity-45 scroll-my-12 border-muted outline-none hover:bg-card focus-visible:bg-card focus-visible:shadow-[inset_2px_0_0_var(--foreground)]",
+        // Title over artist needs room above and below, or both lines touch the row edges.
+        showArtist ? "h-11" : "h-[34px]",
+      )}
       onDoubleClick={() => onPlay(index)}
       onClick={(event) => {
         if (event.metaKey || event.ctrlKey || event.shiftKey) onSelectClick(index, event.shiftKey);
@@ -485,7 +479,7 @@ function TrackRows({
   const virtual = items.length > VIRTUALIZE_FROM;
   const virtualizer = usePageVirtualizer(listRef, {
     count: items.length,
-    estimateSize: (index) => (items[index]?.kind === "disc" ? 32 : 34),
+    estimateSize: (index) => (items[index]?.kind === "disc" ? 32 : showArtist ? 44 : 34),
     enabled: virtual,
   });
   const windowItems = virtualizer.getVirtualItems();

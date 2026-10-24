@@ -303,12 +303,12 @@ export function SettingsPage({ section, onClose }: { section: string | null; onC
                 </DropdownMenu>
               </Row>
               <ToastsRow />
+              <Toggle setting="loadingBar" label="loading bar" hint={<>a thin line at the top while things refresh · {SYNCED}</>} />
               <Toggle
                 setting="offlineInBar"
                 label="offline mark in the player bar"
                 hint={<>the arrow next to the format when a song is saved for offline · track rows always show it · {SYNCED}</>}
               />
-              <Toggle setting="reduceMotion" label="reduce motion" hint={<>no animations, whatever the system says · {SYNCED}</>} />
               <Toggle
                 setting="ratings"
                 label="show ratings"

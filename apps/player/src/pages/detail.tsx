@@ -1,11 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { ExternalLinkIcon, PlayIcon, RadioIcon, Trash2Icon } from "lucide-react";
-import { Fragment, type ReactNode, useEffect, useMemo, useState } from "react";
+import { Fragment, type ReactNode, useMemo, useState } from "react";
 import { ArtistCard } from "@/components/artist-card";
-import { Aura, exportAura } from "@/components/aura";
+import { Aura } from "@/components/aura";
 import { Cover } from "@/components/cover";
 import { EditableText } from "@/components/editable-text";
 import { Hint } from "@/components/hint";
+import { ItemMoreButton } from "@/components/item-menu";
 import { KeepOffline } from "@/components/keep-offline";
 import { AlbumGrid, AlbumGridSkeleton, Content, EmptyState, type ListEditing, PageHeader, Section, TrackList } from "@/components/library";
 import { LikeButton } from "@/components/like-button";
@@ -22,7 +23,6 @@ import { auraParams, vibe } from "@/lib/aura";
 import { cachedSummary } from "@/lib/cached";
 import { length, plural, quality } from "@/lib/format";
 import type { LikeKind } from "@/lib/likes";
-import { clearMorph, isMorphing } from "@/lib/motion";
 import { player } from "@/lib/player";
 import {
   canEdit,
@@ -52,7 +52,6 @@ function Hero({
   onQueue,
   extra,
   like,
-  morph = false,
   backdrop,
 }: {
   cover?: string;
@@ -69,14 +68,13 @@ function Hero({
   /** A heart for albums and artists. */
   like?: { kind: LikeKind; id: string };
   /** Take over the clicked card's cover in the page transition. */
-  morph?: boolean;
   /** A picture behind the header (a playlist's aura). */
   backdrop?: ReactNode;
 }) {
   return (
     <header className="relative isolate flex flex-wrap items-start gap-x-5 sm:items-end gap-y-3 border-b px-5 pt-[18px] pb-4">
       {backdrop && <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden opacity-20">{backdrop}</div>}
-      <div className="shrink-0" style={morph ? { viewTransitionName: "album-cover" } : undefined}>
+      <div className="shrink-0">
         <Cover id={cover} size={160} className="w-[104px] sm:w-[152px]" priority />
       </div>
       <div className="flex min-w-0 flex-1 basis-56 flex-col gap-1.5">
@@ -118,9 +116,6 @@ const Kind = ({ children }: { children: ReactNode }) => (
 );
 
 export function AlbumPage({ id }: { id: string }) {
-  const [morph] = useState(() => isMorphing(id));
-  // Cleared only after commit: a first render that suspends runs the initializer again and must still see it.
-  useEffect(() => clearMorph(id), [id]);
   const {
     data: album,
     error,
@@ -154,7 +149,6 @@ export function AlbumPage({ id }: { id: string }) {
         onQueue={() => player.addToQueue(songs)}
         extra={<KeepOffline group={`album:${album.id}`} songs={songs} />}
         like={{ kind: "album", id: album.id }}
-        morph={morph}
       >
         {album.artistId && (
           <ArtistCard id={album.artistId} name={album.artist}>
@@ -476,13 +470,7 @@ export function PlaylistPage({ id }: { id: string }) {
         extra={
           <>
             <KeepOffline group={`playlist:${playlist.id}`} songs={playable} />
-            {songs.length > 0 && (
-              <Hint label="save this playlist's aura as a PNG (a cover for other apps)">
-                <Button variant="outline" onClick={() => exportAura(playlist.id, songs, leafOf(playlist.name))}>
-                  aura png
-                </Button>
-              </Hint>
-            )}
+            <ItemMoreButton target={{ kind: "playlist", playlist }} label={leafOf(playlist.name)} className="size-8" />
             {editable ? (
               <>
                 <Hint label={playlist.public ? "others on this server can see it" : "only you can see it"}>

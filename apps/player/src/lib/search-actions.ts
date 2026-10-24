@@ -2,6 +2,7 @@ import type { LyricsHit, SearchResults } from "@keep/shared/search";
 import { player } from "./player";
 import { queries, queryClient } from "./queries";
 import { go } from "./router";
+import type { MenuTarget } from "./targets";
 import type { Album, Artist, Song } from "./types";
 
 export type ResultKind = NonNullable<SearchResults["top"]>["kind"];
@@ -64,4 +65,11 @@ export function rememberSearch(query: string): void {
   } catch {
     // Without storage there's just no history.
   }
+}
+
+/** What a right-click on a result acts on. */
+export function resultTarget(kind: ResultKind, item: Record<string, unknown>): MenuTarget {
+  if (kind === "song") return { kind: "songs", songs: [item as unknown as Song] };
+  if (kind === "album") return { kind: "album", album: item as unknown as Album };
+  return { kind: "artist", artist: item as unknown as Artist };
 }

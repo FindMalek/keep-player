@@ -27,11 +27,13 @@ import {
   recentSearches,
   rememberSearch,
   resultSubtitle,
+  resultTarget,
   resultTitle,
 } from "@/lib/search-actions";
 import { bindingsOf, useShortcutList } from "@/lib/shortcuts";
 import type { Song } from "@/lib/types";
 import { Cover } from "./cover";
+import { ListContextMenu, type MenuTarget } from "./item-menu";
 import { KeyCombo } from "./key-combo";
 import { LyricsSnippet } from "./lyrics-snippet";
 import { ResultGroupSkeleton } from "./skeletons";
@@ -115,6 +117,17 @@ export function SearchPalette({ open, onOpenChange }: { open: boolean; onOpenCha
     ["artist", results?.artists ?? []],
   ];
 
+  // Right-click any song, album, artist or playlist in the list: the same menu as everywhere else.
+  const targets = new Map<string, MenuTarget>();
+  for (const song of played) targets.set(`played-${song.id}`, { kind: "songs", songs: [song] });
+  if (top) targets.set(`top-${top.item.id}`, resultTarget(top.kind, top.item));
+  for (const song of songs) targets.set(`so-${song.id}`, { kind: "songs", songs: [song] });
+  for (const [kind, items] of groups) for (const item of items) targets.set(`${kind}-${item.id}`, resultTarget(kind, item));
+  for (const playlist of playlists) targets.set(`pl-${playlist.id}`, { kind: "playlist", playlist });
+  for (const hit of lyricHits)
+    targets.set(`ly-${(hit.song as unknown as Song).id}`, { kind: "songs", songs: [hit.song as unknown as Song] });
+  const menuTarget = (element: Element) => targets.get(element.closest("[data-value]")?.getAttribute("data-value") ?? "") ?? null;
+
   return (
     <CommandDialog
       open={open}
@@ -156,137 +169,143 @@ export function SearchPalette({ open, onOpenChange }: { open: boolean; onOpenCha
             ))}
           </div>
         )}
-        <CommandList className="max-h-[60vh]">
-          {needle && !(searching && query) && <CommandEmpty className="font-mono text-faint">no matches</CommandEmpty>}
-          {query && !active.lyricsOnly && searching && <ResultGroupSkeleton />}
-          {recent.length > 0 && (
-            <CommandGroup heading="recent searches">
-              {recent.map((item) => (
-                <CommandItem key={item} value={`recent-${item}`} onSelect={() => setText(item)}>
-                  <ClockIcon className="text-muted-foreground" />
-                  <span className="truncate">{item}</span>
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          )}
-          {played.length > 0 && (
-            <CommandGroup heading="recently played">
-              {played.map((song) => (
-                <CommandItem key={song.id} value={`played-${song.id}`} onSelect={run(() => player.play([song], 0))}>
-                  <Row cover={song.coverArt} title={song.title} sub={`${song.artist ?? ""} · ${song.album ?? ""}`} />
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          )}
-          {top && (
-            <CommandGroup heading="top result">
-              <CommandItem value={`top-${top.item.id}`} onSelect={run(() => openResult(top.kind, top.item, query))} className="gap-3 py-2">
-                <Cover id={String(top.item.coverArt ?? "")} size={64} className="size-14 shrink-0" />
-                <span className="flex min-w-0 flex-1 flex-col">
-                  <span className="truncate font-medium text-base">{resultTitle(top.kind, top.item)}</span>
-                  <span className="truncate text-muted-foreground text-xs">{resultSubtitle(top.kind, top.item)}</span>
-                </span>
-                {/* A mouse shortcut only (options can't hold buttons); keyboard users get the "play" option below. */}
-                <span
-                  aria-hidden
-                  className="grid size-8 shrink-0 place-items-center border text-muted-foreground hover:text-foreground"
-                  onPointerDown={(event) => event.stopPropagation()}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    run(() => void playResult(top.kind, top.item, query))();
-                  }}
-                >
-                  <PlayIcon className="size-4" />
-                </span>
-              </CommandItem>
-              {top.kind !== "song" && (
-                <CommandItem value={`top-play-${top.item.id}`} onSelect={run(() => void playResult(top.kind, top.item, query))}>
-                  <PlayIcon className="text-muted-foreground" />
-                  <span className="truncate">play {resultTitle(top.kind, top.item)}</span>
-                </CommandItem>
-              )}
-            </CommandGroup>
-          )}
-          {songs.length > 0 && (
-            <CommandGroup heading="songs">
-              {songs.map((song, index) => (
-                <CommandItem
-                  key={song.id}
-                  value={`so-${song.id}`}
-                  onSelect={run(() => player.play(songs, index, { source: { kind: "search", name: `“${query}”` } }))}
-                >
-                  <Row cover={song.coverArt} title={song.title} sub={`${song.artist ?? ""} · ${song.album ?? ""}`} />
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          )}
-          {groups.map(([kind, all]) => {
-            const items = all.filter((item) => !(top?.kind === kind && item.id === top.item.id));
-            if (!items.length) return null;
-            return (
-              <CommandGroup key={kind} heading={`${kind}s`}>
-                {items.map((item) => (
-                  <CommandItem key={String(item.id)} value={`${kind}-${item.id}`} onSelect={run(() => openResult(kind, item, query))}>
-                    <Row
-                      cover={String(item.coverArt ?? "")}
-                      title={resultTitle(kind, item)}
-                      sub={resultSubtitle(kind, item).replace(/^\w+ · /, "")}
-                    />
+        <ListContextMenu resolve={menuTarget}>
+          <CommandList className="max-h-[60vh]">
+            {needle && !(searching && query) && <CommandEmpty className="font-mono text-faint">no matches</CommandEmpty>}
+            {query && !active.lyricsOnly && searching && <ResultGroupSkeleton />}
+            {recent.length > 0 && (
+              <CommandGroup heading="recent searches">
+                {recent.map((item) => (
+                  <CommandItem key={item} value={`recent-${item}`} onSelect={() => setText(item)}>
+                    <ClockIcon className="text-muted-foreground" />
+                    <span className="truncate">{item}</span>
                   </CommandItem>
                 ))}
               </CommandGroup>
-            );
-          })}
-          {playlists.length > 0 && (
-            <CommandGroup heading="playlists">
-              {playlists.map((playlist) => (
-                <CommandItem key={playlist.id} value={`pl-${playlist.id}`} onSelect={run(() => go(`/playlist/${playlist.id}`))}>
-                  <Row cover={playlist.coverArt} title={playlist.name} sub={`${playlist.songCount} songs`} />
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          )}
-          {lyricHits.length > 0 && (
-            <CommandGroup heading="lyrics">
-              {lyricHits.map((hit) => {
-                const song = hit.song as unknown as Song;
-                return (
-                  <CommandItem key={song.id} value={`ly-${song.id}`} onSelect={run(() => playLyricsHit(hit, lyricsWords))}>
-                    <Cover id={song.coverArt} size={32} className="size-8 shrink-0 self-start" />
-                    <span className="flex min-w-0 flex-col gap-0.5">
-                      <span className="truncate text-[13px]">
-                        {song.title}
-                        <span className="text-muted-foreground"> · {song.artist}</span>
-                      </span>
-                      <LyricsSnippet hit={hit} />
-                    </span>
+            )}
+            {played.length > 0 && (
+              <CommandGroup heading="recently played">
+                {played.map((song) => (
+                  <CommandItem key={song.id} value={`played-${song.id}`} onSelect={run(() => player.play([song], 0))}>
+                    <Row cover={song.coverArt} title={song.title} sub={`${song.artist ?? ""} · ${song.album ?? ""}`} />
                   </CommandItem>
-                );
-              })}
-            </CommandGroup>
-          )}
-          {actions.length > 0 && (
-            <CommandGroup heading="actions">
-              {actions.map((shortcut) => {
-                const binding = bindingsOf(shortcut)[0];
-                return (
-                  <CommandItem
-                    key={shortcut.id}
-                    value={`action-${shortcut.id}`}
-                    onSelect={run(() => shortcut.run(new KeyboardEvent("keydown")))}
+                ))}
+              </CommandGroup>
+            )}
+            {top && (
+              <CommandGroup heading="top result">
+                <CommandItem
+                  value={`top-${top.item.id}`}
+                  onSelect={run(() => openResult(top.kind, top.item, query))}
+                  className="gap-3 py-2"
+                >
+                  <Cover id={String(top.item.coverArt ?? "")} size={64} className="size-14 shrink-0" />
+                  <span className="flex min-w-0 flex-1 flex-col">
+                    <span className="truncate font-medium text-base">{resultTitle(top.kind, top.item)}</span>
+                    <span className="truncate text-muted-foreground text-xs">{resultSubtitle(top.kind, top.item)}</span>
+                  </span>
+                  {/* A mouse shortcut only (options can't hold buttons); keyboard users get the "play" option below. */}
+                  <span
+                    aria-hidden
+                    className="grid size-8 shrink-0 place-items-center border text-muted-foreground hover:text-foreground"
+                    onPointerDown={(event) => event.stopPropagation()}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      run(() => void playResult(top.kind, top.item, query))();
+                    }}
                   >
-                    <span className="truncate">{shortcut.label}</span>
-                    {binding && (
-                      <CommandShortcut>
-                        <KeyCombo binding={binding} />
-                      </CommandShortcut>
-                    )}
+                    <PlayIcon className="size-4" />
+                  </span>
+                </CommandItem>
+                {top.kind !== "song" && (
+                  <CommandItem value={`top-play-${top.item.id}`} onSelect={run(() => void playResult(top.kind, top.item, query))}>
+                    <PlayIcon className="text-muted-foreground" />
+                    <span className="truncate">play {resultTitle(top.kind, top.item)}</span>
                   </CommandItem>
-                );
-              })}
-            </CommandGroup>
-          )}
-        </CommandList>
+                )}
+              </CommandGroup>
+            )}
+            {songs.length > 0 && (
+              <CommandGroup heading="songs">
+                {songs.map((song, index) => (
+                  <CommandItem
+                    key={song.id}
+                    value={`so-${song.id}`}
+                    onSelect={run(() => player.play(songs, index, { source: { kind: "search", name: `“${query}”` } }))}
+                  >
+                    <Row cover={song.coverArt} title={song.title} sub={`${song.artist ?? ""} · ${song.album ?? ""}`} />
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
+            {groups.map(([kind, all]) => {
+              const items = all.filter((item) => !(top?.kind === kind && item.id === top.item.id));
+              if (!items.length) return null;
+              return (
+                <CommandGroup key={kind} heading={`${kind}s`}>
+                  {items.map((item) => (
+                    <CommandItem key={String(item.id)} value={`${kind}-${item.id}`} onSelect={run(() => openResult(kind, item, query))}>
+                      <Row
+                        cover={String(item.coverArt ?? "")}
+                        title={resultTitle(kind, item)}
+                        sub={resultSubtitle(kind, item).replace(/^\w+ · /, "")}
+                      />
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              );
+            })}
+            {playlists.length > 0 && (
+              <CommandGroup heading="playlists">
+                {playlists.map((playlist) => (
+                  <CommandItem key={playlist.id} value={`pl-${playlist.id}`} onSelect={run(() => go(`/playlist/${playlist.id}`))}>
+                    <Row cover={playlist.coverArt} title={playlist.name} sub={`${playlist.songCount} songs`} />
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
+            {lyricHits.length > 0 && (
+              <CommandGroup heading="lyrics">
+                {lyricHits.map((hit) => {
+                  const song = hit.song as unknown as Song;
+                  return (
+                    <CommandItem key={song.id} value={`ly-${song.id}`} onSelect={run(() => playLyricsHit(hit, lyricsWords))}>
+                      <Cover id={song.coverArt} size={32} className="size-8 shrink-0 self-start" />
+                      <span className="flex min-w-0 flex-col gap-0.5">
+                        <span className="truncate text-[13px]">
+                          {song.title}
+                          <span className="text-muted-foreground"> · {song.artist}</span>
+                        </span>
+                        <LyricsSnippet hit={hit} />
+                      </span>
+                    </CommandItem>
+                  );
+                })}
+              </CommandGroup>
+            )}
+            {actions.length > 0 && (
+              <CommandGroup heading="actions">
+                {actions.map((shortcut) => {
+                  const binding = bindingsOf(shortcut)[0];
+                  return (
+                    <CommandItem
+                      key={shortcut.id}
+                      value={`action-${shortcut.id}`}
+                      onSelect={run(() => shortcut.run(new KeyboardEvent("keydown")))}
+                    >
+                      <span className="truncate">{shortcut.label}</span>
+                      {binding && (
+                        <CommandShortcut>
+                          <KeyCombo binding={binding} />
+                        </CommandShortcut>
+                      )}
+                    </CommandItem>
+                  );
+                })}
+              </CommandGroup>
+            )}
+          </CommandList>
+        </ListContextMenu>
         {needle && (
           <div className="flex items-center justify-between gap-3 border-t px-3 py-1.5 font-mono text-[11px] text-faint">
             <span>

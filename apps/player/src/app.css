@@ -210,19 +210,6 @@
   }
 }
 
-/* The playing track's three-bar equalizer (animate-eq on each bar, delays staggered). */
-@theme {
-  --animate-eq: eq 900ms ease-in-out infinite alternate;
-  @keyframes eq {
-    from {
-      height: 3px;
-    }
-    to {
-      height: 11px;
-    }
-  }
-}
-
 /* The loader's bars (components/loader.tsx): each swells and settles, the middle ones a beat behind the outer ones. */
 @theme {
   --animate-wave: wave 900ms ease-in-out infinite;
@@ -254,73 +241,19 @@
   width: 25%;
   animation: top-progress 1.1s ease-in-out infinite;
 }
-@media (prefers-reduced-motion: reduce) {
-  .top-progress [data-slot="progress-indicator"] {
-    width: 100%;
-    animation: none;
-    opacity: 0.5;
-  }
-}
-
 /*
- * Motion (lib/motion.ts). Page changes and the side panels are same-document view transitions: a 150 ms cross-fade,
- * the clicked album's cover flying into the album header, the panel sliding. Nothing over 200 ms, and the transition
- * layer never takes clicks.
+ * No motion: no page or panel transitions, no pops, menus and dialogs appear at once, hovers change instantly.
+ * Only the loader and the refresh line move, since moving is how they say "still working". Unlayered, so it wins over
+ * Tailwind's layered utilities without !important.
  */
-::view-transition {
-  pointer-events: none;
-}
-::view-transition-old(root),
-::view-transition-new(root) {
-  animation-duration: 150ms;
-}
-::view-transition-group(album-cover) {
-  animation-duration: 200ms;
-  animation-timing-function: ease-out;
-}
-@keyframes panel-in {
-  from {
-    transform: translateX(24px);
-    opacity: 0;
-  }
-}
-@keyframes panel-out {
-  to {
-    transform: translateX(24px);
-    opacity: 0;
-  }
-}
-::view-transition-new(side-panel):only-child {
-  animation: 150ms ease-out both panel-in;
-}
-::view-transition-old(side-panel):only-child {
-  animation: 150ms ease-in both panel-out;
-}
-@keyframes like-pop {
-  40% {
-    transform: scale(1.25);
-  }
-}
-.animate-like {
-  animation: like-pop 200ms ease-out;
+*:not(.animate-wave, .top-progress *),
+*::before,
+*::after {
+  animation: none;
+  transition: none;
 }
 /* A hidden tab has nothing to look at. */
-:root[data-hidden] .animate-eq {
+:root[data-hidden] .animate-wave,
+:root[data-hidden] .top-progress [data-slot="progress-indicator"] {
   animation-play-state: paused;
-}
-/*
- * The in-app "reduce motion" switch, on top of the OS setting (which Tailwind's motion-reduce: and the rule below
- * cover). Unlayered, so it wins over Tailwind's layered utilities without !important.
- */
-:root[data-motion="reduce"] *,
-:root[data-motion="reduce"] *::before,
-:root[data-motion="reduce"] *::after {
-  animation-duration: 0.01ms;
-  animation-iteration-count: 1;
-  transition-duration: 0.01ms;
-}
-@media (prefers-reduced-motion: reduce) {
-  .animate-like {
-    animation: none;
-  }
 }
