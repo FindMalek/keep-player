@@ -15,7 +15,7 @@ import { ListenRooms, type Peer } from "./listen";
 import type { LyricsService } from "./lyrics";
 import { forgetMisses, lyricsCoverageReport, missingLyrics } from "./lyrics-coverage";
 import { lyricsCoverage, queryLyrics } from "./lyrics-search";
-import { dailyMixes } from "./mixes";
+import { madeForYou } from "./mixes";
 import { addMoment, deleteMoment, listMoments, momentNotes, updateMoment } from "./moments";
 import { changeAlbum, changeSong, readPrefs } from "./prefs";
 import { ban, listBans, unban } from "./radio";
@@ -745,13 +745,20 @@ export function createApi({
     });
   }
 
-  /** `GET /api/mixes?day=N`: today's daily mixes for you (`day` = the browser's local days since the epoch). */
+  /**
+   * `GET /api/mixes?day=N&hour=H&tz=M`: everything made for you right now (daily mixes, Discover Weekly, the daylist).
+   * `day` is the browser's local days since the epoch, `hour` its local hour, `tz` its `getTimezoneOffset()`.
+   */
   async function mixes(request: Request): Promise<Response> {
     if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
     const session = sessions.get(cookieValue(request));
     if (!session) return json({ error: "signed out" }, 401);
-    const day = Number(new URL(request.url).searchParams.get("day")) || Math.floor(Date.now() / 86_400_000);
-    return json({ day, mixes: dailyMixes(library, session.server, `${session.server}:${session.user}`, day) }, 200, {
+    const params = new URL(request.url).searchParams;
+    const day = Number(params.get("day")) || Math.floor(Date.now() / 86_400_000);
+    const hour = Math.min(23, Math.max(0, Number(params.get("hour")) || 0));
+    const tzMinutes = Math.min(840, Math.max(-840, Number(params.get("tz")) || 0));
+    const mixes = madeForYou(library, session.server, `${session.server}:${session.user}`, { day, hour, tzMinutes });
+    return json({ day, mixes }, 200, {
       "cache-control": "private, no-cache",
     });
   }

@@ -15,6 +15,10 @@ const MIN_PLAYS = 5;
 const SESSION_MS = 2 * 3_600_000;
 /** A mix is its seed artist plus up to this many artists you play around them. */
 const NEIGHBOURS = 4;
+const DISCOVER_SIZE = 30;
+/** Share of Discover Weekly from artists you play; the rest is artists you've never played at all. */
+const DISCOVER_KNOWN = 0.6;
+const DAYLIST_SIZE = 40;
 
 export interface Mix {
   id: string;
@@ -23,6 +27,26 @@ export interface Mix {
   description: string;
   songs: Song[];
 }
+
+/** Parts of the day for the daylist, by local hour. */
+export const SLOTS = [
+  ["morning", 5, 12],
+  ["afternoon", 12, 17],
+  ["evening", 17, 22],
+  ["night", 22, 29],
+] as const;
+export type Slot = (typeof SLOTS)[number][0];
+
+export function slotOf(hour: number): Slot {
+  const h = hour < 5 ? hour + 24 : hour;
+  return SLOTS.find(([, from, to]) => h >= from && h < to)?.[0] ?? "night";
+}
+
+const WEEKDAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+/** Day 0 (1970-01-01) was a Thursday. */
+export const weekdayOf = (day: number) => (day + 4) % 7;
+/** The last Friday on or before `day`: Discover Weekly turns over then. */
+export const lastFriday = (day: number) => day - ((weekdayOf(day) - 5 + 7) % 7);
 
 /** A small seeded PRNG, so a day's mixes are the same on every device and every reload. */
 function seeded(seed: string): () => number {
@@ -47,22 +71,29 @@ function shuffle<T>(items: T[], random: () => number): T[] {
 
 const keyOf = (song: { artist?: string; title?: string }) => `${normalize(song.artist ?? "")}\u0000${normalize(song.title ?? "")}`;
 
+interface Listening {
+  plays: { song: Song; started: number }[];
+  /** The library by artist (normalized), without songs marked "never in shuffle or radio". */
+  byArtist: Map<string, Song[]>;
+  counts: Map<string, number>;
+  /** Songs you played, by artist + title. */
+  playedKeys: Set<string>;
+  /** artist → artists you play within two hours of them → how often. */
+  together: Map<string, Map<string, number>>;
+}
+
 /**
- * Up to six mixes for the day, like Spotify's daily mixes but only from your library. Each starts from an artist you
- * play a lot and takes in the artists you play around the same time; it's mostly their songs you play plus some you
- * rarely or never play. Plays are matched to the library by artist and title, not id: Navidrome gives a song a new id
- * when its file moves (a tagger renaming it), and genre tags are too often missing to group by.
- * Songs you marked "never in shuffle or radio" stay out. `day` (days since the epoch) seeds the picks.
+ * What you listen to, matched to the library as it is now. Plays are matched by artist and title, not id: Navidrome
+ * gives a song a new id when its file moves (a tagger renaming it), and genre tags are too often missing to group by.
  */
-export function dailyMixes(db: Database, server: string, account: string, day: number, now = Date.now()): Mix[] {
+function listening(db: Database, server: string, account: string, now: number): Listening | null {
   const plays = db
     .query<{ song: string; started: number }, [string, number]>(
       "select song, started from plays where account = ? and skipped = 0 and started >= ? order by started",
     )
     .all(account, now - WINDOW_DAYS * DAY)
     .map((row) => ({ song: JSON.parse(row.song) as Song, started: row.started }));
-  if (!plays.length) return [];
-
+  if (!plays.length) return null;
   const never = new Set(
     readPrefs(db, account)
       .songs.filter((pref) => pref.never)
@@ -75,8 +106,6 @@ export function dailyMixes(db: Database, server: string, account: string, day: n
     const artist = normalize(song.artist);
     byArtist.set(artist, [...(byArtist.get(artist) ?? []), song]);
   }
-
-  // Plays per artist, the songs you play (by artist + title), and who you play next to whom.
   const counts = new Map<string, number>();
   const playedKeys = new Set<string>();
   const together = new Map<string, Map<string, number>>();
@@ -100,9 +129,43 @@ export function dailyMixes(db: Database, server: string, account: string, day: n
       }
     }
   }
+  return { plays, byArtist, counts, playedKeys, together };
+}
 
-  const seeds = [...counts.entries()]
-    .filter(([artist, n]) => n >= MIN_PLAYS && byArtist.has(artist))
+/** Mostly songs by `artists` you play, the rest theirs you rarely or never play, shuffled. */
+function blend(l: Listening, artists: string[], size: number, random: () => number): Song[] {
+  const pool = artists.flatMap((artist) => l.byArtist.get(artist) ?? []);
+  const familiar = shuffle(
+    pool.filter((song) => l.playedKeys.has(keyOf(song))),
+    random,
+  ).slice(0, Math.round(size * FAMILIAR));
+  const fresh = shuffle(
+    pool.filter((song) => !l.playedKeys.has(keyOf(song))),
+    random,
+  ).slice(0, size - familiar.length);
+  return shuffle([...familiar, ...fresh], random);
+}
+
+const artistNames = (l: Listening, artists: string[]) =>
+  artists
+    .slice(0, 3)
+    .map((artist) => l.byArtist.get(artist)?.[0]?.artist ?? artist)
+    .join(", ");
+
+const topNeighbours = (l: Listening, artist: string, count: number) =>
+  [...(l.together.get(artist) ?? new Map<string, number>()).entries()]
+    .filter(([other]) => l.byArtist.has(other))
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, count)
+    .map(([other]) => other);
+
+/**
+ * Up to six mixes for the day, like Spotify's daily mixes but only from your library. Each starts from an artist you
+ * play a lot and takes in the artists you play around the same time. `day` (days since the epoch) seeds the picks.
+ */
+function daily(l: Listening, account: string, day: number): Mix[] {
+  const seeds = [...l.counts.entries()]
+    .filter(([artist, n]) => n >= MIN_PLAYS && l.byArtist.has(artist))
     .sort((a, b) => b[1] - a[1])
     .map(([artist]) => artist);
   const used = new Set<string>();
@@ -111,33 +174,93 @@ export function dailyMixes(db: Database, server: string, account: string, day: n
     if (mixes.length === MIXES) break;
     // An artist already in an earlier mix doesn't start another one.
     if (used.has(seed)) continue;
-    const neighbours = [...(together.get(seed) ?? new Map<string, number>()).entries()]
-      .filter(([artist]) => byArtist.has(artist))
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, NEIGHBOURS)
-      .map(([artist]) => artist);
-    const artists = [seed, ...neighbours];
+    const artists = [seed, ...topNeighbours(l, seed, NEIGHBOURS)];
     for (const artist of artists) used.add(artist);
-
-    const random = seeded(`${account}:${day}:${seed}`);
-    const pool = artists.flatMap((artist) => byArtist.get(artist) ?? []);
-    const familiar = shuffle(
-      pool.filter((song) => playedKeys.has(keyOf(song))),
-      random,
-    ).slice(0, Math.round(PER_MIX * FAMILIAR));
-    const fresh = shuffle(
-      pool.filter((song) => !playedKeys.has(keyOf(song))),
-      random,
-    ).slice(0, PER_MIX - familiar.length);
     mixes.push({
       id: `daily-${mixes.length + 1}`,
       name: `daily mix ${mixes.length + 1}`,
-      description: artists
-        .slice(0, 3)
-        .map((artist) => byArtist.get(artist)?.[0]?.artist ?? artist)
-        .join(", "),
-      songs: shuffle([...familiar, ...fresh], random),
+      description: artistNames(l, artists),
+      songs: blend(l, artists, PER_MIX, seeded(`${account}:${day}:${seed}`)),
     });
   }
   return mixes;
+}
+
+/**
+ * Discover Weekly, new every Friday: songs in your library you've never played, most by artists you play (the ones you
+ * play most count most), the rest by artists you've never played at all.
+ */
+function discover(l: Listening, account: string, friday: number): Mix | null {
+  const random = seeded(`${account}:discover:${friday}`);
+  const unplayed = (artist: string) => (l.byArtist.get(artist) ?? []).filter((song) => !l.playedKeys.has(keyOf(song)));
+  const liked = [...l.counts.entries()].sort((a, b) => b[1] - a[1]).map(([artist]) => artist);
+  const known: Song[] = [];
+  // Round-robin over your artists, best first, so one big discography doesn't take every slot.
+  const queues = liked.map((artist) => shuffle(unplayed(artist), random)).filter((queue) => queue.length);
+  const knownSize = Math.round(DISCOVER_SIZE * DISCOVER_KNOWN);
+  for (let round = 0; known.length < knownSize && queues.some((queue) => queue.length > round); round++)
+    for (const queue of queues) {
+      const song = queue[round];
+      if (song && known.length < knownSize) known.push(song);
+    }
+  const strangers = [...l.byArtist.keys()].filter((artist) => !l.counts.has(artist));
+  const fresh = shuffle(strangers, random)
+    .map((artist) => shuffle(l.byArtist.get(artist) ?? [], random)[0])
+    .filter((song): song is Song => Boolean(song))
+    .slice(0, DISCOVER_SIZE - known.length);
+  const songs = shuffle([...known, ...fresh], random);
+  if (!songs.length) return null;
+  return {
+    id: "discover-weekly",
+    name: "discover weekly",
+    description: "songs you own and never played, picked for you every friday",
+    songs,
+  };
+}
+
+/**
+ * The daylist: what you tend to play at this time of day (by your local hour), mostly the songs you play then plus some
+ * by the same artists you haven't. Changes four times a day.
+ */
+function daylist(l: Listening, account: string, day: number, slot: Slot, tzMinutes: number): Mix | null {
+  const counts = new Map<string, number>();
+  for (const play of l.plays) {
+    if (!play.song.artist) continue;
+    const hour = Math.floor(((play.started - tzMinutes * 60_000) % DAY) / 3_600_000);
+    if (slotOf((hour + 24) % 24) !== slot) continue;
+    const artist = normalize(play.song.artist);
+    counts.set(artist, (counts.get(artist) ?? 0) + 1);
+  }
+  const artists = [...counts.entries()]
+    .filter(([artist]) => l.byArtist.has(artist))
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 6)
+    .map(([artist]) => artist);
+  if (!artists.length) return null;
+  const songs = blend(l, artists, DAYLIST_SIZE, seeded(`${account}:${day}:${slot}`));
+  return { id: "daylist", name: "daylist", description: `${WEEKDAYS[weekdayOf(day)]} ${slot}: ${artistNames(l, artists)}`, songs };
+}
+
+/**
+ * Everything made for you right now: up to six daily mixes, Discover Weekly and the daylist. `day` is the browser's
+ * local days since the epoch, `hour` its local hour and `tzMinutes` its `getTimezoneOffset()`.
+ */
+export function madeForYou(
+  db: Database,
+  server: string,
+  account: string,
+  { day, hour, tzMinutes }: { day: number; hour: number; tzMinutes: number },
+  now = Date.now(),
+): Mix[] {
+  const l = listening(db, server, account, now);
+  if (!l) return [];
+  return [...daily(l, account, day), discover(l, account, lastFriday(day)), daylist(l, account, day, slotOf(hour), tzMinutes)].filter(
+    (mix): mix is Mix => mix !== null,
+  );
+}
+
+/** The daily mixes alone. */
+export function dailyMixes(db: Database, server: string, account: string, day: number, now = Date.now()): Mix[] {
+  const l = listening(db, server, account, now);
+  return l ? daily(l, account, day) : [];
 }
