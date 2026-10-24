@@ -248,6 +248,7 @@ export function App() {
     const id = setTimeout(() => {
       void import("@/lib/queue-sync").then((sync) => sync.startQueueSync());
       startElsewhere();
+      void import("@/lib/session").then((module) => module.session.start());
     }, 1500);
     return () => clearTimeout(id);
   }, [user]);

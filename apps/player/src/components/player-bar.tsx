@@ -35,6 +35,7 @@ import { notify } from "@/lib/notify";
 import { useCachedIds } from "@/lib/offline";
 import { currentSong, player, usePlayer, usePosition } from "@/lib/player";
 import { contextUpcoming } from "@/lib/queue";
+import { useSession } from "@/lib/session-state";
 import { useSetting } from "@/lib/settings";
 import type { Song } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -150,6 +151,27 @@ const BAR_GRID: Record<BarMode, string> = {
   compact: "grid h-16 grid-cols-[minmax(0,1fr)_minmax(250px,1.3fr)_auto] gap-3 px-3",
   mobile: "grid h-auto grid-cols-[minmax(0,1fr)_auto] gap-x-2 gap-y-0.5 px-3 py-1.5",
 };
+
+const DevicePicker = lazy(() => import("./device-picker").then((module) => ({ default: module.DevicePicker })));
+
+/** Next to the controls while another device plays: where the sound is coming from. */
+function PlayingOn() {
+  const { devices, you } = useSession();
+  const active = devices.find((device) => device.active);
+  if (!active || active.id === you) return null;
+  return <span className="truncate font-mono text-[10.5px] text-muted-foreground">playing on {active.name}</span>;
+}
+
+/** The picker loads with the menu library once there is a second device to pick. */
+function Devices() {
+  const { devices } = useSession();
+  if (devices.length < 2) return null;
+  return (
+    <Suspense fallback={null}>
+      <DevicePicker />
+    </Suspense>
+  );
+}
 
 const PlayerMore = lazy(() => import("./player-more").then((module) => ({ default: module.PlayerMore })));
 
@@ -309,6 +331,7 @@ export function PlayerBar({ panel, onPanel }: { panel: Panel; onPanel: (panel: P
           <>
             <div className="flex items-center justify-end gap-0.5">
               {controls}
+              <Devices />
               {queueButton}
               {more}
             </div>
@@ -323,12 +346,14 @@ export function PlayerBar({ panel, onPanel }: { panel: Panel; onPanel: (panel: P
             </div>
 
             <div className="flex min-w-0 items-center justify-end gap-1">
+              <PlayingOn />
               {status}
               <Hint label="lyrics" shortcut="lyrics">
                 <ToolButton on={panel === "lyrics"} onClick={() => onPanel(panel === "lyrics" ? null : "lyrics")} aria-label="lyrics">
                   <MicVocalIcon />
                 </ToolButton>
               </Hint>
+              <Devices />
               {queueButton}
               {more}
               <AudioPlayerVolume className={cn(roomy ? (full ? "w-32" : "w-28") : "w-8")}>

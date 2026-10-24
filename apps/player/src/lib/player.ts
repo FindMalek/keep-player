@@ -31,6 +31,18 @@ export interface PlayerState {
 }
 
 /** Sleep timer: stop at a time (after a 10 s fade), at the end of this song, or at the end of the album. */
+/** While another device of yours plays, the controls here drive it instead of this tab's audio. */
+export interface Remote {
+  toggle(playing: boolean): void;
+  next(): void;
+  previous(): void;
+  seek(seconds: number): void;
+  play(songs: Song[], start: number, options: { shuffle?: boolean; source?: Q.QueueSource }): void;
+  add(songs: Song[], next: boolean): void;
+}
+
+let remote: Remote | null = null;
+
 export type Sleep = { kind: "time"; until: number } | { kind: "track" } | { kind: "album" } | null;
 
 /** The queue lives in IndexedDB: a shuffled library is too big for localStorage, and writes don't block the page. */
@@ -496,7 +508,7 @@ function started(song: Song | undefined): void {
   applyVolume();
   updateMediaSession();
   persist();
-  if (song) scrobble(song.id, false);
+  if (song && !remote) scrobble(song.id, false);
   preloadNext();
   // Lyrics for the next two songs, so the panel is ready when they start.
   for (const next of Q.peekUpcoming(state.queue, 2)) void queryClient.prefetchQuery(queries.lyrics(next.id));
@@ -719,6 +731,10 @@ export const player = {
   },
   /** Start a context (album, playlist, …) at `start`, `startAt` seconds in (a lyrics hit). Your up-next queue stays. */
   play(all: Song[], start = 0, options: { shuffle?: boolean; album?: boolean; source?: Q.QueueSource; startAt?: number } = {}): void {
+    if (remote) {
+      remote.play(all, start, options);
+      return;
+    }
     // Songs you hid play only from their album's page (or when you pick one yourself).
     const chosen = all[start];
     const songs = options.album || options.source?.kind === "album" ? all : all.filter((song) => song === chosen || !isHidden(song.id));
@@ -730,6 +746,10 @@ export const player = {
     replacedContext(before, at, `started ${options.source?.name ?? (songs[start] as Song | undefined)?.title ?? "playing"}`);
   },
   toggle(force?: boolean): void {
+    if (remote) {
+      remote.toggle(force ?? !state.playing);
+      return;
+    }
     if (!current()) return;
     const element = decks.element;
     const shouldPlay = force ?? element.paused;
@@ -739,10 +759,15 @@ export const player = {
     else void decks.play().catch(() => set({ playing: false }));
   },
   next(): void {
-    if (current()) advance(Q.next(state.queue));
+    if (remote) remote.next();
+    else if (current()) advance(Q.next(state.queue));
   },
   /** Restart the track if more than 3 s in, otherwise go back one (`force`: always go back, e.g. undoing a skip). */
   previous(force = false): void {
+    if (remote) {
+      remote.previous();
+      return;
+    }
     if ((!force && position > 3) || state.queue.history.length === 0) {
       player.seek(0);
       return;
@@ -753,6 +778,10 @@ export const player = {
     advance(Q.jumpTo(state.queue, entry));
   },
   seek(seconds: number): void {
+    if (remote) {
+      remote.seek(seconds);
+      return;
+    }
     if (!current() || !decks.element.src) return;
     const target = Math.max(0, Math.min(seconds, state.duration || seconds));
     decks.seek(target);
@@ -782,11 +811,19 @@ export const player = {
   },
   /** To the top of your queue; starts playing if nothing is. */
   playNext(songs: Song[]): void {
+    if (remote) {
+      remote.add(songs, true);
+      return;
+    }
     if (!current()) player.play(songs);
     else queued(Q.playNext(state.queue, songs), "to play next", (queue) => Q.playNext(queue, songs));
   },
   /** To the end of your queue; starts playing if nothing is. */
   addToQueue(songs: Song[]): void {
+    if (remote) {
+      remote.add(songs, false);
+      return;
+    }
     if (!current()) player.play(songs);
     else queued(Q.addToQueue(state.queue, songs), "to the queue", (queue) => Q.addToQueue(queue, songs));
   },
@@ -827,6 +864,21 @@ export const player = {
     if (!songs.length) return;
     setQueue(Q.playContext(Q.clearUpNext(state.queue), songs, index, { source: { kind: "handoff", name: "your other device" } }));
     load(false, seconds);
+  },
+  /** Hand the controls to another device (null: back to this tab's audio). */
+  setRemote(next: Remote | null): void {
+    remote = next;
+  },
+  isRemote: (): boolean => remote !== null,
+  /** Taking over mid-song: the device before already scrobbled it once it was this far in. */
+  takenOverAt(seconds: number): void {
+    const duration = current()?.duration ?? 0;
+    if (seconds >= SCROBBLE_AFTER_SEC || (duration > 0 && seconds >= duration / 2)) scrobbled = true;
+  },
+  /** Show another device's play state and playhead without touching this tab's audio. */
+  mirror(playing: boolean, seconds: number): void {
+    if (state.playing !== playing) set({ playing, buffering: false });
+    setPosition(seconds);
   },
   /** Notified on every state change (the queue sync listens). */
   subscribe(listener: () => void): () => void {

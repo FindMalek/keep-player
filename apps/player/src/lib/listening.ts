@@ -43,7 +43,8 @@ export function startListeningHistory(): void {
   if (started) return;
   started = true;
   setInterval(() => {
-    if (!now || !player.getState().playing) return;
+    // A remote only shows another device's playback: that device keeps the history.
+    if (!now || !player.getState().playing || player.isRemote()) return;
     now.listened += 1;
     now.lastPosition = player.getPosition();
   }, 1000);

@@ -70,6 +70,12 @@ export const SETTINGS = [
     description: "The `LYTERION_PLAYER_TOKEN` set on Lyterion. Needed with `LYTERION_URL`.",
   },
   {
+    name: "ONE_SESSION",
+    fallback: "on",
+    description:
+      "`on`: all of an account's open players share one playback session, like Spotify Connect: one plays, the others are remotes, and the device picker moves playback. `off`: every tab plays on its own.",
+  },
+  {
     name: "UPLOAD_DIR",
     fallback: "",
     description:
@@ -116,6 +122,7 @@ export interface Config {
   coverCacheMb: number;
   lrclibUrl: string;
   lyricsBackfill: boolean;
+  oneSession: boolean;
   /** Null unless `LYRICS_WRITE_LRC=on`: the music folder .lrc files are written into. */
   lrcDir: string | null;
   /** Null when uploads are off. */
@@ -198,6 +205,7 @@ export function readConfig(env: Env): { config: Config; errors: string[] } {
     coverCacheMb: number("COVER_CACHE_MB", 16),
     lrclibUrl,
     lyricsBackfill: flag("LYRICS_BACKFILL", ["on"], ["off"]),
+    oneSession: flag("ONE_SESSION", ["on"], ["off"]),
     lrcDir: writeLrc ? musicDir : null,
     uploadDir: uploadDir || null,
     lyterion: lyterionUrl && lyterionToken ? { url: lyterionUrl, token: lyterionToken } : null,
