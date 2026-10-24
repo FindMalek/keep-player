@@ -19,6 +19,10 @@ const DISCOVER_SIZE = 30;
 /** Share of Discover Weekly from artists you play; the rest is artists you've never played at all. */
 const DISCOVER_KNOWN = 0.6;
 const DAYLIST_SIZE = 40;
+const RADAR_DAYS = 30;
+const RADAR_SIZE = 40;
+/** "On this day" looks at plays this many days either side of the date a year ago. */
+const ON_THIS_DAY_SPREAD = 3;
 
 export interface Mix {
   id: string;
@@ -71,7 +75,7 @@ export function shuffle<T>(items: T[], random: () => number): T[] {
 
 export const keyOf = (song: { artist?: string; title?: string }) => `${normalize(song.artist ?? "")}\u0000${normalize(song.title ?? "")}`;
 
-interface Listening {
+export interface Listening {
   plays: { song: Song; started: number }[];
   /** The library by artist (normalized), without songs marked "never in shuffle or radio". */
   byArtist: Map<string, Song[]>;
@@ -86,7 +90,7 @@ interface Listening {
  * What you listen to, matched to the library as it is now. Plays are matched by artist and title, not id: Navidrome
  * gives a song a new id when its file moves (a tagger renaming it), and genre tags are too often missing to group by.
  */
-function listening(db: Database, server: string, account: string, now: number): Listening | null {
+export function listening(db: Database, server: string, account: string, now: number): Listening | null {
   const plays = db
     .query<{ song: string; started: number }, [string, number]>(
       "select song, started from plays where account = ? and skipped = 0 and started >= ? order by started",
@@ -133,7 +137,7 @@ function listening(db: Database, server: string, account: string, now: number): 
 }
 
 /** Mostly songs by `artists` you play, the rest theirs you rarely or never play, shuffled. */
-function blend(l: Listening, artists: string[], size: number, random: () => number): Song[] {
+export function blend(l: Listening, artists: string[], size: number, random: () => number): Song[] {
   const pool = artists.flatMap((artist) => l.byArtist.get(artist) ?? []);
   const familiar = shuffle(
     pool.filter((song) => l.playedKeys.has(keyOf(song))),
@@ -218,6 +222,47 @@ function discover(l: Listening, account: string, friday: number): Mix | null {
   };
 }
 
+/** Release radar, new every Friday: songs added to the library in the last month by artists you play, newest first. */
+function releaseRadar(l: Listening, now: number): Mix | null {
+  const since = now - RADAR_DAYS * DAY;
+  const fresh = [...l.byArtist.entries()]
+    .filter(([artist]) => l.counts.has(artist))
+    .flatMap(([, songs]) => songs)
+    .map((song) => ({ song, added: Date.parse(typeof song.created === "string" ? song.created : "") }))
+    .filter((item) => item.added >= since)
+    .sort((a, b) => b.added - a.added || (Number(a.song.track) || 0) - (Number(b.song.track) || 0))
+    .slice(0, RADAR_SIZE)
+    .map((item) => item.song);
+  if (!fresh.length) return null;
+  const artists = [...new Set(fresh.map((song) => normalize(song.artist ?? "")))];
+  return { id: "release-radar", name: "release radar", description: `new in your library: ${artistNames(l, artists)}`, songs: fresh };
+}
+
+/** What you played around this date a year ago, most played first, as it is in the library now. */
+function onThisDay(db: Database, l: Listening, account: string, now: number): Mix | null {
+  const center = now - 365 * DAY;
+  const rows = db
+    .query<{ song: string }, [string, number, number]>(
+      "select song from plays where account = ? and skipped = 0 and started >= ? and started < ?",
+    )
+    .all(account, center - ON_THIS_DAY_SPREAD * DAY, center + ON_THIS_DAY_SPREAD * DAY);
+  if (!rows.length) return null;
+  const library = new Map<string, Song>();
+  for (const songs of l.byArtist.values()) for (const song of songs) library.set(keyOf(song), song);
+  const counts = new Map<string, number>();
+  for (const row of rows) {
+    const key = keyOf(JSON.parse(row.song) as Song);
+    if (library.has(key)) counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+  const songs = [...counts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 50)
+    .map(([key]) => library.get(key) as Song);
+  if (!songs.length) return null;
+  const date = new Date(center).toLocaleDateString("en", { month: "long", day: "numeric" }).toLowerCase();
+  return { id: "on-this-day", name: "on this day", description: `what you played around ${date} last year`, songs };
+}
+
 /**
  * The daylist: what you tend to play at this time of day (by your local hour), mostly the songs you play then plus some
  * by the same artists you haven't. Changes four times a day.
@@ -254,9 +299,13 @@ export function madeForYou(
 ): Mix[] {
   const l = listening(db, server, account, now);
   if (!l) return [];
-  return [...daily(l, account, day), discover(l, account, lastFriday(day)), daylist(l, account, day, slotOf(hour), tzMinutes)].filter(
-    (mix): mix is Mix => mix !== null,
-  );
+  return [
+    ...daily(l, account, day),
+    discover(l, account, lastFriday(day)),
+    releaseRadar(l, now),
+    onThisDay(db, l, account, now),
+    daylist(l, account, day, slotOf(hour), tzMinutes),
+  ].filter((mix): mix is Mix => mix !== null);
 }
 
 /** The daily mixes alone. */
