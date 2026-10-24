@@ -147,10 +147,9 @@ function buildLogUrl() {
 
 // Vercel's layout: one row per project, the latest status, the logs, and the Preview link once it's up.
 function renderComment(row) {
-  const logs = [
-    buildLogUrl() && `[Build logs](${buildLogUrl()})`,
-    row.applicationId && `[Deploy logs](${inspectUrl(row)})`,
-  ].filter(Boolean);
+  const logs = [buildLogUrl() && `[Build logs](${buildLogUrl()})`, row.applicationId && `[Deploy logs](${inspectUrl(row)})`].filter(
+    Boolean,
+  );
   const inspect = logs.length && row.status !== "deleted" ? ` (${logs.join(" · ")})` : "";
   const name = row.applicationId ? `[${row.name}](${inspectUrl(row)})` : row.name;
   const preview = row.status === "ready" ? `[Visit Preview](https://${row.host})` : "";
