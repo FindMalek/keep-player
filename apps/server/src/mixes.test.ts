@@ -5,32 +5,29 @@ import { dailyMixes } from "./mixes";
 import { createIndexTables } from "./search-index";
 
 const NOW = Date.UTC(2026, 9, 24, 12);
-const song = (id: string, genre: string, artist: string) => ({ id, title: `t${id}`, artist, genre });
+const DAY_MS = 86_400_000;
+const song = (id: string, artist: string, title: string) => ({ id, artist, title });
 
-test("a mix per genre you play, mixing songs you play with ones from the same genre you never played", () => {
+test("plays count by artist and title even when the song's id changed, and artists played together share a mix", () => {
   const db = openLibraryDb(":memory:");
   createIndexTables(db);
-  const library = [
-    song("r1", "Rock", "A"),
-    song("r2", "Rock", "A"),
-    song("r3", "Rock", "B"),
-    song("j1", "Jazz", "C"),
-    song("j2", "Jazz", "C"),
-  ];
+  const library = [song("a1", "Hurt", "Rapture"), song("a2", "Hurt", "Falls Apart"), song("b1", "Tool", "Sober"), song("c1", "Abba", "SOS")];
   for (const item of library)
     db.query(
       "insert into idx_items (server, kind, id, folder, name, norm, plays, data, generation) values ('s', 'song', ?, '1', 'n', 'n', 0, ?, 1)",
     ).run(item.id, JSON.stringify(item));
-  for (let i = 0; i < 7; i++)
-    recordPlay(db, "s:u", "", { song: library[0] as never, started: NOW - i * 3_600_000, listened: 200, finished: true });
-  for (let i = 0; i < 6; i++)
-    recordPlay(db, "s:u", "", { song: library[3] as never, started: NOW - i * 3_600_000, listened: 200, finished: true });
+  // Played under ids that no longer exist (the files moved since), each Hurt play followed by Tool.
+  for (let i = 0; i < 6; i++) {
+    const at = NOW - (i + 1) * DAY_MS;
+    recordPlay(db, "s:u", "", { song: song(`old-${i}`, "Hurt", "Rapture"), started: at, listened: 200, finished: true });
+    recordPlay(db, "s:u", "", { song: song(`old-t${i}`, "Tool", "Sober"), started: at + 600_000, listened: 200, finished: true });
+  }
 
   const mixes = dailyMixes(db, "s", "s:u", 20_000, NOW);
-  expect(mixes.map((mix) => mix.description.split(" · ")[0])).toEqual(["rock", "jazz"]);
-  const rock = mixes[0]?.songs.map((item) => item.id).sort();
-  // r1 you play; r2 and r3 are rock you never played. Nothing from jazz.
-  expect(rock).toEqual(["r1", "r2", "r3"]);
-  // Same day, same mix: every device agrees.
+  expect(mixes).toHaveLength(1);
+  const mix = mixes[0];
+  expect(mix?.description).toBe("Hurt, Tool");
+  // Both Hurt songs (one played, one not) and Tool; never Abba, which you don't play.
+  expect(mix?.songs.map((item) => item.id).sort()).toEqual(["a1", "a2", "b1"]);
   expect(dailyMixes(db, "s", "s:u", 20_000, NOW)).toEqual(mixes);
 });
