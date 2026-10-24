@@ -12,13 +12,13 @@ playing in another Subsonic app (Arpeggi on your phone) shows too, without the b
 ```
 
 Then in the player: settings → sync → **now playing in your terminal** → connect. It shows one line,
-`/music connect https://your-player <token>`: paste it into Claude Code. The token is a sign-in of its own; sign it
+`/keep-music connect https://your-player <token>`: paste it into Claude Code. The token is a sign-in of its own; sign it
 out under settings → account → sessions.
 
 ## Use
 
-- `/music` or `/music pause`: play / pause
-- `/music next`, `/music prev`
-- `/music off`: disconnect
+- `/keep-music` or `/keep-music pause`: play / pause
+- `/keep-music next`, `/keep-music prev`
+- `/keep-music off`: disconnect
 
 The player server needs `ONE_SESSION=on` (the default) for the buttons.

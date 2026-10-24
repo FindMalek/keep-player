@@ -262,7 +262,7 @@ function TerminalRow() {
     const response = await fetch("/api/remote/token", { method: "POST", headers: HEADERS }).catch(() => null);
     if (!response?.ok) return setFailed(true);
     const { token } = (await response.json()) as { token: string };
-    setCommand(`/music connect ${location.origin} ${token}`);
+    setCommand(`/keep-music connect ${location.origin} ${token}`);
   };
   return (
     <Row
