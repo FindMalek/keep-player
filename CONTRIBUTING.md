@@ -70,9 +70,11 @@ browser is idle. The first screen is budgeted (`bun run size`) and the home page
 
 ## Deploys
 
-Every push to `main` builds `ghcr.io/findmalek/keep-player:main` (amd64 + arm64, with SBOM and provenance) and, when
-the `DOKPLOY_WEBHOOK_URL` secret is set, calls the Dokploy compose webhook so the server pulls the new image, then
-waits for `$PLAYER_URL/api/health`. Pull requests build the image too and smoke-test it read-only. release-please
-keeps a release PR open; merging it publishes `:X.Y.Z` and `:latest`. Setup: [docs/deploy/dokploy.md](docs/deploy/dokploy.md).
+Pull requests and merges to `main` run the checks and the e2e suite (4 shards) on GitHub's runners; pull requests also
+build the image and smoke-test it read-only. Nothing ships on a merge: release-please keeps a release PR open, and
+merging it builds `ghcr.io/findmalek/keep-player` (amd64, with SBOM and provenance) on the self-hosted runner, tags
+`:X.Y.Z`, `:latest` and `:main`, runs Lighthouse, and, when the `DOKPLOY_WEBHOOK_URL` secret is set, calls the Dokploy
+webhook and waits for `$PLAYER_URL/api/health`. A PR labelled `preview` gets its own Dokploy preview.
+Setup: [docs/deploy/dokploy.md](docs/deploy/dokploy.md).
 
 New settings go in `apps/server/src/settings.ts` (parsed and checked at boot), then `bun run config-docs`.
