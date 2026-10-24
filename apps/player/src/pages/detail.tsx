@@ -2,10 +2,11 @@ import { useQuery } from "@tanstack/react-query";
 import { ExternalLinkIcon, PlayIcon, RadioIcon, Trash2Icon } from "lucide-react";
 import { Fragment, type ReactNode, useMemo, useState } from "react";
 import { ArtistCard } from "@/components/artist-card";
-import { Aura, exportAura } from "@/components/aura";
+import { Aura } from "@/components/aura";
 import { Cover } from "@/components/cover";
 import { EditableText } from "@/components/editable-text";
 import { Hint } from "@/components/hint";
+import { ItemMoreButton } from "@/components/item-menu";
 import { KeepOffline } from "@/components/keep-offline";
 import { AlbumGrid, AlbumGridSkeleton, Content, EmptyState, type ListEditing, PageHeader, Section, TrackList } from "@/components/library";
 import { LikeButton } from "@/components/like-button";
@@ -469,13 +470,7 @@ export function PlaylistPage({ id }: { id: string }) {
         extra={
           <>
             <KeepOffline group={`playlist:${playlist.id}`} songs={playable} />
-            {songs.length > 0 && (
-              <Hint label="save this playlist's aura as a PNG (a cover for other apps)">
-                <Button variant="outline" onClick={() => exportAura(playlist.id, songs, leafOf(playlist.name))}>
-                  aura png
-                </Button>
-              </Hint>
-            )}
+            <ItemMoreButton target={{ kind: "playlist", playlist }} label={leafOf(playlist.name)} className="size-8" />
             {editable ? (
               <>
                 <Hint label={playlist.public ? "others on this server can see it" : "only you can see it"}>

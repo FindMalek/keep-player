@@ -126,3 +126,10 @@ test("delete waits 10 s for an undo, folders rename their playlists, smart playl
   await expect(page.getByRole("button", { name: "delete playlist" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: /^playlist name:/ })).toHaveCount(0);
 });
+
+test("the playlist that is playing stands out in the sidebar", async ({ signedIn: page }) => {
+  await page.goto("/playlist/pl-3");
+  await page.getByRole("button", { name: "play", exact: true }).first().click();
+  const item = page.locator("[data-playlist-id=pl-3]");
+  await expect(item.getByRole("img", { name: "playing" })).toBeVisible();
+});

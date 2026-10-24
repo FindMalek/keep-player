@@ -9,6 +9,7 @@ test("settings has every section, links to each tab, and changes apply at once",
 
   await page.getByRole("tab", { name: "appearance" }).click();
   await expect(page).toHaveURL(/\/settings\/appearance$/);
+  await expect(page.getByRole("switch", { name: "loading bar" })).not.toBeChecked();
   await page.getByRole("group", { name: "theme" }).getByRole("button", { name: "light" }).click();
   await expect(page.locator("html")).toHaveClass(/\blight\b/);
 

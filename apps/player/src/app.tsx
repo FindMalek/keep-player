@@ -81,7 +81,8 @@ const TopProgressLine = lazy(() => import("@/components/top-progress").then((mod
  * line at the top. First loads have skeletons instead, so they don't count.
  */
 function TopProgress() {
-  const refreshing = useIsFetching({ predicate: (query) => query.state.data !== undefined }) > 0;
+  const enabled = useSetting("loadingBar");
+  const refreshing = useIsFetching({ predicate: (query) => query.state.data !== undefined }) > 0 && enabled;
   const [shown, setShown] = useState(false);
   useEffect(() => {
     if (!refreshing) return setShown(false);

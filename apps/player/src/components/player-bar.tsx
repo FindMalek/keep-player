@@ -1,19 +1,15 @@
 import {
-  ChevronDownIcon,
   EllipsisIcon,
   InfoIcon,
   ListMusicIcon,
   MicVocalIcon,
-  MoonIcon,
   PauseIcon,
-  PictureInPicture2Icon,
   PlayIcon,
   Repeat1Icon,
   RepeatIcon,
   ShuffleIcon,
   SkipBackIcon,
   SkipForwardIcon,
-  SpeakerIcon,
   Volume1Icon,
   Volume2Icon,
   VolumeXIcon,
@@ -35,14 +31,12 @@ import { type BarMode, useBarMode } from "@/lib/bar-mode";
 import { dropTarget } from "@/lib/drag";
 import { useEngineController } from "@/lib/engine-controller";
 import { quality } from "@/lib/format";
-import { MINI_PLAYER_SUPPORTED, openMiniPlayer } from "@/lib/mini-player";
 import { notify } from "@/lib/notify";
 import { useCachedIds } from "@/lib/offline";
 import { currentSong, player, usePlayer, usePosition } from "@/lib/player";
 import { contextUpcoming } from "@/lib/queue";
 import { useSetting } from "@/lib/settings";
 import type { Song } from "@/lib/types";
-import { CAN_PICK_OUTPUT } from "@/lib/use-output-devices";
 import { cn } from "@/lib/utils";
 import { Cover } from "./cover";
 import { Hint } from "./hint";
@@ -63,41 +57,30 @@ function Elapsed() {
   return <AudioPlayerTime className="w-11 text-[11px]" />;
 }
 
-// The device menu (select + permission flow) loads after first paint; the same icon stands in until then.
-const OutputDevice = lazy(() => import("./output-device").then((module) => ({ default: module.OutputDevice })));
-
-// The sleep menu (a dropdown) also loads after first paint.
 const MomentTicks = lazy(() => import("./moment-ticks").then((module) => ({ default: module.MomentTicks })));
-const SleepMenu = lazy(() => import("./sleep-menu").then((module) => ({ default: module.SleepMenu })));
-
-function SleepFallback() {
-  const on = usePlayer((state) => state.sleep !== null);
-  return (
-    <ToolButton on={on} aria-label="sleep timer" disabled>
-      <MoonIcon />
-    </ToolButton>
-  );
-}
-
-function OutputDeviceFallback() {
-  return (
-    <Button variant="ghost" size="sm" className="gap-1 px-1.5 text-muted-foreground" aria-label="output device" disabled>
-      <SpeakerIcon />
-      <ChevronDownIcon />
-    </Button>
-  );
-}
 
 // Hover cards only matter on hover: they load after the first screen, with the same markup until then.
 const CoverDetails = lazy(() => import("./now-playing-details").then((module) => ({ default: module.CoverDetails })));
 const ArtistCard = lazy(() => import("./artist-card").then((module) => ({ default: module.ArtistCard })));
 
-function NowPlaying({ song }: { song: Song }) {
+/** Title, artist and like; song info is a small button on the cover, shown when you hover it. */
+function NowPlaying({ song, panel, onPanel }: { song: Song; panel: Panel; onPanel: (panel: Panel) => void }) {
   return (
     <div className="flex min-w-0 items-center gap-3">
-      <Suspense fallback={<Cover id={song.coverArt} size={42} className="size-[42px] shrink-0" priority />}>
-        <CoverDetails song={song} />
-      </Suspense>
+      <div className="group/cover relative shrink-0">
+        <Suspense fallback={<Cover id={song.coverArt} size={42} className="size-[42px] shrink-0" priority />}>
+          <CoverDetails song={song} />
+        </Suspense>
+        <button
+          type="button"
+          aria-label="song info"
+          aria-pressed={panel === "info"}
+          onClick={() => onPanel(panel === "info" ? null : "info")}
+          className="absolute top-0.5 right-0.5 hidden size-4 items-center justify-center bg-background text-foreground group-hover/cover:flex focus-visible:flex aria-pressed:flex [&_svg]:size-3"
+        >
+          <InfoIcon />
+        </button>
+      </div>
       <div className="flex min-w-0 flex-col">
         {song.albumId && (
           <Link href={`/album/${song.albumId}`} className="flex min-w-0 font-medium underline-offset-3 hover:underline">
@@ -319,7 +302,7 @@ export function PlayerBar({ panel, onPanel }: { panel: Panel; onPanel: (panel: P
     >
       <UpNextPeek />
       <AudioPlayer player={controller} shortcuts={false} onPrevious={player.previous} onNext={player.next} className={BAR_GRID[mode]}>
-        <NowPlaying song={song} />
+        <NowPlaying song={song} panel={panel} onPanel={onPanel} />
 
         {mobile ? (
           <>
@@ -345,37 +328,8 @@ export function PlayerBar({ panel, onPanel }: { panel: Panel; onPanel: (panel: P
                   <MicVocalIcon />
                 </ToolButton>
               </Hint>
-              {full && (
-                <>
-                  <Hint label="song info" shortcut="info">
-                    <ToolButton on={panel === "info"} onClick={() => onPanel(panel === "info" ? null : "info")} aria-label="song info">
-                      <InfoIcon />
-                    </ToolButton>
-                  </Hint>
-                  {MINI_PLAYER_SUPPORTED && (
-                    <Hint label="mini player" shortcut="mini-player">
-                      <ToolButton on={false} onClick={() => void openMiniPlayer()} aria-label="mini player">
-                        <PictureInPicture2Icon />
-                      </ToolButton>
-                    </Hint>
-                  )}
-                </>
-              )}
               {queueButton}
-              {full ? (
-                <>
-                  <Suspense fallback={<SleepFallback />}>
-                    <SleepMenu />
-                  </Suspense>
-                  {CAN_PICK_OUTPUT && (
-                    <Suspense fallback={<OutputDeviceFallback />}>
-                      <OutputDevice />
-                    </Suspense>
-                  )}
-                </>
-              ) : (
-                more
-              )}
+              {more}
               <AudioPlayerVolume className={cn(roomy ? (full ? "w-32" : "w-28") : "w-8")}>
                 <Hint label={controller.muted ? "unmute" : `mute · volume ${Math.round(controller.volume * 100)}%`} shortcut="mute">
                   <VolumeControlMute className="size-8">
