@@ -1,7 +1,11 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const APP = 4580;
-const MOCK = 4599;
+// Runners sharing one host run e2e side by side: each gets its own ports (E2E_PORT_OFFSET, set per runner in CI).
+const OFFSET = Number(process.env.E2E_PORT_OFFSET ?? 0);
+const APP = 4580 + OFFSET;
+const MOCK = 4599 + OFFSET;
+// Tests that call the mock directly read it from here (workers inherit the env).
+process.env.E2E_MOCK_URL = `http://127.0.0.1:${MOCK}`;
 
 export default defineConfig({
   testDir: "e2e",
