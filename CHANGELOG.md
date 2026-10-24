@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.7.0](https://github.com/FindMalek/keep-player/compare/v0.6.0...v0.7.0) (2026-10-24)
+
+
+### Features
+
+* **doctor:** fix with lyterion ([#241](https://github.com/FindMalek/keep-player/issues/241)) ([0334463](https://github.com/FindMalek/keep-player/commit/0334463656523b86e25a720e04a8046e05882d4f))
+* **import:** show lyterion sync state ([#242](https://github.com/FindMalek/keep-player/issues/242)) ([d37298f](https://github.com/FindMalek/keep-player/commit/d37298f9d5f1df276fc9b3635b560d6970bc73b8))
+
 ## [0.6.0](https://github.com/FindMalek/keep-player/compare/v0.5.1...v0.6.0) (2026-10-24)
 
 
