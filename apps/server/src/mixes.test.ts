@@ -11,7 +11,12 @@ const song = (id: string, artist: string, title: string) => ({ id, artist, title
 test("plays count by artist and title even when the song's id changed, and artists played together share a mix", () => {
   const db = openLibraryDb(":memory:");
   createIndexTables(db);
-  const library = [song("a1", "Hurt", "Rapture"), song("a2", "Hurt", "Falls Apart"), song("b1", "Tool", "Sober"), song("c1", "Abba", "SOS")];
+  const library = [
+    song("a1", "Hurt", "Rapture"),
+    song("a2", "Hurt", "Falls Apart"),
+    song("b1", "Tool", "Sober"),
+    song("c1", "Abba", "SOS"),
+  ];
   for (const item of library)
     db.query(
       "insert into idx_items (server, kind, id, folder, name, norm, plays, data, generation) values ('s', 'song', ?, '1', 'n', 'n', 0, ?, 1)",
