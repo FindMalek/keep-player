@@ -31,7 +31,7 @@
 > A monochrome web player for your [Navidrome](https://www.navidrome.org) library. Square covers, hairline borders,
 > synced lyrics, a queue you can see, mixes made from what you play, and one session across all your devices.
 
-**Jump to:** [Self-host](#self-host) · [Features](#features) · [With Lyterion](#with-lyterion) ·
+**Jump to:** [Self-host](#self-host) · [Features](#features) · [Browsers](#browsers) · [With Lyterion](#with-lyterion) ·
 [Docs](#docs) · [FAQ](#faq) · [Develop](#develop)
 
 ## Why
@@ -154,6 +154,21 @@ output to expect, and a closing checklist, so the agent can tell you what it did
 
 All screenshots are the [generated demo library](docs/demo-library.md): synthesized tracks and dithered covers, no real music.
 The album shot has a light twin, served automatically on a light system theme.
+
+## Browsers
+
+Desktop browsers from the last two years. CI signs in and plays in **Chromium** (the whole suite) and **WebKit** (the
+engine of Safari) on every pull request.
+
+| | Chrome, Edge, Arc, Brave | Safari | Firefox |
+|---|---|---|---|
+| everything else (playback, lyrics, offline, mixes, devices…) | ✓ | ✓ | ✓ (not in CI) |
+| mini player that stays on top | ✓ | — | — |
+| pick the output device (speakers, headphones) | ✓ | — | ✓ |
+| install as an app | ✓ | ✓ (File → Add to Dock) | — |
+
+Phones: the layout works down to 320 px, but a Subsonic app (Arpeggi, Substreamer, Symfonium) plays better in your
+pocket; the queue hands off between them. [sync](docs/sync.md)
 
 ## With Lyterion
 
