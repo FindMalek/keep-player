@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.3.0](https://github.com/FindMalek/keep-player/compare/v1.2.0...v1.3.0) (2026-10-24)
+
+
+### Features
+
+* **artist:** appears on ([#263](https://github.com/FindMalek/keep-player/issues/263)) ([9de157d](https://github.com/FindMalek/keep-player/commit/9de157df7c18c922e2398975caca8df5e3bb743b))
+* **aura:** full-screen backdrop ([#265](https://github.com/FindMalek/keep-player/issues/265)) ([665accb](https://github.com/FindMalek/keep-player/commit/665accbddd1145fbb0d4f01e1f8897a522b9b8d9))
+* **feedback:** send feedback as github issues ([#266](https://github.com/FindMalek/keep-player/issues/266)) ([13dca15](https://github.com/FindMalek/keep-player/commit/13dca159eeefc98956dedbb636dbdf7a16771ef4))
+* **listen:** party mode ([#264](https://github.com/FindMalek/keep-player/issues/264)) ([b07f944](https://github.com/FindMalek/keep-player/commit/b07f944a45e058476ce5a05ef237913a356bcad1))
+* **mixes:** release radar, on this day, moods ([#262](https://github.com/FindMalek/keep-player/issues/262)) ([f102ca6](https://github.com/FindMalek/keep-player/commit/f102ca64715cdc2c3cf5760255b96caf58db8760))
+* **mixes:** weekly playlists after sonaraem ([#267](https://github.com/FindMalek/keep-player/issues/267)) ([13c4d94](https://github.com/FindMalek/keep-player/commit/13c4d9467bd354c29c1307ac8870a422e3bdb245))
+
 ## [1.2.0](https://github.com/FindMalek/keep-player/compare/v1.1.0...v1.2.0) (2026-10-24)
 
 
