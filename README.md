@@ -117,6 +117,8 @@ output to expect, and a closing checklist, so the agent can tell you what it did
   playback with the device picker in the player bar.
 - **Your phone**: the queue hands off both ways with Arpeggi or any OpenSubsonic app; likes, ratings, playlists and
   plays are the server's, so every app agrees. [sync](docs/sync.md)
+- **A Mac app** with the song around the notch: cover and bars while it plays, controls on hover, lyrics and the
+  queue on click. [macOS](apps/macos/README.md)
 - **Now playing in your terminal**: the song, its lyric line and ⏮ ⏸ ⏭ above the prompt in Claude Code and OpenCode.
 - **Listen together** with friends on the same server. [listen together](docs/listen-together.md)
 

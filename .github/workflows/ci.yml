@@ -124,6 +124,22 @@ jobs:
 
   # Only a release builds and ships an image: merges to main stop at the tests. Built on GitHub's runner (fast network
   # to the registry; the home line only downloads it once when Dokploy pulls), amd64 only: that's what runs on the-keep.
+  # The macOS app, built with each release and attached to it as a zip (unsigned: right-click → Open the first time).
+  macos:
+    needs: [check, e2e, release]
+    if: ${{ !cancelled() && !failure() && needs.release.outputs.created == 'true' }}
+    runs-on: macos-15
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+      - run: apps/macos/build.sh
+      - run: cd apps/macos/dist && ditto -c -k --keepParent "keep music.app" keep-music-macos.zip
+      - run: gh release upload "v${{ needs.release.outputs.version }}" "apps/macos/dist/keep-music-macos.zip" --clobber
+        env:
+          GH_TOKEN: ${{ github.token }}
+
   image:
     needs: [check, e2e, release]
     if: ${{ !cancelled() && !failure() && (needs.release.outputs.created == 'true' || startsWith(github.ref, 'refs/tags/v')) }}

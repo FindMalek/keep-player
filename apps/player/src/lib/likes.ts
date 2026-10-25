@@ -17,7 +17,7 @@ const listeners = new Set<() => void>();
 const emit = () => {
   for (const listener of listeners) listener();
 };
-function subscribe(listener: () => void): () => void {
+export function subscribeLikes(listener: () => void): () => void {
   listeners.add(listener);
   return () => listeners.delete(listener);
 }
@@ -55,7 +55,7 @@ onAccountChange(() => {
 });
 
 export function useLiked(id: string | undefined): boolean {
-  return useSyncExternalStore(subscribe, () => (id ? liked.has(id) : false));
+  return useSyncExternalStore(subscribeLikes, () => (id ? liked.has(id) : false));
 }
 
 export function isLiked(id: string): boolean {
