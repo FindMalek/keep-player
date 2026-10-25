@@ -249,6 +249,8 @@ export function App() {
       void import("@/lib/queue-sync").then((sync) => sync.startQueueSync());
       startElsewhere();
       void import("@/lib/session").then((module) => module.session.start());
+      // Only inside the macOS app.
+      if ("webkit" in window) void import("@/lib/native").then((module) => module.startNativeBridge());
     }, 1500);
     return () => clearTimeout(id);
   }, [user]);
@@ -269,7 +271,11 @@ export function App() {
         () => import("@/components/artist-card"),
       ]);
     // Tooltips too (lib/tooltips): off the first screen, ready long before most people hover.
-    if (user) requestIdleCallback?.(loadTooltips, { timeout: 4000 });
+    // Safari has no requestIdleCallback, and `?.` doesn't guard a global that isn't declared at all.
+    if (user) {
+      if ("requestIdleCallback" in window) requestIdleCallback(loadTooltips, { timeout: 4000 });
+      else setTimeout(loadTooltips, 1000);
+    }
   }, [user]);
 
   useEffect(() => {

@@ -48,6 +48,9 @@ jobs:
       - run: bun install --frozen-lockfile
       - run: bunx playwright install --with-deps chromium
       - run: bun run e2e --project=chromium --shard=${{ matrix.shard }}/4
+      # Safari's engine on one shard: the app must render there too.
+      - if: matrix.shard == 1
+        run: bunx playwright install --with-deps webkit && bun run e2e --project=webkit
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
