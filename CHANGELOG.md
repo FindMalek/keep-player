@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.4.0](https://github.com/FindMalek/keep-player/compare/v1.3.0...v1.4.0) (2026-10-25)
+
+
+### Features
+
+* **macos:** app with the song around the notch ([#274](https://github.com/FindMalek/keep-player/issues/274)) ([777787e](https://github.com/FindMalek/keep-player/commit/777787e63fa2f363a0b18099400c4605389fcb5d))
+
+
+### Bug Fixes
+
+* **app:** load in safari ([#270](https://github.com/FindMalek/keep-player/issues/270)) ([43cd6a3](https://github.com/FindMalek/keep-player/commit/43cd6a3044d7e6dd1f9970399d354c652f227c89))
+
 ## [1.3.0](https://github.com/FindMalek/keep-player/compare/v1.2.0...v1.3.0) (2026-10-24)
 
 
