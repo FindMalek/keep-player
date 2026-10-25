@@ -269,7 +269,11 @@ export function App() {
         () => import("@/components/artist-card"),
       ]);
     // Tooltips too (lib/tooltips): off the first screen, ready long before most people hover.
-    if (user) requestIdleCallback?.(loadTooltips, { timeout: 4000 });
+    // Safari has no requestIdleCallback, and `?.` doesn't guard a global that isn't declared at all.
+    if (user) {
+      if ("requestIdleCallback" in window) requestIdleCallback(loadTooltips, { timeout: 4000 });
+      else setTimeout(loadTooltips, 1000);
+    }
   }, [user]);
 
   useEffect(() => {

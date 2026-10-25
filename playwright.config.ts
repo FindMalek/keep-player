@@ -16,7 +16,9 @@ export default defineConfig({
   reporter: process.env.CI ? [["github"], ["html", { open: "never" }]] : "list",
   use: { baseURL: `http://127.0.0.1:${APP}`, trace: "retain-on-failure" },
   projects: [
-    { name: "chromium", testIgnore: /lighthouse/, use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 } } },
+    { name: "chromium", testIgnore: /lighthouse|webkit/, use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 } } },
+    // Safari's engine, signed in: the app must render there too (it once threw on a missing requestIdleCallback).
+    { name: "webkit", testMatch: /webkit/, use: { ...devices["Desktop Safari"], viewport: { width: 1440, height: 900 } } },
     // Alone and last: a busy CPU from parallel tests would skew the score.
     { name: "lighthouse", testMatch: /lighthouse/, dependencies: ["chromium"] },
   ],
