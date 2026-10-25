@@ -162,7 +162,7 @@ engine of Safari) on every pull request.
 
 | | Chrome, Edge, Arc, Brave | Safari | Firefox |
 |---|---|---|---|
-| everything else (playback, lyrics, offline, mixes, devices…) | ✓ | ✓ | ✓ (not in CI) |
+| the player (playback, lyrics, offline, mixes, devices…) | ✓ | ✓ | ✓ (not in CI) |
 | mini player that stays on top | ✓ | — | — |
 | pick the output device (speakers, headphones) | ✓ | — | ✓ |
 | install as an app | ✓ | ✓ (File → Add to Dock) | — |
