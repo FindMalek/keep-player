@@ -249,8 +249,6 @@ export function App() {
       void import("@/lib/queue-sync").then((sync) => sync.startQueueSync());
       startElsewhere();
       void import("@/lib/session").then((module) => module.session.start());
-      // Only inside the macOS app.
-      if ("webkit" in window) void import("@/lib/native").then((module) => module.startNativeBridge());
     }, 1500);
     return () => clearTimeout(id);
   }, [user]);
