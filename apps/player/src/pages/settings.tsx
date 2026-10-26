@@ -291,6 +291,47 @@ function TerminalRow() {
   );
 }
 
+/** A token for your own scripts and apps against the API (`/api` documents it): made here, shown once. */
+function ApiTokenRow() {
+  const [token, setToken] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
+  const make = async () => {
+    const response = await fetch("/auth/api-token", { method: "POST", headers: HEADERS }).catch(() => null);
+    if (!response?.ok) return setFailed(true);
+    setToken(((await response.json()) as { token: string }).token);
+  };
+  return (
+    <Row
+      label="api token"
+      hint={
+        token ? (
+          <>send it as Authorization: Bearer · shown once · sign it out under account → sessions</>
+        ) : (
+          <>
+            for your own scripts and apps ·{" "}
+            <a href="/api" target="_blank" rel="noreferrer" className="underline underline-offset-2">
+              the api
+            </a>
+          </>
+        )
+      }
+    >
+      {token ? (
+        <>
+          <input readOnly aria-label="api token" value={token} className="h-8 w-56 border bg-transparent px-2 font-mono text-xs" />
+          <Button variant="outline" size="sm" onClick={() => void navigator.clipboard.writeText(token)}>
+            copy
+          </Button>
+        </>
+      ) : (
+        <Button variant="outline" size="sm" onClick={() => void make()}>
+          {failed ? "try again" : "make one"}
+        </Button>
+      )}
+    </Row>
+  );
+}
+
 /** Settings float over the page you were on: a sidebar of sections on the left, the rows on the right. */
 export function SettingsPage({ section, onClose }: { section: string | null; onClose: () => void }) {
   const [tab, setTab] = useState<Section>((SECTIONS as readonly string[]).includes(section ?? "") ? (section as Section) : "playback");
@@ -439,6 +480,7 @@ export function SettingsPage({ section, onClose }: { section: string | null; onC
                 />
               )}
               <TerminalRow />
+              <ApiTokenRow />
             </TabsContent>
 
             <TabsContent value="storage">

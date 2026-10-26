@@ -8,8 +8,9 @@ For your own integrations (a status bar, a stream deck, a script, another app):
 
 - **Reference:** `https://your-player/api`: every procedure with its parameters and responses, and a playground.
 - **Spec:** `https://your-player/api/spec.json` (OpenAPI 3), for generating a client in any language.
-- **Sign in:** settings → sync → **now playing in your terminal** → connect makes a token (a sign-in of its own, listed
-  under settings → account → sessions, where you can sign it out). Send it as `Authorization: Bearer <token>`.
+- **Sign in:** settings → sync → **api token** → make one (a sign-in of its own, listed under settings → account →
+  sessions, where you can sign it out). Send it as `Authorization: Bearer <token>`. The terminal's now-playing token
+  is not one: it only reaches `/api/remote/*`.
 
 ```sh
 curl -H "Authorization: Bearer $TOKEN" "https://your-player/api/stats/forgotten?days=90"

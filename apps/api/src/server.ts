@@ -101,6 +101,7 @@ const server = Bun.serve({
     "/auth/session": { GET: api.current },
     "/auth/sessions": { GET: api.listSessions },
     "/auth/sessions/:id": { DELETE: api.revokeSession },
+    "/auth/api-token": { POST: api.apiToken },
     "/rest/*": api.proxy,
     "/cover/:id/:size": api.cover,
     "/api/listen": { POST: api.listenCreate },

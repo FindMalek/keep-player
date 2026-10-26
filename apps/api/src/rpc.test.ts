@@ -49,3 +49,15 @@ test("over plain HTTP: a bearer token signs in, a cookie needs the CSRF header, 
   const spec = (await (await call("/api/spec.json")).json()) as { paths: Record<string, unknown> };
   expect(Object.keys(spec.paths)).toContain("/artists/{id}/appears-on");
 });
+
+test("the terminal's token only reaches what's playing; an api token made in settings reaches the api", async () => {
+  const mint = async (make: (request: Request) => Response) => {
+    const request = new Request("http://app/token", { method: "POST", headers: { "x-keep-player": "1", cookie: `kp_session=${cookie}` } });
+    return ((await make(request).json()) as { token: string }).token;
+  };
+  const stats = (token: string) =>
+    api.http(new Request("http://app/api/stats/forgotten", { headers: { authorization: `Bearer ${token}` } }));
+
+  expect((await stats(await mint(api.remoteToken))).status).toBe(401);
+  expect((await stats(await mint(api.apiToken))).status).toBe(200);
+});
