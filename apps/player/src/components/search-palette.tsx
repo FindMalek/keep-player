@@ -14,7 +14,7 @@ import {
 } from "@keep/ui/components/command";
 import { useQuery } from "@tanstack/react-query";
 import { ClockIcon, PlayIcon, PlusIcon, XIcon } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { apiQueries } from "@/lib/api-queries";
 import { player, usePlayer } from "@/lib/player";
 import { queries } from "@/lib/queries";
@@ -90,6 +90,18 @@ export function SearchPalette({ open, onOpenChange }: { open: boolean; onOpenCha
   }, [playlistsData, active]);
   const history = usePlayer((state) => state.queue.history);
 
+  // New results start at the top with the first one selected; cmdk would keep the old scroll and selection.
+  const [selected, setSelected] = useState("");
+  const listRef = useRef<HTMLDivElement>(null);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runs whenever the results change
+  useEffect(() => {
+    const list = listRef.current;
+    if (!list) return;
+    setSelected(list.querySelector("[cmdk-item]")?.getAttribute("data-value") ?? "");
+    for (let element: HTMLElement | null = list; element && element.role !== "dialog"; element = element.parentElement)
+      if (element.scrollTop > 0) element.scrollTop = 0;
+  }, [query, results, lyrics, open]);
+
   // ⌘↵ or the footer link: the full results page. Not a list item, so it never steals enter from the results.
   const seeAll = () => {
     rememberSearch(text);
@@ -161,6 +173,8 @@ export function SearchPalette({ open, onOpenChange }: { open: boolean; onOpenCha
           className="min-h-0 flex-1"
           shouldFilter={false}
           loop
+          value={selected}
+          onValueChange={setSelected}
           onKeyDown={(event) => {
             if (event.key === "Enter" && (event.metaKey || event.ctrlKey) && text.trim()) {
               event.preventDefault();
@@ -192,7 +206,7 @@ export function SearchPalette({ open, onOpenChange }: { open: boolean; onOpenCha
             </div>
           )}
           <ListContextMenu resolve={menuTarget}>
-            <CommandList className="max-h-none min-h-0 flex-1">
+            <CommandList ref={listRef} className="max-h-none min-h-0 flex-1">
               {needle && !(searching && query) && <CommandEmpty className="font-mono text-faint">no matches</CommandEmpty>}
               {query && !active.lyricsOnly && searching && <ResultGroupSkeleton />}
               {addFirst && addItem}
