@@ -26,7 +26,6 @@ test("a few words of a lyric find the song, and picking it plays from that line"
 
   await page.keyboard.press("ControlOrMeta+k");
   const dialog = page.getByRole("dialog", { name: "search" });
-  // Lower case, a typo in the first word, and the lyrics-only filter.
   const typo = line.toLowerCase().replace(/^(\w)(\w)/, "$2$1");
   await dialog.getByRole("combobox").fill(`lyrics: ${typo}`);
   const group = dialog.getByRole("group", { name: "lyrics" });

@@ -5,11 +5,8 @@ import { api, getUser, HEADERS } from "./subsonic";
 import type { Playlist, Song } from "./types";
 import { done, record } from "./undo";
 
-/*
- * Playlist edits (#46), all through Subsonic so Arpeggi and every other client see them. Optimistic: the cache
- * changes at once and is corrected from the server after. Subsonic has no "move", so a reorder rewrites the songs
- * with createPlaylist(playlistId, songId[]), debounced. Folders are the "Folder / Name" naming convention.
- */
+// Edits go through Subsonic so every client sees them; optimistic, corrected from the server after. Subsonic has no
+// "move", so a reorder rewrites the songs with createPlaylist(playlistId, songId[]), debounced.
 
 type Full = Playlist & { entry?: Song[] };
 
@@ -22,7 +19,6 @@ const refresh = (id?: string) =>
     id ? queryClient.invalidateQueries({ queryKey: queries.playlist(id).queryKey }) : null,
   ]);
 
-/** Yours and not a smart playlist: what can be edited. */
 export function canEdit(playlist: Playlist): boolean {
   return !playlist.readonly && (!playlist.owner || playlist.owner === getUser());
 }
@@ -61,7 +57,6 @@ function patch(id: string, change: Partial<Full>): void {
   );
 }
 
-/** Name, description or visibility. */
 export async function updatePlaylist(id: string, change: { name?: string; comment?: string; public?: boolean }): Promise<void> {
   patch(id, change);
   const params: Record<string, string> = { playlistId: id };
@@ -72,14 +67,12 @@ export async function updatePlaylist(id: string, change: { name?: string; commen
   await refresh(id);
 }
 
-/** Renaming a folder renames every playlist in it (and in its subfolders). */
 export async function renameFolder(from: string, to: string): Promise<void> {
   const playlists = queryClient.getQueryData<Playlist[]>(queries.playlists().queryKey) ?? [];
   const inside = playlists.filter((playlist) => playlist.name.startsWith(`${from} / `) && canEdit(playlist));
   await Promise.all(inside.map((playlist) => updatePlaylist(playlist.id, { name: `${to}${playlist.name.slice(from.length)}` })));
 }
 
-/** Gone from the lists at once; actually deleted after 10 s unless undone. */
 export function deletePlaylist(playlist: Playlist, path: string): void {
   const before = queryClient.getQueryData<Playlist[]>(queries.playlists().queryKey);
   queryClient.setQueryData(queries.playlists().queryKey, (current?: Playlist[]) => current?.filter((item) => item.id !== playlist.id));
@@ -115,7 +108,6 @@ async function append(playlist: Playlist, songs: Song[], before: Song[]): Promis
   });
 }
 
-/** Add songs; any already in the playlist get asked about first ("add anyway" or "skip" them). */
 export async function addToPlaylist(playlist: Playlist, songs: Song[]): Promise<void> {
   const before = (await full(playlist.id).catch(() => null))?.entry ?? [];
   const present = new Set(before.map((song) => song.id));
@@ -134,13 +126,11 @@ export async function addToPlaylist(playlist: Playlist, songs: Song[]): Promise<
   });
 }
 
-/** Rewrite a playlist's songs in this order (Subsonic's only way to reorder). */
 async function rewrite(id: string, songs: Song[]): Promise<void> {
   await api("createPlaylist", { playlistId: id, songId: songs.map((song) => song.id) });
   await refresh(id);
 }
 
-/** Remove the songs at these positions, with undo. */
 export async function removeFromPlaylist(playlist: Full, indexes: number[]): Promise<void> {
   const before = playlist.entry ?? [];
   const removing = new Set(indexes);
@@ -159,7 +149,6 @@ const pending = new Map<string, { timer: ReturnType<typeof setTimeout>; songs: S
 /** The order before a burst of moves, so ⌘Z puts the whole burst back at once. */
 const burstStart = new Map<string, Song[]>();
 
-/** Show the new order at once, save it once the moving stops; the burst is one undoable step. */
 export function reorderPlaylist(id: string, songs: Song[]): void {
   if (!burstStart.has(id)) {
     const current = (queryClient.getQueryData(queries.playlist(id).queryKey) as Full | undefined)?.entry;
@@ -195,10 +184,8 @@ export function reorderPlaylist(id: string, songs: Song[]): void {
   });
 }
 
-/*
- * Leaving (or reloading) before the debounce ends still saves the order: sent with keepalive, and kept in
- * sessionStorage so the next page load sends it again first (its own read could beat the keepalive write).
- */
+// Leaving before the debounce ends still saves: sent with keepalive, and kept in sessionStorage so the next load
+// sends it again first (its own read could beat the keepalive write).
 const UNSAVED_KEY = "keep-player:unsaved-orders";
 if (typeof window !== "undefined") {
   try {
@@ -208,9 +195,7 @@ if (typeof window !== "undefined") {
       patch(id, { entry: songs });
       void rewrite(id, songs).catch(() => undefined);
     }
-  } catch {
-    // Nothing kept.
-  }
+  } catch {}
   window.addEventListener("pagehide", () => {
     try {
       if (pending.size) sessionStorage.setItem(UNSAVED_KEY, JSON.stringify([...pending].map(([id, { songs }]) => [id, songs])));
@@ -240,7 +225,6 @@ export function moveInPlaylist(playlist: Full, index: number, delta: -1 | 1): nu
   return target;
 }
 
-/** Drag and drop: the song at `from` takes the place of the one at `to`. */
 export function moveToInPlaylist(playlist: Full, from: number, to: number): void {
   const songs = [...(playlist.entry ?? [])];
   if (from === to || !songs[from] || !songs[to]) return;
@@ -249,7 +233,6 @@ export function moveToInPlaylist(playlist: Full, from: number, to: number): void
   reorderPlaylist(playlist.id, songs);
 }
 
-/** Songs you hid in a playlist (kept in it, skipped when it plays). */
 export const hiddenQuery = (id: string) => ({
   queryKey: ["playlistHidden", id],
   queryFn: async (): Promise<string[]> => {

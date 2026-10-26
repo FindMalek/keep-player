@@ -5,22 +5,16 @@ import { normalize, similarity } from "@keep/shared/normalize";
 import type { ImportTrack } from "@keep/shared/spotify-import";
 import { queryIndex } from "./search-index";
 
-/*
- * Matching a Spotify track to a song in the library (#48): ISRC when the song has one, then title and artist (exact,
- * then by trigram similarity), with the duration as a tie-break. The candidates come from the search index, so a match
- * only ever offers songs this user may see.
- */
+// Candidates come from the search index, so a match only ever offers songs this user may see.
 
 const clamp = (value: number) => Math.max(0, Math.min(1, value));
 
-/** The duration agreement: within 3 s is a bonus, a clear gap (a live cut, a radio edit) takes points off. */
 function durationScore(wantedMs: number | undefined, seconds: number | undefined): number {
   if (!wantedMs || !seconds) return 0.05;
   const gap = Math.abs(wantedMs / 1000 - seconds);
   return gap <= 3 ? 0.1 : gap <= 8 ? 0 : -0.15;
 }
 
-/** 0..1: how sure we are that this library song is the track. */
 export function confidence(track: ImportTrack, song: Record<string, unknown>): number {
   const isrcs = [song.isrc, ...(Array.isArray(song.isrc) ? song.isrc : [])].flat().map((value) => String(value ?? "").toUpperCase());
   if (track.isrc && isrcs.includes(track.isrc.toUpperCase())) return 1;
@@ -61,8 +55,4 @@ export function matchTrack(db: Database, server: string, folders: string[] | nul
   const [best, ...rest] = scored;
   if (!best || best.confidence < REVIEW_FROM - 0.25) return { best: null, alternatives: [] };
   return { best: best.confidence >= REVIEW_FROM ? best : null, alternatives: (best.confidence >= REVIEW_FROM ? rest : scored).slice(0, 4) };
-}
-
-export function matchTracks(db: Database, server: string, folders: string[] | null, tracks: ImportTrack[]): ImportMatch[] {
-  return tracks.map((track) => matchTrack(db, server, folders, track));
 }

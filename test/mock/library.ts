@@ -3,8 +3,7 @@ import type { Album, Song as AppSong, Artist, Playlist } from "../../apps/player
 /** Songs as getSong returns them: the list fields plus where the file lives and what it is. */
 type Song = AppSong & { parent?: string; path?: string; samplingRate?: number; channelCount?: number };
 
-/** Navidrome's getLyricsBySongId shape. */
-export interface StructuredLyrics {
+interface StructuredLyrics {
   synced: boolean;
   line: { start?: number; value: string }[];
 }

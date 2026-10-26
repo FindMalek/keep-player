@@ -1,21 +1,13 @@
-/*
- * Playlist aura (#58): a monochrome picture generated from the music, seeded by the playlist's id so it is always the
- * same one. Only the theme's own ink and paper are used. The look follows the songs: energy sets contrast and grain,
- * softness blur, organic against geometric picks a flow field or a dither, and tempo sets how slowly it drifts. Without
- * audio analysis, genre, era and any BPM in the tags stand in.
- */
+// Monochrome aura seeded by the playlist id so it's always the same; energy sets contrast and grain, softness blur,
+// organic vs geometric picks a flow field or a dither. Without audio analysis, genre, era and BPM tags stand in.
 
 export interface AuraParams {
   seed: number;
-  /** 0 calm … 1 driving: contrast and how much ink. */
   energy: number;
-  /** 0 sharp … 1 soft: blur. */
   softness: number;
-  /** 0 geometric (dither) … 1 organic (flow field). */
   organic: number;
   /** Drift speed, units of noise per second; slow on purpose. */
   speed: number;
-  /** 0 sparse … 1 dense. */
   density: number;
   bpm: number;
 }
@@ -63,7 +55,6 @@ const QUIET = [
 const ORGANIC = ["folk", "acoustic", "classical", "jazz", "blues", "country", "singer", "world", "soul", "ambient", "piano", "indie"];
 const GEOMETRIC = ["electronic", "techno", "house", "trance", "synth", "industrial", "edm", "idm", "dance", "disco", "krautrock"];
 
-/** FNV-1a: a stable number for any text. */
 export function hash(text: string): number {
   let value = 0x811c9dc5;
   for (let index = 0; index < text.length; index += 1) {
@@ -73,7 +64,6 @@ export function hash(text: string): number {
   return value >>> 0;
 }
 
-/** mulberry32: a seeded random stream in [0, 1). */
 export function prng(seed: number): () => number {
   let state = seed >>> 0;
   return () => {
@@ -88,7 +78,6 @@ const clamp = (value: number) => Math.max(0, Math.min(1, value));
 const mix = (a: number, b: number, amount: number) => a + (b - a) * amount;
 const smooth = (amount: number) => amount * amount * (3 - 2 * amount);
 
-/** Smooth value noise in [0, 1) at a point, the same everywhere for the same seed. */
 export function noise2(seed: number, x: number, y: number): number {
   const x0 = Math.floor(x);
   const y0 = Math.floor(y);
@@ -107,7 +96,6 @@ function share(songs: AuraSong[], words: string[]): number {
   return hits.length / songs.length;
 }
 
-/** The look of a playlist: from its songs' genres, years and BPM, and from its id for the details. */
 export function auraParams(id: string, songs: AuraSong[]): AuraParams {
   const random = prng(hash(id));
   const loud = share(songs, LOUD);
@@ -130,7 +118,6 @@ export function auraParams(id: string, songs: AuraSong[]): AuraParams {
   };
 }
 
-/** Three plain words for the badge row, from the same numbers: tempo, energy, texture. */
 export function vibe(params: AuraParams): string[] {
   const tempo = params.bpm < 90 ? "slow" : params.bpm < 120 ? "mid-tempo" : "fast";
   const energy = params.energy < 0.35 ? "calm" : params.energy < 0.65 ? "steady" : "driving";
@@ -138,13 +125,10 @@ export function vibe(params: AuraParams): string[] {
   return [tempo, energy, texture];
 }
 
-/** How blurred the picture is, in canvas pixels at this scale (1 = a 640 px wide picture). */
 export const blurPixels = (params: AuraParams, scale: number): number => params.softness * 6 * scale;
 
-/** Anything the 2D context draws on, so the same code paints the page and the exported PNG. */
 export type Context2D = CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D;
 
-/** Paint the aura: `ink` on `paper`, nothing else. `time` (seconds) moves the field; 0 is the still picture. */
 export function drawAura(
   ctx: Context2D,
   width: number,
@@ -167,7 +151,6 @@ export function drawAura(
   ctx.fillStyle = ink;
   const drift = time * params.speed;
   if (params.organic >= 0.5) {
-    // A flow field: short strokes that follow slowly turning noise.
     const random = prng(params.seed);
     const lines = Math.round((60 + params.density * 260) * Math.max(0.5, scale));
     const frequency = 0.004 / Math.max(0.5, scale) + 0.002;
@@ -188,7 +171,6 @@ export function drawAura(
       ctx.stroke();
     }
   } else {
-    // A dither: a grid of dots, bigger where the noise is high.
     const cell = Math.max(3, (16 - params.density * 10) * scale);
     for (let y = cell / 2; y < height; y += cell)
       for (let x = cell / 2; x < width; x += cell) {

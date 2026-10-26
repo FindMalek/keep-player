@@ -11,7 +11,6 @@ async function newPlaylist(page: Page, name: string): Promise<void> {
   await expect(page.getByRole("heading", { level: 1 })).toContainText(name.split(" / ").at(-1) as string);
 }
 
-/** ⌘/ctrl-click the first `count` rows of the tracklist. */
 async function select(page: Page, titles: string[], count: number): Promise<void> {
   for (const title of titles.slice(0, count))
     await page
@@ -36,7 +35,6 @@ test("new playlist in a folder, then adding the same songs twice asks first", as
   await page.getByRole("menuitem", { name: `Trips / ${name}` }).click();
   await expect(page.getByText(`added 2 songs to ${name}`)).toBeVisible();
 
-  // The same two (still selected) again.
   await bar.getByRole("button", { name: "add to playlist" }).click();
   await page.getByRole("menuitem", { name: `Trips / ${name}` }).click();
   await expect(page.getByText(`2 of 2 already in ${name}`)).toBeVisible();
@@ -59,7 +57,6 @@ test("on the playlist: rename, describe, reorder, hide, remove with undo, and ke
   await expect(page.getByRole("heading", { level: 1 })).toContainText(name);
   const list = await trackTitles(page);
 
-  // Rename and describe in place.
   await page.getByRole("button", { name: new RegExp(`^playlist name: ${name}`) }).click();
   await page.getByLabel("playlist name").fill(`${name} renamed`);
   await page.getByLabel("playlist name").press("Enter");
@@ -68,7 +65,6 @@ test("on the playlist: rename, describe, reorder, hide, remove with undo, and ke
   await page.getByLabel("description").fill("for the drive");
   await page.getByLabel("description").press("Enter");
 
-  // Move the first song down with the keyboard; it sticks after a reload.
   await page
     .getByRole("row", { name: list[0] as string })
     .first()
@@ -81,7 +77,6 @@ test("on the playlist: rename, describe, reorder, hide, remove with undo, and ke
   await expect.poll(() => trackTitles(page)).toEqual([list[1], list[0], list[2], list[3]]);
   await expect(page.getByText("for the drive")).toBeVisible();
 
-  // Hide one (kept, skipped when it plays), remove another and undo.
   const hideRow = page.getByRole("row", { name: list[2] as string }).first();
   await hideRow.hover();
   await hideRow.getByRole("button", { name: `hide ${list[2]} in this playlist` }).click();

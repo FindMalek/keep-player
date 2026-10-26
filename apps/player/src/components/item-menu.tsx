@@ -51,11 +51,8 @@ import { type MenuTarget, songsOf, sourceOf } from "@/lib/targets";
 
 export type { MenuTarget };
 
-/*
- * One list of actions per kind of thing (songs, an album, an artist, a playlist), shown two ways: a right-click menu on
- * the item (`ItemContextMenu`) and a "⋯" button for people who don't right-click (`ItemMoreButton`). Base UI's context
- * menu and dropdown share the same item parts, so both render `ItemActions`.
- */
+// One action list per kind of item, shown as a right-click menu (`ItemContextMenu`) and a "⋯" button
+// (`ItemMoreButton`). Base UI's context menu and dropdown share item parts, so both render `ItemActions`.
 
 function linkOf(target: MenuTarget): string | null {
   if (target.kind === "album") return `/album/${target.album.id}`;
@@ -78,7 +75,6 @@ const run = (action: () => Promise<unknown> | unknown) => () => {
     .catch(() => notify({ kind: "error", message: "that didn't work, try again" }));
 };
 
-/** The actions, as menu items. Rendered inside either menu's content. */
 export function ItemActions({ target }: { target: MenuTarget }) {
   const source = sourceOf(target);
   const link = linkOf(target);
@@ -258,7 +254,6 @@ export function ItemActions({ target }: { target: MenuTarget }) {
   );
 }
 
-/** "add to playlist ›": filter by typing, a new playlist, then every playlist you can edit. */
 function AddToPlaylist({ target }: { target: MenuTarget }) {
   const playlists = useQuery(queries.playlists());
   const [filter, setFilter] = useState("");
@@ -296,11 +291,8 @@ function AddToPlaylist({ target }: { target: MenuTarget }) {
   );
 }
 
-/**
- * One right-click menu for a whole list or grid: `resolve` turns the element that was right-clicked (or focused, for
- * the context-menu key and ⇧F10) into what the menu acts on, so rows carry no menu of their own. Empty space opens
- * nothing. The menu's content only renders while open.
- */
+// One right-click menu per list or grid: `resolve` maps the clicked (or focused, for ⇧F10) element to what
+// the menu acts on, so rows carry no menu of their own.
 export function ListContextMenu({
   resolve,
   children,
@@ -331,7 +323,6 @@ export function ListContextMenu({
   );
 }
 
-/** The same actions behind a "⋯" button, for mouse users who don't right-click and for touch. */
 export function ItemMoreButton({ target, label, className }: { target: MenuTarget; label: string; className?: string }) {
   const [open, setOpen] = useState(false);
   return (
@@ -348,10 +339,8 @@ export function ItemMoreButton({ target, label, className }: { target: MenuTarge
   );
 }
 
-/**
- * The actions at a point on screen, for places on the first screen (the sidebar) that keep menu code off it: they catch
- * the right-click themselves, lazy-load this, and show it where the pointer was.
- */
+// For first-screen places (the sidebar) that keep menu code off it: they catch the right-click, lazy-load
+// this, and show it where the pointer was.
 export function PointMenu({ target, x, y, onClose }: { target: MenuTarget; x: number; y: number; onClose: () => void }) {
   return (
     <DropdownMenu open onOpenChange={(open) => !open && onClose()}>

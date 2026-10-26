@@ -98,7 +98,6 @@ function TopProgress() {
   ) : null;
 }
 
-/** The tab icon from the theme's own tokens (a square in the text color, the glyph in the page color). */
 function tabIcon(playing: boolean): string {
   const tokens = getComputedStyle(document.documentElement);
   const square = tokens.getPropertyValue("--foreground").trim();
@@ -178,13 +177,10 @@ export function App() {
     if (!user) return;
     try {
       if (sessionStorage.getItem("keep-player:listen")) void import("@/lib/listen").then((module) => module.listen.resume());
-    } catch {
-      // No storage, no resume.
-    }
+    } catch {}
   }, [user]);
   const [searching, setSearching] = useState(false);
   const [cheatSheet, setCheatSheet] = useState(false);
-  // First sign-in in this browser: a short setup and tour, once.
   const [firstRun, setFirstRun] = useState(() => !isOnboarded());
   const [fullScreen, setFullScreen] = useState(false);
   const [searchLoaded, setSearchLoaded] = useState(false);
@@ -230,7 +226,6 @@ export function App() {
     }),
   );
 
-  // The settings page's "show shortcuts" button.
   useEffect(() => {
     const open = () => setCheatSheet(true);
     window.addEventListener("keep:cheat-sheet", open);
@@ -270,7 +265,6 @@ export function App() {
         () => import("@/components/now-playing-details"),
         () => import("@/components/artist-card"),
       ]);
-    // Tooltips too (lib/tooltips): off the first screen, ready long before most people hover.
     // Safari has no requestIdleCallback, and `?.` doesn't guard a global that isn't declared at all.
     if (user) {
       if ("requestIdleCallback" in window) requestIdleCallback(loadTooltips, { timeout: 4000 });
@@ -280,7 +274,6 @@ export function App() {
 
   useEffect(() => {
     document.title = nowPlaying && playing ? `▶ ${nowPlaying.title} · ${nowPlaying.artist ?? ""}` : "keep music";
-    // The tab icon says it too: pause bars while playing (click it to pause), the play mark otherwise.
     const icon = document.querySelector<HTMLLinkElement>("link[rel=icon]");
     if (icon) icon.href = tabIcon(playing);
   }, [nowPlaying, playing]);
@@ -315,7 +308,6 @@ export function App() {
         </Suspense>
       )}
       <div className="flex h-[calc(100svh/var(--zoom))] flex-col" style={{ "--bar-height": hasTrack ? "4rem" : "0px" } as CSSProperties}>
-        {/* First tab stop: straight to the page, past the sidebar. */}
         <a
           href="#content"
           className="sr-only z-50 bg-background px-3 py-2 font-mono text-xs focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:border"

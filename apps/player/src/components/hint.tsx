@@ -4,10 +4,6 @@ import { useHintKeys } from "@/lib/shortcuts";
 import { noteMouseUse } from "@/lib/tips";
 import { loadTooltips, tooltipClosed, useOpenDelay, useTooltips } from "@/lib/tooltips";
 
-/**
- * Tooltip with a label and its keyboard shortcut, for controls whose icon alone isn't obvious. Pass `shortcut` (a
- * registry id) so the keys shown follow the user's own bindings.
- */
 export function Hint({
   label,
   keys: fixed,
@@ -61,12 +57,7 @@ export function Hint({
   const { Tooltip, TooltipContent, TooltipTrigger } = tooltips;
   return (
     <Tooltip defaultOpen={inside.current.hover} onOpenChange={(open) => !open && tooltipClosed()}>
-      <TooltipTrigger
-        delay={delay}
-        render={<span ref={wrapper} className="inline-flex" />}
-        // A real mouse click (not keyboard activation) counts towards the "here's its shortcut" tip.
-        onClickCapture={onClickCapture}
-      >
+      <TooltipTrigger delay={delay} render={<span ref={wrapper} className="inline-flex" />} onClickCapture={onClickCapture}>
         {children}
       </TooltipTrigger>
       <TooltipContent className="flex items-center gap-2 font-mono">

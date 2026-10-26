@@ -24,7 +24,6 @@ test.describe(() => {
       const response = await fetch("/rest/getAlbum?f=json&id=al-3", { headers: { "x-keep-player": "1" } });
       return (await response.json())["subsonic-response"].album.song[0].id as string;
     });
-    // The first request gets a gateway error, which Chrome reports as "format error", same as a bad file.
     let failed = false;
     await page.route(`**/rest/stream?id=${firstId}&*`, (route) => {
       if (failed) return route.continue();
@@ -33,7 +32,6 @@ test.describe(() => {
     });
     await page.getByRole("button", { name: "play", exact: true }).first().click();
     await expect(page.getByRole("contentinfo").getByRole("button", { name: "pause" })).toBeVisible();
-    // Exact: "Ember" is also the start of the next title.
     await expect(page.getByRole("contentinfo").getByRole("link", { name: titles[0] as string, exact: true })).toBeVisible();
     await expect(page.getByText(/^skipped /)).toHaveCount(0);
   });
@@ -60,7 +58,6 @@ test.describe(() => {
     await page.getByRole("button", { name: "play", exact: true }).first().click();
     const bar = page.getByRole("contentinfo");
     await expect(bar.getByRole("link", { name: titles[0] as string, exact: true })).toBeVisible();
-    // The stall shows as the wave loader where the play button is, and goes again once the audio flows.
     await expect(bar.getByRole("status", { name: "buffering" })).toBeVisible({ timeout: 10_000 });
     await page.waitForTimeout(8_000);
     await expect(page.getByText(/^skipped /)).toHaveCount(0);
@@ -76,7 +73,6 @@ test.describe(() => {
 test("⇧S toggles stop after this song", async ({ page, signedIn }) => {
   await signedIn.goto("/album/al-3");
   await page.getByRole("button", { name: "play", exact: true }).first().click();
-  // At this window width the sleep timer is in the bar's "more" menu, whose button shows the timer is on.
   const sleep = page.getByRole("contentinfo").getByRole("button", { name: "more controls" });
   await page.locator("body").press("Shift+S");
   await expect(page.getByText("will stop after this song")).toBeVisible();

@@ -2,7 +2,6 @@ import { type MouseEvent, useSyncExternalStore } from "react";
 
 const NAVIGATE = "keep:navigate";
 
-// Back/forward and links both re-render through NAVIGATE.
 function subscribe(onChange: () => void): () => void {
   window.addEventListener(NAVIGATE, onChange);
   return () => window.removeEventListener(NAVIGATE, onChange);
@@ -10,10 +9,7 @@ function subscribe(onChange: () => void): () => void {
 
 const scroller = () => document.querySelector<HTMLElement>("[data-page-scroll]");
 
-/*
- * Scroll restoration: each history entry remembers where its page was scrolled. Back/forward puts it back once the
- * page is tall enough (data may still be arriving), giving up after a second.
- */
+// Back/forward restores each entry's scroll once the page is tall enough (data may still arrive), giving up after 1 s.
 function rememberScroll(): void {
   window.history.replaceState({ ...window.history.state, scroll: scroller()?.scrollTop ?? 0 }, "");
 }
@@ -31,7 +27,6 @@ function restoreScroll(top: number): void {
 
 let lastNavigation: "push" | "pop" = "push";
 
-/** Whether the current page came from back/forward (restore focus and scroll) or a new navigation. */
 export function navigationType(): "push" | "pop" {
   return lastNavigation;
 }
@@ -55,7 +50,6 @@ export function usePath(): string {
   return useSyncExternalStore(subscribe, () => window.location.pathname);
 }
 
-/** Click handler for in-app links; leaves cmd/ctrl-click to the browser. */
 export function navigate(event: MouseEvent<HTMLAnchorElement>): void {
   if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return;
   event.preventDefault();
@@ -64,7 +58,6 @@ export function navigate(event: MouseEvent<HTMLAnchorElement>): void {
   push(href);
 }
 
-/** Programmatic navigation (search results, keyboard actions). */
 export function go(path: string): void {
   if (path === window.location.pathname + window.location.search) return;
   push(path);

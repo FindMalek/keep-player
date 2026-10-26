@@ -18,7 +18,6 @@ interface Song {
   albumId?: string;
   duration?: number;
   displayAlbumArtist?: string;
-  /** The file's path, when Navidrome reports real paths (for .lrc sidecars). */
   path?: string;
 }
 
@@ -32,10 +31,6 @@ interface LrclibRecord {
   syncedLyrics: string | null;
 }
 
-/**
- * Titles as LRCLIB knows them: no "(Remastered 2011)", "- Live", "feat. X", "[Explicit]" or similar, which tags add
- * and lyric databases don't.
- */
 export function normalizeTitle(title: string): string {
   return title
     .replace(
@@ -48,12 +43,10 @@ export function normalizeTitle(title: string): string {
     .trim();
 }
 
-/** The main artist: "A feat. B", "A & B", "A, B" → "A". */
 export function mainArtist(artist: string): string {
   return artist.split(/\s+(?:feat\.?|ft\.?|featuring|&|x|vs\.?)\s+|,\s*|;\s*/i)[0]?.trim() ?? artist;
 }
 
-/** Of LRCLIB search results, the one closest in length: within 2 s is a match, beyond 5 s never is. */
 export function closestByDuration(records: LrclibRecord[], seconds: number): LrclibRecord | null {
   const usable = records.filter((record) => record.syncedLyrics || record.plainLyrics || record.instrumental);
   const best = usable.sort((a, b) => Math.abs(a.duration - seconds) - Math.abs(b.duration - seconds))[0];
@@ -81,7 +74,6 @@ interface StructuredLyrics {
   line: { start?: number; value: string }[];
 }
 
-/** For each main line, the text of the other-language line closest in time (or at the same position, for plain). */
 function align(main: { start: number }[], other: StructuredLyrics): string[] {
   if (!other.synced) return main.map((_, index) => other.line[index]?.value ?? "");
   return main.map((line) => {
@@ -98,7 +90,6 @@ function align(main: { start: number }[], other: StructuredLyrics): string[] {
   });
 }
 
-/** Navidrome's own lyrics (embedded or .lrc next to the file): synced first; other languages become translations. */
 export function fromNavidrome(list: StructuredLyrics[]): Lyrics | null {
   const pick = list.find((lyrics) => lyrics.synced && lyrics.line.length) ?? list.find((lyrics) => lyrics.line.length);
   if (!pick) return null;
@@ -125,7 +116,6 @@ export function fromNavidrome(list: StructuredLyrics[]): Lyrics | null {
 }
 
 export class LyricsService {
-  /** Called with the raw text whenever LRCLIB has lyrics for a song (the opt-in .lrc writer listens). */
   onLrclib: ((upstreamId: string, song: { id: string; path?: string }, text: string) => void) | null = null;
 
   constructor(
@@ -161,7 +151,6 @@ export class LyricsService {
     })();
   }
 
-  /** Cached, or resolved now (Navidrome → LRCLIB exact → LRCLIB search) and cached, hits and misses alike. */
   async get(upstream: Upstream, credentials: Credentials, songId: string): Promise<Lyrics> {
     const cached = this.cached(upstream.id, songId);
     if (cached && (cached.status !== "missing" || this.now() - cached.fetched < RETRY_MISSING_MS)) {
@@ -188,7 +177,6 @@ export class LyricsService {
     return lyrics;
   }
 
-  /** LRCLIB: exact match with album and duration, then a search by normalized title and artist. Undefined = unreachable. */
   private async lookup(song: Song): Promise<LrclibRecord | null | undefined> {
     if (!this.lrclibUrl) return null;
     const title = normalizeTitle(song.title);

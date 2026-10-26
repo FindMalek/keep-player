@@ -1,13 +1,7 @@
 import { del, get, set } from "idb-keyval";
 
-/*
- * Service worker: the app shell offline, covers cache-first, and the audio precache.
- *
- * The page tells it which songs come next (`precache`); it downloads them one at a time at low priority into the
- * `audio-v1` cache and serves `/rest/stream` from there, slicing the stored file for Range requests so seeking a
- * precached song is instant and works offline. An index in IndexedDB tracks sizes and last use; past the cap, the least
- * recently used songs go first, except ones kept offline (pinned albums and playlists).
- */
+// The page names the next songs (`precache`); they land in `audio-v1` and `/rest/stream` is sliced from there for
+// Range, so seeking works offline. Past the cap the least recently used go first, except pinned ones.
 
 // Minimal service worker types (the WebWorker lib clashes with DOM in one TypeScript program).
 interface ExtendableEvent extends Event {
@@ -32,7 +26,6 @@ declare const self: {
   clients: { claim(): Promise<void>; matchAll(options?: { includeUncontrolled?: boolean }): Promise<readonly Client[]> };
   location: Location;
 };
-/** Hashed app files and "/", injected by the build (empty in development). */
 declare const __SHELL__: string[];
 declare const __VERSION__: string;
 
@@ -59,7 +52,6 @@ const COVER_LIMIT = 2000;
 const INDEX_KEY = "keep-player:audio-index";
 
 interface Index {
-  /** Song id → bytes and last use. */
   songs: Record<string, { bytes: number; used: number }>;
   pinned: Record<string, string[]>;
   cap: number;
@@ -85,7 +77,6 @@ async function statusMessage(): Promise<Status> {
   return { type: "status", ids, bytes: ids.reduce((sum, id) => sum + (songs[id]?.bytes ?? 0), 0), cap, pinned };
 }
 
-/** Drop least recently used songs until under the cap; pinned songs stay. */
 async function evict(): Promise<void> {
   const current = await loadIndex();
   const pinned = new Set(Object.values(current.pinned).flat());
@@ -113,7 +104,6 @@ function pauseDownloads(): void {
   inflight?.controller.abort();
 }
 
-/** The page loads this song itself (the idle deck): forget it here, cancelling its download if it's the one running. */
 function dropDownload(id: string): void {
   for (let at = wanted.indexOf(id); at >= 0; at = wanted.indexOf(id)) wanted.splice(at, 1);
   if (inflight?.id === id) {
@@ -144,7 +134,6 @@ async function drain(): Promise<void> {
       const result = await download().catch(() => null);
       inflight = null;
       if (controller.signal.aborted) {
-        // Paused: back to the front of the line. Dropped: the page has it.
         if (!running.dropped) wanted.unshift(id);
         continue;
       }
@@ -168,7 +157,6 @@ function queueDownloads(ids: string[], front = false): void {
   void drain();
 }
 
-/** Serves a cached song, honoring Range so seeking works without the network. */
 async function audioResponse(request: Request, id: string): Promise<Response> {
   const cached = await (await caches.open(AUDIO)).match(audioKey(id));
   if (!cached) return fetch(request);

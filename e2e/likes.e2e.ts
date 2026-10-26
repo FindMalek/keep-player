@@ -11,7 +11,6 @@ test("a heart on a row likes the song for good, F likes what's playing, and both
   await row.getByRole("button", { name: `like ${first}`, exact: true }).click();
   await expect(row.getByRole("button", { name: `unlike ${first}`, exact: true })).toHaveAttribute("aria-pressed", "true");
 
-  // Play the second track and like it from the keyboard.
   await page
     .getByRole("row", { name: new RegExp(titles[1] as string) })
     .first()
@@ -28,7 +27,6 @@ test("a heart on a row likes the song for good, F likes what's playing, and both
   await expect(main.getByRole("row", { name: new RegExp(first) }).first()).toBeVisible();
   await expect(main.getByRole("row", { name: new RegExp(titles[1] as string) }).first()).toBeVisible();
 
-  // Unlike from the list, then undo.
   const likedRow = main.getByRole("row", { name: new RegExp(first) }).first();
   await likedRow.hover();
   await likedRow.getByRole("button", { name: `unlike ${first}`, exact: true }).click();
@@ -73,7 +71,6 @@ test("ratings show once turned on and are saved", async ({ page, signedIn }) => 
 });
 
 test.describe(() => {
-  // The failure is injected with page.route, which doesn't see requests the service worker makes.
   test.use({ serviceWorkers: "block" });
   test("a like the server refuses flips back with an error", async ({ page, signedIn }) => {
     await signedIn.goto("/album/al-14");

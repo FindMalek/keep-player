@@ -1,13 +1,7 @@
 import { type ComponentType, createElement, use } from "react";
 
-/*
- * Each page group is its own chunk, loaded on first visit and preloaded on link intent (hover / focus), so most clicks
- * open an already-loaded page. The shell, sidebar and player bar stay in the main chunk.
- *
- * Pages aren't React.lazy: a lazy component suspends on its first render even when its chunk is already loaded, and
- * React then holds the reveal for its 300 ms suspense throttle, so every first visit to a page waited ~300 ms doing
- * nothing. `page()` renders straight away once the chunk is in and only suspends when it really isn't.
- */
+// Pages aren't React.lazy: lazy suspends on first render even with its chunk loaded, and React's 300 ms suspense
+// throttle then delayed every first visit. `page()` only suspends while the chunk really isn't in.
 const chunks = {
   browse: () => import("@/pages/browse"),
   albums: () => import("@/pages/albums"),
@@ -56,7 +50,6 @@ type Module<C extends Chunk> = Awaited<ReturnType<(typeof chunks)[C]>>;
 const modules = new Map<Chunk, unknown>();
 const loading = new Map<Chunk, Promise<unknown>>();
 
-/** One promise per chunk (what `use` suspends on), and the module kept once it's in. */
 function load(chunk: Chunk): Promise<unknown> {
   let promise = loading.get(chunk);
   if (!promise) {
@@ -89,7 +82,6 @@ export function preloadRoute(path: string): void {
   if (chunk) void load(chunk);
 }
 
-/** After the first page is up, fetch the remaining chunks (plus any `extra` ones) while the browser is idle. */
 export function preloadAllRoutes(extra: (() => Promise<unknown>)[] = []): void {
   const run = () => {
     for (const chunk of Object.keys(chunks) as Chunk[]) void load(chunk);

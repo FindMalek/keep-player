@@ -55,10 +55,6 @@ function Row({ cover, title, sub }: { cover?: string; title: string; sub: string
   );
 }
 
-/**
- * ⌘K: one box for everything. Ranked results from the server's index (typos, operators like `year:1990..1999`,
- * "artist - title"), lyrics below them, your playlists and the app's commands; recent searches when empty.
- */
 export function SearchPalette({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const [text, setText] = useState("");
   const [query, setQuery] = useState("");
@@ -108,7 +104,6 @@ export function SearchPalette({ open, onOpenChange }: { open: boolean; onOpenCha
   const needle = text.trim().toLowerCase();
   const shortcuts = useShortcutList();
   // Commands from the shortcut registry, so the palette doubles as a command menu ("shuffle", "go to genres").
-  // Commands only: seeking and volume steps are things you press, not things you look up.
   const actions = shortcuts
     .filter((shortcut) => !shortcut.passive && !/^(jump|seek|nudge|volume)-|^search$/.test(shortcut.id))
     .sort((a, b) => Number(b.group === "navigation") - Number(a.group === "navigation"))
@@ -126,7 +121,6 @@ export function SearchPalette({ open, onOpenChange }: { open: boolean; onOpenCha
     ["artist", results?.artists ?? []],
   ];
 
-  // Right-click any song, album, artist or playlist in the list: the same menu as everywhere else.
   // A pasted link puts "add" first; a name offers it after what you already have.
   // Only once results settled: cmdk keeps whatever item came first selected, and enter must never add by surprise.
   const settled =
@@ -157,8 +151,8 @@ export function SearchPalette({ open, onOpenChange }: { open: boolean; onOpenCha
       onOpenChange={onOpenChange}
       title="search"
       description="search artists, albums, songs, playlists and lyrics"
-      // Fits any window: a third down at most, never past the bottom; only the list scrolls.
-      className="top-(--palette-top) flex max-h-[min(calc(100dvh-var(--palette-top)-0.75rem),44rem)] flex-col [--palette-top:clamp(0.75rem,15dvh,8rem)] sm:max-w-[680px]"
+      // In the middle of any window, one height whatever the results (so the input never moves); only the list scrolls.
+      className="top-1/2 flex h-[min(calc(100dvh-2rem),32rem)] -translate-y-1/2 flex-col sm:max-w-[680px]"
     >
       {adding !== null ? (
         <AddTrack initial={adding} onBack={() => setAdding(null)} onClose={() => onOpenChange(false)} />

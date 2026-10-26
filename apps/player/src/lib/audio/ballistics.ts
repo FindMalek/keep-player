@@ -1,28 +1,25 @@
 import { dbToGain, gainToDb } from "@/lib/audio/decibels";
 
-/** How a meter moves between readings. All times are in milliseconds. */
-export interface BallisticsOptions {
-  /** Time constant for rising levels. 0 jumps instantly. */
+/** All times are in milliseconds. */
+interface BallisticsOptions {
   attackMs: number;
-  /** Time constant for falling levels. 0 drops instantly. */
   releaseMs: number;
   /** How long the peak-hold marker stays before it starts to fall. 0 disables it. */
   peakHoldMs: number;
-  /** Time constant for the peak-hold marker's fall. */
   peakReleaseMs: number;
 }
 
-export const BALLISTICS = {
+const BALLISTICS = {
   instant: { attackMs: 0, peakHoldMs: 0, peakReleaseMs: 0, releaseMs: 0 },
   peak: { attackMs: 15, peakHoldMs: 1200, peakReleaseMs: 600, releaseMs: 350 },
   vu: { attackMs: 300, peakHoldMs: 0, peakReleaseMs: 300, releaseMs: 300 },
 } as const satisfies Record<string, BallisticsOptions>;
 
-export type BallisticsPreset = keyof typeof BALLISTICS;
+type BallisticsPreset = keyof typeof BALLISTICS;
 
 export type BallisticsInput = BallisticsPreset | Partial<BallisticsOptions>;
 
-export const resolveBallistics = (
+const resolveBallistics = (
   input: BallisticsInput = "peak"
 ): BallisticsOptions => {
   if (typeof input === "string") {
@@ -31,14 +28,12 @@ export const resolveBallistics = (
   return { ...BALLISTICS.peak, ...input };
 };
 
-export interface BallisticsState {
-  /** The smoothed level in dBFS. */
+interface BallisticsState {
   db: number;
-  /** The peak-hold level in dBFS. */
   holdDb: number;
 }
 
-export interface Ballistics {
+interface Ballistics {
   step: (inputDb: number, nowMs: number) => BallisticsState;
   reset: () => void;
 }
@@ -50,11 +45,8 @@ const smoothingFactor = (elapsedMs: number, timeConstantMs: number): number => {
   return 1 - Math.exp(-elapsedMs / timeConstantMs);
 };
 
-/**
- * Creates a meter ballistics integrator. Smoothing runs on linear amplitude,
- * so a falling level drops at a steady rate in dB, like a hardware meter.
- */
-export const createBallistics = (input?: BallisticsInput): Ballistics => {
+// Smoothing runs on linear amplitude, so a falling level drops at a steady dB rate, like a hardware meter.
+const createBallistics = (input?: BallisticsInput): Ballistics => {
   const options = resolveBallistics(input);
   let amplitude = 0;
   let holdAmplitude = 0;

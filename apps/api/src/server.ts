@@ -88,7 +88,6 @@ const server = Bun.serve({
   maxRequestBodySize: MAX_UPLOAD_BYTES,
   websocket: { ...api.sockets, maxPayloadLength: MAX_DEVICE_MESSAGE_BYTES },
   routes: compressed({
-    // Liveness (the container's healthcheck): the process answers. Readiness, with Navidrome: /api/health.
     "/healthz": () => new Response("ok"),
     "/worklets/levels.js": () =>
       new Response(LEVELS_WORKLET_SOURCE, { headers: { "content-type": "text/javascript", "cache-control": "public, max-age=86400" } }),

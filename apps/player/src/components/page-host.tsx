@@ -2,10 +2,7 @@ import { useLayoutEffect, useRef, useState } from "react";
 
 const scrollTops = new WeakMap<HTMLElement, number>();
 
-/**
- * The page's scroll container as a detached element that pages render into through a portal. Layouts only place it
- * (`PageSlot`), so switching layout (opening the queue loads the resizable split view) never remounts the page.
- */
+// Pages portal into this detached scroll element, so switching layout (the queue's split view) never remounts them.
 export function usePageHost(): HTMLDivElement {
   const [host] = useState(() => {
     const element = document.createElement("div");

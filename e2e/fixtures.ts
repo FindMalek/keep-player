@@ -9,20 +9,16 @@ export async function signIn(page: Page): Promise<void> {
 }
 
 export const test = base.extend<{ signedIn: Page }>({
-  // Every test shares the mock's one play queue, so the hand-off would offer each test the others' queues. Off unless
-  // a test turns it on (queue-sync.e2e.ts); other settings a test changes survive its reloads.
+  // Every test shares the mock's one play queue, so the queue hand-off stays off unless a test turns it on.
   page: async ({ page }, use) => {
     await page.addInitScript(() => {
       const key = "keep-player:settings";
       const settings = JSON.parse(localStorage.getItem(key) ?? "{}") as Record<string, unknown>;
       if (!("queueSync" in settings)) localStorage.setItem(key, JSON.stringify({ ...settings, queueSync: false }));
-      // The first-run setup is its own test (onboarding.e2e.ts); everywhere else it's done.
       if (localStorage.getItem("keep-player:onboarded") === null) localStorage.setItem("keep-player:onboarded", "test");
     });
-    // Playback rules (#62) are per account too, and a hidden song would vanish from every other test's lists.
+    // Playback rules and synced settings are per account, which every test shares: each test starts with none.
     await page.route("**/api/prefs**", (route) => route.fulfill({ json: { songs: [], albums: [] } }));
-    // Synced settings are per account, and every test is the same account: a server copy would carry one test's
-    // settings into the next. Each test starts with none (settings.e2e.ts removes this to test the sync itself).
     await page.route("**/api/settings", (route) =>
       route.fulfill({ json: route.request().method() === "GET" ? { settings: null, updated: 0 } : { ok: true } }),
     );
@@ -36,10 +32,7 @@ export const test = base.extend<{ signedIn: Page }>({
 
 export { expect };
 
-/**
- * Headless Chromium has no audio output, so a playing <audio> never advances `currentTime`. This makes media time move in
- * real time while playing (and honors seeks), which is all the app reads from the element.
- */
+/** Headless Chromium never advances <audio> `currentTime`; this moves media time in real time while playing. */
 export function fakeMediaClock(): void {
   const descriptor = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, "currentTime");
   if (!descriptor?.get || !descriptor.set) return;
@@ -66,9 +59,7 @@ export function fakeMediaClock(): void {
       set.call(this, seconds);
     },
   });
-  // The app's <audio> isn't in the document, so watch each element directly once it starts playing.
   const play = HTMLMediaElement.prototype.play;
-  // Every element that ever played, so tests can count how many are playing at once.
   const elements = new Set<HTMLMediaElement>();
   (window as unknown as { __playingMedia: () => number }).__playingMedia = () => [...elements].filter((media) => !media.paused).length;
   HTMLMediaElement.prototype.play = function (this: HTMLMediaElement) {
@@ -83,7 +74,6 @@ export function fakeMediaClock(): void {
   };
 }
 
-/** Titles of the track table's rows, once they've rendered. */
 export async function trackTitles(page: Page): Promise<string[]> {
   const cells = page.locator("[aria-label=tracks] tbody tr td:nth-child(2) span:first-child");
   await expect(cells.first()).toBeVisible();

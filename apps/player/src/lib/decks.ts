@@ -1,30 +1,15 @@
 import { equalPower, fitFade, SKIP_FADE_SECONDS } from "./crossfade";
 import { BANDS, FLAT, headroom } from "./eq";
 
-/*
- * Two audio decks for gapless playback. One plays; the other holds the next song, preloaded. A few milliseconds before
- * the playing song ends, the idle deck starts (each deck has its own gain node, ramped over 5 ms so the handover never
- * clicks) and the decks swap roles. The engine (player.ts) only talks songs; this module owns elements and the graph:
- *
- *   deck A ─ MediaElementSource ─ gain (ReplayGain) ─┐
- *   deck B ─ MediaElementSource ─ gain (ReplayGain) ─┴─ bus ─┬─ dry ─────────────────┬─ out ─ master (volume) ─ destination
- *                                                            └─ 10 EQ filters ─ wet ─┘    └─ levels worklet (while wanted)
- * With the equalizer off the filters are disconnected (dry only): ten biquads on every sample cost real CPU for nothing.
- *
- * With a crossfade the idle deck starts `fade` seconds early and the two gains follow equal-power curves; a manual
- * skip fades the old song out over 300 ms instead.
- */
+// Two decks for gapless playback: the idle one preloads the next song and starts a few ms before the end, each with
+// its own 5 ms gain ramp so the handover never clicks. With the EQ off its filters are unplugged to save CPU.
 
-/** How early the next song starts: covers the element's start-up latency so the two meet without a gap. */
 const LEAD_SECONDS = 0.03;
 const RAMP_SECONDS = 0.005;
-/** Within this much of the end, a timer is armed for the handover (timeupdate alone fires only ~4 times a second). */
 const ARM_SECONDS = 0.6;
 
-/**
- * iOS mutes Web Audio (everything this player plays) while the ringer switch is on silent, unless the page says it is
- * playback. Safari 16.4+ has `navigator.audioSession` for exactly that; elsewhere there is nothing to set.
- */
+// iOS mutes Web Audio while the ringer switch is on silent unless the page says it is playback (Safari 16.4+
+// `navigator.audioSession`); elsewhere there is nothing to set.
 export function markPlaybackSession(nav: object = navigator): void {
   const session = (nav as { audioSession?: { type: string } }).audioSession;
   if (!session || session.type === "playback") return;
@@ -40,15 +25,11 @@ export interface DeckEvents {
   pause: () => void;
   waiting: () => void;
   canPlay: () => void;
-  /** The playing song's download moved forward (fires a few times a second while bytes arrive). */
   progress: () => void;
   duration: (seconds: number) => void;
-  /** About 4/s from the playing deck; the engine uses it for scrobbling and for position while hidden. */
   time: (seconds: number) => void;
   seeked: (seconds: number) => void;
-  /** The playing song ended and no preloaded song took over. */
   ended: () => void;
-  /** The preloaded song took over gaplessly; the engine should advance its queue without loading anything. */
   handover: () => void;
   error: () => void;
 }
@@ -56,11 +37,8 @@ export interface DeckEvents {
 interface Deck {
   element: HTMLAudioElement;
   gain: GainNode | null;
-  /** Song id loaded in this deck, if any. */
   songId: string | null;
-  /** ReplayGain factor for that song. */
   factor: number;
-  /** Crossfade into this song when it takes over (0: gapless). */
   fade: number;
 }
 
@@ -77,18 +55,14 @@ export class Decks {
   private eqUnplug: ReturnType<typeof setTimeout> | undefined;
   private onLevels: ((levels: number[]) => void) | null = null;
   private master: GainNode | null = null;
-  /** Where both decks meet, ahead of the equalizer: takes the loudest boost off so boosted bands don't clip. */
   private bus: GainNode | null = null;
   private filters: BiquadFilterNode[] = [];
   private eq = { on: false, gains: FLAT };
   private timer: ReturnType<typeof setTimeout> | undefined;
   private sinkId = "";
   private volume = 1;
-  /** Until then the idle deck is still playing out the previous song's last milliseconds; don't reload it yet. */
   private tailUntil = 0;
-  /** The deck whose handover timer is set, so per-frame checks don't re-arm it. */
   private armed: Deck | null = null;
-  /** A crossfade is set, so a manual skip fades (300 ms) instead of cutting. */
   private fadesSkips = false;
 
   constructor(private readonly events: DeckEvents) {
@@ -99,7 +73,6 @@ export class Decks {
     const element = new Audio();
     element.preload = "auto";
     const deck: Deck = { element, gain: null, songId: null, factor: 1, fade: 0 };
-    // Only the playing deck reports; the idle one is silently preloading.
     const on = (name: string, handler: () => void) =>
       element.addEventListener(name, () => {
         if (this.playing.element === element) handler();
@@ -137,10 +110,7 @@ export class Decks {
     return this.playing.element;
   }
 
-  /**
-   * Four levels (0–1), bass to treble, ~15 times a second while `listener` is set (the macOS app's bars). Measured in an
-   * AudioWorklet on the audio thread: a page timer would be slowed to once a second whenever the window is covered.
-   */
+  // Measured in an AudioWorklet: a page timer drops to once a second whenever the window is covered.
   async levels(listener: ((levels: number[]) => void) | null): Promise<void> {
     this.onLevels = listener;
     if (!listener) {
@@ -163,7 +133,6 @@ export class Decks {
     this.meter = { node, sink };
   }
 
-  /** Builds the Web Audio graph; browsers only allow it after a user gesture, so call this from play. */
   ensureGraph(): void {
     markPlaybackSession();
     if (this.context) return;
@@ -172,7 +141,6 @@ export class Decks {
       const master = context.createGain();
       master.connect(context.destination);
       const bus = context.createGain();
-      // Peaking bands between a low shelf and a high shelf; all at 0 dB (a straight wire) until the equalizer is on.
       this.filters = BANDS.map((frequency, index) => {
         const filter = context.createBiquadFilter();
         filter.type = index === 0 ? "lowshelf" : index === BANDS.length - 1 ? "highshelf" : "peaking";
@@ -213,19 +181,16 @@ export class Decks {
     void this.context?.resume();
   }
 
-  /** Set a deck's gain outright, dropping any fade still scheduled on it (a value set inside a curve would throw). */
   private setGain(deck: Deck, value: number): void {
     if (!deck.gain) return;
     deck.gain.gain.cancelScheduledValues(0);
     deck.gain.gain.value = value;
   }
 
-  /** Whether a manual skip should fade out rather than cut (true while a crossfade is set). */
   setFadesSkips(on: boolean): void {
     this.fadesSkips = on;
   }
 
-  /** The equalizer: on or off, and each band's gain in dB. Off is the same graph with every band at 0 dB. */
   setEq(on: boolean, gains: number[]): void {
     this.eq = { on, gains };
     this.applyEq();
@@ -240,7 +205,6 @@ export class Decks {
     const first = this.filters[0];
     if (!paths || !this.bus || !first) return;
     clearTimeout(this.eqUnplug);
-    // Crossfade dry ↔ filtered in ~10 ms, then unplug the filters once they're silent, so off costs nothing.
     if (on && !this.eqConnected) {
       this.bus.connect(first);
       this.eqConnected = true;
@@ -255,7 +219,6 @@ export class Decks {
       }, 100);
   }
 
-  /** Volume 0..1 (already 0 when muted). Through the master gain once the graph exists, else on the element. */
   setVolume(volume: number): void {
     this.volume = volume;
     this.applyVolume();
@@ -266,7 +229,6 @@ export class Decks {
     else for (const deck of this.decks) deck.element.volume = this.volume;
   }
 
-  /** ReplayGain for the playing song (shuffle toggles can change album vs track gain mid-song). */
   setFactor(factor: number): void {
     this.playing.factor = factor;
     this.setGain(this.playing, factor);
@@ -282,20 +244,14 @@ export class Decks {
       );
   }
 
-  /**
-   * Make `songId` the playing song. If the idle deck already holds it (preloaded), swap to it instead of loading, so
-   * "next" is instant too.
-   */
   load(songId: string, url: string, factor: number, startAt: number, autoplay: boolean): void {
     clearTimeout(this.timer);
     this.armed = null;
     let faded = false;
-    // A preload that failed (silently: the idle deck doesn't report) is loaded afresh rather than handed the error.
     if (this.idle.songId === songId && this.idle.element.src && !this.idle.element.error) {
       const from = this.playing;
       this.active = 1 - this.active;
       const to = this.playing;
-      // Skipping with a crossfade set: the old song fades out over 300 ms under the new one instead of being cut.
       if (this.fadesSkips && autoplay && !from.element.paused && from.gain && to.gain && this.context) {
         const { incoming, outgoing } = equalPower(factor, from.factor);
         const time = this.context.currentTime;
@@ -319,14 +275,12 @@ export class Decks {
     }
     this.events.duration(Number.isFinite(deck.element.duration) ? deck.element.duration : 0);
     if (startAt) {
-      // Seeking before metadata is loaded is ignored by some browsers.
       if (deck.element.readyState >= HTMLMediaElement.HAVE_METADATA) deck.element.currentTime = startAt;
       else deck.element.addEventListener("loadedmetadata", () => (deck.element.currentTime = startAt), { once: true });
     } else if (deck.element.currentTime) deck.element.currentTime = 0;
     if (autoplay) void this.play();
   }
 
-  /** Put the song that comes next into the idle deck (null clears it, e.g. at the end of the queue). */
   preload(songId: string | null, url: string | null, factor: number, startAt = 0, fade = 0): void {
     const wait = this.tailUntil - performance.now();
     if (wait > 0) {
@@ -348,12 +302,10 @@ export class Decks {
     if (url) {
       idle.element.src = url;
       idle.element.load();
-      // A trimmed song starts where you said (an intro skipped), also when it takes over gaplessly.
       if (startAt) idle.element.addEventListener("loadedmetadata", () => (idle.element.currentTime = startAt), { once: true });
     } else idle.element.removeAttribute("src");
   }
 
-  /** Load the playing song again from `startAt` (stall recovery: a fresh request after the old one died). */
   reload(url: string, startAt: number): void {
     const deck = this.playing;
     deck.element.src = url;
@@ -361,21 +313,15 @@ export class Decks {
     void this.play().catch((error) => this.rejected(error));
   }
 
-  /**
-   * A refused play(). Interrupted by a newer load or a pause (AbortError) or blocked by autoplay rules
-   * (NotAllowedError): nothing is broken. Only a real media error on the playing deck is reported.
-   */
   private rejected(error: unknown): void {
     if (error instanceof DOMException && error.name !== "NotSupportedError") return;
     if (this.playing.element.error) this.events.error();
   }
 
-  /** Why the playing deck failed, if it did. */
   get errorCode(): number | null {
     return this.playing.element.error?.code ?? null;
   }
 
-  /** Ramp the master volume to `volume` over `seconds` (sleep timer fade). */
   fade(volume: number, seconds: number): Promise<void> {
     if (!this.master || !this.context) {
       this.setVolume(volume);
@@ -388,11 +334,8 @@ export class Decks {
     return new Promise((resolve) => setTimeout(resolve, seconds * 1000));
   }
 
-  /**
-   * Called from the first taps and key presses (and after: iOS suspends the context for a call or a lock): builds the
-   * graph and resumes it inside the gesture. The first play can come after a network wait, which is no gesture, and
-   * a context started there stays silent on iOS.
-   */
+  // Called from taps and key presses (iOS also suspends the context for a call or lock): a context started after a
+  // network wait is no gesture and stays silent on iOS.
   unlock(): void {
     this.ensureGraph();
     if (this.context && this.context.state !== "running") void this.context.resume().catch(() => undefined);
@@ -426,17 +369,14 @@ export class Decks {
     }
   }
 
-  /** Called every frame by the engine's position ticker (timeupdate covers hidden tabs). */
   tick(): void {
     this.armHandover();
   }
 
-  /** The crossfade the next takeover uses: what was lined up for it, no longer than half of either song. */
   private fadeNow(): number {
     return fitFade(this.idle.fade, this.playing.element.duration, this.idle.element.duration || Number.POSITIVE_INFINITY);
   }
 
-  /** Arm a timer for the handover once the playing song is within ARM_SECONDS (plus the crossfade) of its end. */
   private armHandover(): void {
     const element = this.playing.element;
     const remaining = element.duration - element.currentTime;
@@ -448,15 +388,12 @@ export class Decks {
     const expected = this.playing;
     this.timer = setTimeout(
       () => {
-        // The next song may still be loading (a crossfade starts early): ask again on the next frame, until it is
-        // ready or the song ends and the plain path takes over.
         if (this.playing === expected && !this.handover()) this.armed = null;
       },
       Math.max(0, (remaining - LEAD_SECONDS - fade) * 1000),
     );
   }
 
-  /** Let the old deck play out `milliseconds` (under the fade), then park it; `preload` waits until it has. */
   private parkAfter(from: Deck, milliseconds: number): void {
     this.tailUntil = performance.now() + milliseconds;
     setTimeout(() => {
@@ -465,13 +402,11 @@ export class Decks {
     from.songId = null;
   }
 
-  /** Start the idle deck and swap roles. False when there's nothing ready to take over. */
   private handover(): boolean {
     const from = this.playing;
     const to = this.idle;
     if (!to.songId || to.element.readyState < HTMLMediaElement.HAVE_FUTURE_DATA) return false;
     const time = this.context?.currentTime ?? 0;
-    // Only while the old song still has the fade left; a song that ended on its own hands over with the 5 ms ramp.
     const left = from.element.duration - from.element.currentTime;
     const fade = this.context && left > 0.05 ? Math.min(this.fadeNow(), left) : 0;
     if (to.gain && from.gain) {
@@ -491,13 +426,11 @@ export class Decks {
     this.armed = null;
     this.active = 1 - this.active;
     void to.element.play().catch((error) => this.rejected(error));
-    // Let the old song play out under the fade (or its last few milliseconds under the ramp), then park it.
     this.parkAfter(from, fade > RAMP_SECONDS ? fade * 1000 + 50 : (LEAD_SECONDS + RAMP_SECONDS) * 1000 + 50);
     this.events.handover();
     return true;
   }
 
-  /** End of the buffered range around the playhead, in seconds. */
   buffered(): number {
     const element = this.playing.element;
     for (let i = 0; i < element.buffered.length; i += 1)
@@ -508,12 +441,7 @@ export class Decks {
     return 0;
   }
 
-  /**
-   * Whether the playing song is far enough ahead that downloading the next ones can't starve it: `seconds` past the
-   * playhead (or the rest of the song) are actually buffered, or the browser has stopped downloading it by itself
-   * (`suspend`: idle network with enough data), so nothing would compete. `HAVE_ENOUGH_DATA` alone isn't enough: it's
-   * the browser's guess at the current download rate, which another download would change.
-   */
+  // `HAVE_ENOUGH_DATA` alone isn't enough: it's the browser's guess at the current rate, which another download changes.
   bufferedAhead(seconds: number): boolean {
     const element = this.playing.element;
     if (element.networkState === HTMLMediaElement.NETWORK_IDLE && element.readyState >= HTMLMediaElement.HAVE_ENOUGH_DATA) return true;

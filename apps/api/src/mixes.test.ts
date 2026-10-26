@@ -33,7 +33,6 @@ test("plays count by artist and title even when the song's id changed, and artis
   expect(mixes).toHaveLength(1);
   const mix = mixes[0];
   expect(mix?.description).toBe("Hurt, Tool");
-  // Both Hurt songs (one played, one not) and Tool; never Abba, which you don't play.
   expect(mix?.songs.map((item) => item.id).sort()).toEqual(["a1", "a2", "b1"]);
   expect(dailyMixes(db, "s", "s:u", 20_000, NOW)).toEqual(mixes);
 });
@@ -99,14 +98,12 @@ test("release radar is new songs by artists you play; on this day is what you pl
   expect(mixes.find((mix) => mix.id === "release-radar")?.songs.map((item) => item.id)).toEqual(["h2"]);
   expect(mixes.find((mix) => mix.id === "on-this-day")?.songs.map((item) => item.id)).toEqual(["h1"]);
 
-  // Moods: one Groq call a week, the answer cached.
   let calls = 0;
   const groq = (async () => {
     calls++;
     return Response.json({ choices: [{ message: { content: JSON.stringify({ focus: ["Hurt", "Not Mine"] }) } }] });
   }) as unknown as typeof fetch;
   const settings = { key: "k", model: "m", url: "http://groq" };
-  // Moods need a few artists you play.
   for (const [id, artist] of [
     ["a1", "Abba"],
     ["t1", "Tool"],
@@ -133,7 +130,6 @@ test("the cache key for made for you changes with a play or a never pref, and on
   recordPlay(db, "s:u", "", { song: song("a1", "Hurt", "Rapture"), started: NOW, listened: 200, finished: true });
   const played = version();
   expect(played).not.toBe(before);
-  // Someone else's play is not yours.
   recordPlay(db, "s:other", "", { song: song("a1", "Hurt", "Rapture"), started: NOW, listened: 200, finished: true });
   expect(version()).toBe(played);
   changeSong(db, "s:u", "a1", { never: true });

@@ -7,7 +7,6 @@ import { useUser } from "@/lib/subsonic";
 // The menu (Base UI menu + positioning) loads after first paint; the same button stands in until then.
 const UserMenu = lazy(() => import("./user-menu").then((module) => ({ default: module.UserMenu })));
 
-/** The account menu, in the top bar (and the phone bar). A click before the menu has loaded opens it on arrival. */
 export function AccountMenu({ onShortcuts }: { onShortcuts: () => void }) {
   const user = useUser() ?? "";
   const [wanted, setWanted] = useState(false);
@@ -54,7 +53,6 @@ const snapshot = () => {
   return `${back ? 1 : 0}${forward ? 1 : 0}`;
 };
 
-/** Above the page, from `md` up: back and forward, search, and the account. Phones have the mobile bar instead. */
 export function TopBar({ onSearch, onShortcuts }: { onSearch: () => void; onShortcuts: () => void }) {
   const state = useSyncExternalStore(subscribe, snapshot);
   return (

@@ -1,4 +1,3 @@
-/** One listen, as `/api/history` returns it. */
 export interface Play {
   song: { id: string } & Record<string, unknown>;
   /** When it started (ms epoch). */

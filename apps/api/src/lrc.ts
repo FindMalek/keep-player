@@ -9,10 +9,7 @@ function ms(minutes: string, seconds: string, fraction = "0"): number {
   return Number(minutes) * 60_000 + Number(seconds) * 1000 + Number(fraction.padEnd(3, "0").slice(0, 3));
 }
 
-/**
- * Parse LRC (and Enhanced LRC word timings) into timed lines. Handles several timestamps on one line, `[offset:]`
- * (positive means earlier), CRLF, a BOM, and blank lines (kept: they're the pauses).
- */
+/** `[offset:]` positive means earlier; blank lines are kept (they're the pauses). */
 export function parseLrc(source: string): { lines: LyricLine[]; offset: number } {
   const text = source.replace(/^﻿/, "").replace(/\r\n?/g, "\n");
   const offset = Number(/^\[offset:\s*([+-]?\d+)\s*\]/im.exec(text)?.[1] ?? 0);
@@ -45,7 +42,6 @@ export function parseLrc(source: string): { lines: LyricLine[]; offset: number }
   };
 }
 
-/** Plain lyrics: one line per line, no times. */
 export function parsePlain(source: string): LyricLine[] {
   return source
     .replace(/^﻿/, "")

@@ -1,7 +1,6 @@
 /**
- * The AudioWorklet behind the macOS app's bars, served as `/worklets/levels.js`. Band energies from the samples (three
- * one-pole lowpasses split bass / low mids / high mids / treble), each scaled by its own decaying peak so quiet and
- * loud songs both fill the bars; posted every ~66 ms from the audio thread, which no page throttling slows.
+ * Served as `/worklets/levels.js` for the macOS app's bars. Each band is scaled by its own decaying peak so quiet and
+ * loud songs both fill them; posted every ~66 ms from the audio thread, which no page throttling slows.
  */
 export const LEVELS_WORKLET_SOURCE = `registerProcessor("keep-levels", class extends AudioWorkletProcessor {
         constructor() {

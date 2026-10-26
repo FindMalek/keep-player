@@ -8,11 +8,6 @@ import { HEADERS } from "./subsonic";
 import type { Song } from "./types";
 import { done } from "./undo";
 
-/*
- * Moments (#61): `b` saves where you are in a song, as many per song as you like, with an optional note. They show
- * as ticks on the seek bar, on the moments page, in search (`moment:`), and play back as a highlight reel.
- */
-
 export const momentsQuery = () =>
   queryOptions({
     queryKey: ["moments"],
@@ -62,7 +57,6 @@ export async function setMomentNote(id: number, note: string): Promise<void> {
   });
 }
 
-/** `b`: a moment where the current song is now; undoable. */
 export async function saveMoment(note = ""): Promise<void> {
   const song = currentSong(player.getState());
   if (!song) return;
@@ -81,12 +75,10 @@ export async function saveMoment(note = ""): Promise<void> {
   }
 }
 
-/** A link that opens this song at this point: `/song/:id?t=151`. */
 export function momentLink(songId: string, at: number): string {
   return `${location.origin}/song/${encodeURIComponent(songId)}${at >= 1 ? `?t=${Math.floor(at)}` : ""}`;
 }
 
-/** `⇧C`: copy a link to the current song at the current time. */
 export async function copyCurrentLink(): Promise<void> {
   const song = currentSong(player.getState());
   if (!song) return;
@@ -99,10 +91,7 @@ export async function copyCurrentLink(): Promise<void> {
   }
 }
 
-/*
- * The highlight reel: each moment plays for SNIPPET seconds, then the next one starts. Anything you do that changes the
- * song (next, picking something else) ends the reel.
- */
+// Anything that changes the song ends the reel.
 const SNIPPET = 30;
 let reel: { moments: Moment[]; index: number; stop: () => void } | null = null;
 

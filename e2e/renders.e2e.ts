@@ -1,9 +1,6 @@
 import { expect, fakeMediaClock, test } from "./fixtures";
 
-/**
- * Counts TrackRow re-renders through React's devtools hook (production React still reports commits to it). A memo row
- * re-rendered when its committed props object changed since the last commit we saw.
- */
+/** Counts TrackRow re-renders through React's devtools hook (production React still reports commits to it). */
 function countRowRenders(): void {
   const seen = new WeakMap<object, unknown>();
   const win = window as unknown as { __rowRenders: number; __REACT_DEVTOOLS_GLOBAL_HOOK__: unknown };

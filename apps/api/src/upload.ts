@@ -1,7 +1,6 @@
 import { mkdir, stat } from "node:fs/promises";
 import { dirname, extname, join, normalize } from "node:path";
 
-/** What an upload may be: audio, plus the cover and lyrics files that travel with an album. */
 const ALLOWED = new Set([
   ".flac",
   ".mp3",
@@ -20,10 +19,7 @@ const ALLOWED = new Set([
 ]);
 export const MAX_UPLOAD_BYTES = 2 * 1024 ** 3;
 
-/**
- * Where an upload goes inside `dir`, or null when it isn't allowed. Keeps the folders it came in (`Artist/Album/01.flac`)
- * but never leaves `dir`: no `..`, no absolute paths, no hidden files.
- */
+/** Keeps the folders it came in but never leaves `dir`: no `..`, no absolute paths, no hidden files. */
 export function uploadPath(dir: string, relative: string): string | null {
   const parts = normalize(relative.replaceAll("\\", "/"))
     .split("/")

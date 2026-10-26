@@ -5,7 +5,6 @@ import { usePageScroller } from "./page-scroll";
 /** Lists shorter than this render every row: cheap, and the browser's find-in-page still sees them. */
 export const VIRTUALIZE_FROM = 100;
 
-/** Columns that fit a `repeat(auto-fill, minmax(min, 1fr))` grid of this element's width, kept in sync on resize. */
 export function useColumns(ref: RefObject<HTMLElement | null>, min: number, gap: number): { columns: number; width: number } {
   const [size, setSize] = useState({ columns: 1, width: 0 });
   useLayoutEffect(() => {
@@ -24,10 +23,7 @@ export function useColumns(ref: RefObject<HTMLElement | null>, min: number, gap:
   return size;
 }
 
-/**
- * A virtualizer for a list that sits somewhere inside the page scroller: `scrollMargin` is the list's offset from the
- * top of the scrolled content, re-measured when the content above it changes size.
- */
+// `scrollMargin` is the list's offset in the page scroller, re-measured when the content above it changes size.
 export function usePageVirtualizer(
   listRef: RefObject<HTMLElement | null>,
   options: { count: number; estimateSize: (index: number) => number; overscan?: number; enabled?: boolean; scrollPaddingStart?: number },

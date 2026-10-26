@@ -7,12 +7,8 @@ import { getSetting } from "./settings";
 import { api, CLIENT_NAME, HEADERS } from "./subsonic";
 import type { Song } from "./types";
 
-/*
- * The queue hand-off with Arpeggi and every other client: the Subsonic play queue. We save ours on pause, on a new
- * song, every 15 s while playing and when the tab goes away; we read the server's on load, on focus and when back
- * online, and offer it when another device saved something newer. Never yanks playback: while this tab plays it only
- * asks. Uses the OpenSubsonic index-based endpoints when the server has them (duplicate songs keep their place).
- */
+// Queue hand-off with every Subsonic client: save on pause, new song, every 15 s and on leave; read on load, focus
+// and online, and offer a newer one. Never yanks playback: while this tab plays it only asks.
 
 const SAVE_EVERY_MS = 15_000;
 const PULL_THROTTLE_MS = 30_000;
@@ -39,13 +35,10 @@ const stored = (key: string) => {
 const store = (key: string, value: string) => {
   try {
     localStorage.setItem(key, value);
-  } catch {
-    // Kept in memory for this session only.
-  }
+  } catch {}
 };
 
 let byIndex: Promise<boolean> | null = null;
-/** Whether the server has `savePlayQueueByIndex` / `getPlayQueueByIndex` (OpenSubsonic "indexBasedQueue"). */
 function indexBased(): Promise<boolean> {
   byIndex ??= api<{ openSubsonicExtensions?: { name: string }[] }>("getOpenSubsonicExtensions")
     .then((response) => Boolean(response.openSubsonicExtensions?.some((extension) => extension.name === "indexBasedQueue")))
@@ -53,7 +46,6 @@ function indexBased(): Promise<boolean> {
   return byIndex;
 }
 
-/** What's playing and everything still to come, current first. */
 function snapshot(): { ids: string[]; position: number } | null {
   const { queue } = player.getState();
   if (!queue.current) return null;
@@ -61,7 +53,7 @@ function snapshot(): { ids: string[]; position: number } | null {
   return { ids: entries.map((entry) => entry.song.id), position: Math.round(player.getPosition() * 1000) };
 }
 
-/** Save the queue (a form POST, so a long queue never hits a URL limit; `keepalive` survives the tab closing). */
+// A form POST so a long queue never hits a URL limit; `keepalive` survives the tab closing.
 export async function pushQueue(keepalive = false): Promise<void> {
   if (!getSetting("queueSync") || player.isRemote()) return;
   const now = snapshot();
@@ -109,7 +101,6 @@ async function readRemote(): Promise<Remote | null> {
 
 let lastPull = 0;
 
-/** Look at the server's queue and offer it (or take it, with "always follow" and nothing playing here). */
 export async function pullQueue(force = false): Promise<void> {
   if (!getSetting("queueSync") || player.isRemote() || (!force && Date.now() - lastPull < PULL_THROTTLE_MS)) return;
   lastPull = Date.now();
@@ -119,7 +110,6 @@ export async function pullQueue(force = false): Promise<void> {
   const song = remote.songs[remote.index];
   if (!song) return;
   const state = player.getState();
-  // Already where the other device is: nothing to offer.
   if (state.queue.current?.song.id === song.id && Math.abs(player.getPosition() * 1000 - remote.position) < 10_000) return;
   const take = () => player.adopt(remote.songs, remote.index, remote.position / 1000);
   if (!state.playing && getSetting("followOtherDevices")) {
@@ -129,7 +119,6 @@ export async function pullQueue(force = false): Promise<void> {
   notify({
     message: `continue from ${deviceName(remote.changedBy)} · ${song.title} at ${clock(remote.position / 1000)}`,
     duration: 20_000,
-    // Only the newest queue is worth offering.
     id: "queue-handoff",
     action: { label: "resume here", onClick: take },
     cancel: { label: "keep mine", onClick: () => store(DISMISSED_KEY, remote.changed) },
@@ -138,7 +127,6 @@ export async function pullQueue(force = false): Promise<void> {
 
 let started = false;
 
-/** Start saving and reading once signed in. */
 export function startQueueSync(): void {
   if (started) return;
   started = true;

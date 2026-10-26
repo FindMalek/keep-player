@@ -1,14 +1,8 @@
 import { type Bucket, bucketOf, type Candidate, type ImportMatch } from "@keep/shared/import-match";
 import type { ImportSet, ImportTrack } from "@keep/shared/spotify-import";
 
-/*
- * The import's working state (#48): one row per distinct Spotify track, holding the song it will become, and the plan
- * of playlists and stars that follows from the rows the user keeps.
- */
-
 export interface ImportRow {
   track: ImportTrack;
-  /** What the matcher found. */
   match: ImportMatch;
   /** The song this track becomes: the matcher's best, or one the user picked; null for none. */
   choice: Candidate | null;
@@ -26,7 +20,6 @@ export function rowBucket(row: ImportRow): Bucket {
   return row.choice ? bucketOf(row.choice.confidence) : "missing";
 }
 
-/** A song the user picked by hand is as sure as it gets. */
 export function pick(row: ImportRow, song: Candidate): ImportRow {
   return { ...row, choice: { ...song, confidence: 1 }, skipped: false };
 }
@@ -45,7 +38,6 @@ export interface Plan {
   liked: string[];
 }
 
-/** What to create: each playlist's songs in order (skipped and missing left out, repeats once), and the stars. */
 export function buildPlan(set: ImportSet, rows: Map<string, ImportRow>, folder: string): Plan {
   const usable = (track: ImportTrack): string | null => {
     const row = rows.get(trackKey(track));
@@ -62,7 +54,6 @@ export function buildPlan(set: ImportSet, rows: Map<string, ImportRow>, folder: 
   };
 }
 
-/** Tracks with nothing to become (or skipped), once each, for the list of music to get. */
 export function missingTracks(rows: Iterable<ImportRow>): ImportTrack[] {
   return [...rows].filter((row) => row.skipped || !row.choice).map((row) => row.track);
 }

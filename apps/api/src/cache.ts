@@ -1,6 +1,5 @@
 import { RedisClient } from "bun";
 
-/** Computed answers worth keeping (made for you): in memory, or Redis when `REDIS_URL` is set (several instances). */
 export interface Cache {
   get<T>(key: string): Promise<T | undefined>;
   set(key: string, value: unknown, ttlMs: number): Promise<void>;
@@ -30,7 +29,7 @@ export function memoryCache(now: () => number = Date.now): Cache {
 }
 
 /** Redis down means a miss, never an error: the answer is computed again. */
-export function redisCache(url: string): Cache {
+function redisCache(url: string): Cache {
   // Fail fast while disconnected instead of queueing until it reconnects: a miss costs ~30 ms, a wait seconds.
   const client = new RedisClient(url, { enableOfflineQueue: false });
   return {

@@ -1,16 +1,10 @@
 import type { FrameSource } from "@/lib/audio/types";
 
 export interface FrameEmitter<T> extends FrameSource<T> {
-  /** Sends a frame to every subscriber. */
   emit: (frame: T) => void;
-  /** The last frame emitted, if any. */
   readonly latest: T | undefined;
 }
 
-/**
- * Creates a frame source you push to yourself: from a WebSocket, a worker, a
- * native bridge or a test.
- */
 export const createFrameEmitter = <T>(): FrameEmitter<T> => {
   const subscribers = new Set<(frame: T) => void>();
   let latest: T | undefined;
@@ -34,16 +28,12 @@ export const createFrameEmitter = <T>(): FrameEmitter<T> => {
   };
 };
 
-export interface FrameRelay<T> extends FrameSource<T> {
-  /** Forwards frames from `source`. Subscribers stay attached when it changes. */
+interface FrameRelay<T> extends FrameSource<T> {
   setSource: (source: FrameSource<T> | null) => void;
 }
 
-/**
- * A frame source whose upstream can be swapped. Components keep a stable
- * subscription while the audio behind it is rebuilt.
- */
-export const createFrameRelay = <T>(): FrameRelay<T> => {
+// Subscribers keep a stable subscription while the audio behind it is rebuilt.
+const createFrameRelay = <T>(): FrameRelay<T> => {
   const subscribers = new Set<(frame: T) => void>();
   let source: FrameSource<T> | null = null;
   let detach: (() => void) | null = null;

@@ -1,5 +1,3 @@
-/* What the import's matcher answers with, and how a confidence becomes matched / review / missing (#48). */
-
 export interface Candidate {
   id: string;
   title: string;
@@ -13,9 +11,7 @@ export interface Candidate {
 }
 
 export interface ImportMatch {
-  /** The best candidate, or null when nothing in the library comes close. */
   best: Candidate | null;
-  /** Other plausible songs, best first, for fixing a wrong match. */
   alternatives: Candidate[];
 }
 

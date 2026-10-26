@@ -5,10 +5,7 @@ export { snapCoverSize } from "@keep/shared/cover-sizes";
 
 type Fetcher = (id: string, size: number) => Promise<Response | null>;
 
-/**
- * Covers resized and re-encoded to WebP once, then served from disk. Least recently used files are deleted when the
- * cache grows past its limit. Concurrent requests for the same cover share one conversion.
- */
+/** Concurrent requests for the same cover share one conversion. */
 export class CoverCache {
   private readonly entries = new Map<string, { bytes: number; used: number }>();
   private total = 0;
@@ -27,7 +24,6 @@ export class CoverCache {
     }
   }
 
-  /** Path of the cached file for this cover, fetching and converting it first if needed; null if there's no cover. */
   async get(key: string, size: number, fetchCover: Fetcher, id: string): Promise<string | null> {
     const name = `${new Bun.CryptoHasher("sha1").update(key).digest("hex")}-${size}.webp`;
     const entry = this.entries.get(name);

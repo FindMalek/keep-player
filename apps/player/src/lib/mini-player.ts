@@ -1,10 +1,7 @@
 import { useSyncExternalStore } from "react";
 import { notify } from "./notify";
 
-/*
- * The mini player: a Document Picture-in-Picture window (Chromium) that stays on top of everything. The app renders
- * into it with a portal, so it shares the player and the caches; this module only owns the window.
- */
+// Document PiP window (Chromium); the app renders into it with a portal, so this module only owns the window.
 
 interface DocumentPictureInPicture {
   requestWindow(options: { width: number; height: number }): Promise<Window>;
@@ -68,7 +65,6 @@ export function useMiniWindow(): Window | null {
   );
 }
 
-/** Let the browser open the mini player by itself when you leave the tab while music plays (Chromium's auto-PiP). */
 export function setAutoMiniPlayer(enabled: boolean): void {
   try {
     navigator.mediaSession.setActionHandler("enterpictureinpicture" as MediaSessionAction, enabled ? () => void openMiniPlayer() : null);

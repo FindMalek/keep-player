@@ -68,7 +68,7 @@ export function EmptyState({ children }: { children: ReactNode }) {
   );
 }
 
-export async function playAlbum(id: string, shuffle = false): Promise<void> {
+async function playAlbum(id: string, shuffle = false): Promise<void> {
   const { album } = await api<{ album: Album }>("getAlbum", { id });
   player.play(album.song ?? [], shuffle ? -1 : 0, {
     album: true,
@@ -107,7 +107,6 @@ const AlbumCard = memo(function AlbumCard({ album, priority = false }: { album: 
   );
 });
 
-/** Placeholder cards with the exact geometry of real ones (square cover, two text lines). */
 export function AlbumGridSkeleton({ count }: { count: number }) {
   return (
     <div aria-hidden className="grid grid-cols-[repeat(auto-fill,minmax(136px,1fr))] gap-x-3 gap-y-4">
@@ -131,7 +130,6 @@ const ALBUM_ACTIONS = {
   queue: (album: Album) => void albumSongs(album).then(player.addToQueue),
 };
 
-/** Cover (as wide as the column) plus two lines of text. */
 const albumCardHeight = (width: number) => width + 6 + 18 + 16;
 
 /** `priority`: how many leading covers are above the fold (fetched first, not lazy). */
@@ -167,7 +165,6 @@ interface TrackListProps {
   showAlbum?: boolean;
   showArtist?: boolean;
   numbered?: "track" | "index";
-  /** Plays as an album (album ReplayGain) when true. */
   asAlbum?: boolean;
 }
 
@@ -183,29 +180,20 @@ interface TrackRowProps {
   showAlbum: boolean;
   showArtist: boolean;
   onPlay: (index: number) => void;
-  /** Saved in the offline cache. */
   offline: boolean;
-  /** Show the 1–5 rating column (a setting). */
   ratings: boolean;
   /** Hidden in this playlist: dimmed, skipped when the playlist plays. */
   hidden: boolean;
-  /** Playlist edits for this row, when the list is an editable playlist. */
   editing: RowEditing | null;
   selected: boolean;
-  /** ⌘/ctrl-click toggles the row, ⇧-click extends the selection to it. */
   onSelectClick: (index: number, extend: boolean) => void;
-  /** Drag started on this row (it carries the selection when the row is in it). */
   onDragRow: (event: DragEvent, index: number) => void;
-  /** A row being dragged within the playlist would land here. */
   dropTarget?: boolean;
-  /** The song's playback rules as flags (trimmed, never in shuffle, hidden), shown as small marks after the title. */
   rules?: RuleMarks | null;
-  /** Set when virtualized: lets the virtualizer measure the row. */
   measure?: (element: Element | null) => void;
   virtualIndex?: number;
 }
 
-/** Small marks for a song's playback rules, each with its tooltip. */
 function RuleIcons({ trim, never, hidden }: RuleMarks) {
   return (
     <span className="flex shrink-0 items-center gap-1 text-faint">
@@ -376,13 +364,9 @@ interface RowEditing {
 
 /** A playlist you can edit, in its real order: what the rows and keys may change. */
 export interface ListEditing {
-  /** Remove the songs at these positions. */
   remove: (indexes: number[]) => void;
-  /** Move one song up or down; returns where it ended up. */
   move: (index: number, delta: -1 | 1) => number;
-  /** Drag and drop: the song at `from` takes the place of the one at `to`. */
   moveTo: (from: number, to: number) => void;
-  /** Songs kept in the playlist but skipped when it plays. */
   hidden: ReadonlySet<string>;
   toggleHidden: (song: Song) => void;
 }
@@ -485,10 +469,8 @@ function TrackRows({
   const windowItems = virtualizer.getVirtualItems();
   const last = windowItems.at(-1)?.index ?? 0;
   useEffect(() => {
-    // Ask for the next page when the reader is 80% of the way down what's loaded.
     if (virtual && onNearEnd && last >= items.length * 0.8) onNearEnd();
   }, [virtual, onNearEnd, last, items.length]);
-  // --- keyboard navigation and selection (#28) ---
   const [selected, setSelected] = useState<ReadonlySet<number>>(() => new Set());
   const anchor = useRef<number | null>(null);
   const itemIndexOf = useMemo(() => {
@@ -682,7 +664,6 @@ function TrackRows({
           />
         )}
         <Table
-          // A grid: rows are navigable and selectable from the keyboard (j/k, x, ⇧j…).
           role="grid"
           aria-multiselectable="true"
           className="table-fixed text-[13px]"
@@ -696,7 +677,6 @@ function TrackRows({
             {ratings && <col className="w-20" />}
             <col className="w-8" />
             <col className="w-14" />
-            {/* play next, add to queue, ⋯ (and hide, remove on a playlist you can edit) */}
             <col className={editing ? "w-32" : "w-20"} />
           </colgroup>
           <TableHeader>

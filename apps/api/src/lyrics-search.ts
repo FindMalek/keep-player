@@ -3,16 +3,11 @@ import type { Lyrics } from "@keep/shared/lyrics";
 import { editDistance, normalize } from "@keep/shared/normalize";
 import type { LyricsHit } from "@keep/shared/search";
 
-/*
- * Search by half-remembered words. One FTS5 row per song (rowid = the `lyrics` cache row), holding the normalized
- * lyrics, so "dont" finds "don't" and phrases can cross line breaks. Misspelled words are corrected against the
- * index's own vocabulary instead of a trigram index, which would be several times the size of the lyrics.
- */
+// Misspellings are corrected against the index's own vocabulary; a trigram index would be several times the lyrics' size.
 
 export function createLyricsSearchTables(db: Database): void {
   db.run(`create virtual table if not exists lyrics_fts using fts5(text, tokenize = "unicode61 remove_diacritics 2")`);
   db.run("create virtual table if not exists lyrics_vocab using fts5vocab(lyrics_fts, 'row')");
-  // Lyrics cached before this table existed.
   const indexed = db.query<{ n: number }, []>("select count(*) as n from lyrics_fts").get()?.n ?? 0;
   if (indexed) return;
   const rows = db.query<{ rowid: number; body: string }, []>("select rowid, body from lyrics where status in ('synced', 'plain')").all();
@@ -21,16 +16,13 @@ export function createLyricsSearchTables(db: Database): void {
   })();
 }
 
-/** Each database's distinct lyric words, read once and then grown by `indexLyrics` (removed words linger, harmlessly). */
 const vocabularies = new WeakMap<Database, Set<string>>();
 
-/** (Re)index one cached lyrics row; nothing for misses and instrumentals. */
 export function indexLyrics(db: Database, rowid: number, lyrics: Lyrics): void {
   db.query("delete from lyrics_fts where rowid = ?").run(rowid);
   const text = lyrics.lines.map((line) => normalize(line.text)).join(" ");
   if (!text.trim()) return;
   db.query("insert into lyrics_fts (rowid, text) values (?, ?)").run(rowid, text);
-  // Keep a loaded vocabulary current, so new lyrics can be found by a misspelling right away.
   const vocab = vocabularies.get(db);
   if (vocab) for (const word of text.split(" ")) if (word) vocab.add(word);
 }
@@ -39,7 +31,6 @@ export function unindexLyrics(db: Database, rowid: number): void {
   db.query("delete from lyrics_fts where rowid = ?").run(rowid);
 }
 
-/** Close spellings of `term` that the lyrics actually contain ("dreamin" → "dreaming", "lonley" → "lonely"). */
 function corrections(db: Database, term: string): string[] {
   if (term.length < 3) return [];
   let vocab = vocabularies.get(db);
@@ -62,7 +53,6 @@ function corrections(db: Database, term: string): string[] {
     .map(({ candidate }) => candidate);
 }
 
-/** How far a line is from the typed words: each word's edits to its nearest match on the line, at most 3. */
 function distanceTo(line: string, terms: string[]): number {
   const words = normalize(line).split(" ");
   return terms.reduce(
@@ -73,7 +63,6 @@ function distanceTo(line: string, terms: string[]): number {
 
 const quote = (term: string) => `"${term.replace(/"/g, "")}"`;
 
-/** Words of `line` (with their position in it) that match one of `terms`, as [start, end) ranges. */
 function highlights(line: string, terms: string[]): [number, number][] {
   const ranges: [number, number][] = [];
   for (const word of line.matchAll(/[\p{L}\p{N}'’]+/gu)) {
@@ -83,10 +72,6 @@ function highlights(line: string, terms: string[]): [number, number][] {
   return ranges;
 }
 
-/**
- * The line a match starts on: most words on it and the next line together (phrases cross line breaks), then the
- * line holding the first word, then most words on the line alone.
- */
 function bestLine(lines: string[], terms: string[]): number {
   const words = lines.map((line) => normalize(line).split(" "));
   const found = (index: number) => new Set(terms.filter((term) => words[index]?.some((word) => word.startsWith(term))));
@@ -108,10 +93,6 @@ function bestLine(lines: string[], terms: string[]): number {
   return best;
 }
 
-/**
- * Songs whose lyrics match, best first: the exact phrase, then the words close together, then all the words
- * anywhere, then with misspellings corrected. Each hit carries the matching line with one line of context.
- */
 export function queryLyrics(db: Database, server: string, text: string, limit: number, folders: string[] | null): LyricsHit[] {
   const terms = normalize(text).split(" ").filter(Boolean);
   if (!terms.length) return [];
@@ -173,7 +154,6 @@ export function queryLyrics(db: Database, server: string, text: string, limit: n
   return [...hits.values()];
 }
 
-/** How far lyrics have been looked up on `server`: songs with an answer cached (found or not) out of all songs. */
 export function lyricsCoverage(db: Database, server: string): { checked: number; total: number } {
   const checked = db.query<{ n: number }, [string]>("select count(*) as n from lyrics where song_id like ?").get(`${server}:%`)?.n ?? 0;
   const total =

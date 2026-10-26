@@ -2,10 +2,7 @@ import { normalize, similarity } from "@keep/shared/normalize";
 import { useSyncExternalStore } from "react";
 import type { Song } from "./types";
 
-/*
- * ⌘F inside a list: filters the page's track list (album, playlist, …) or, with focus in it, the queue panel, in
- * place and instantly. Client-side only; the list stays the play context, so playing a match keeps the album order.
- */
+// Client-side only; the list stays the play context, so playing a match keeps the album order.
 
 export type FilterScope = "page" | "queue";
 
@@ -38,7 +35,6 @@ export function closeListFilter(scope: FilterScope): void {
   if (state?.scope === scope) set(null);
 }
 
-/** The filter text while this scope's filter is open, else null. */
 export function useListFilter(scope: FilterScope): string | null {
   return useSyncExternalStore(
     (listener) => {

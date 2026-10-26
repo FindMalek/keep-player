@@ -4,10 +4,7 @@ import { createMomentTables } from "./moments";
 import { createPrefTables } from "./prefs";
 import { createRadioTables } from "./radio";
 
-/**
- * The server's library database (`$DATA_DIR/library.db`): the lyrics cache and per-user lyric offsets now, the search
- * index next (#31). Separate from sessions.db so it can be deleted and rebuilt without signing anyone out.
- */
+// Separate from sessions.db so it can be deleted and rebuilt without signing anyone out.
 export function openLibraryDb(path: string): Database {
   const db = new Database(path, { create: true, strict: true });
   db.run("pragma journal_mode = wal");

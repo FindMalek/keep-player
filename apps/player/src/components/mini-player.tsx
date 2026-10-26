@@ -8,7 +8,6 @@ import { Cover } from "./cover";
 import { LikeButton } from "./like-button";
 import { activeLine } from "./lyrics-view";
 
-/** The line being sung now, if the lyrics are synced. */
 function CurrentLine({ songId }: { songId: string }) {
   const { data } = useQuery(queries.lyrics(songId));
   const lines = data?.status === "synced" ? data.lines : null;
@@ -17,11 +16,8 @@ function CurrentLine({ songId }: { songId: string }) {
   return text ? <span className="max-w-full truncate font-medium text-[12.5px]">{text}</span> : null;
 }
 
-/**
- * Cover, title, the buttons, a heart and the current lyric line: what fits an always-on-top window, at any size you drag
- * it to. A strip (under 90 px tall) keeps only the title and buttons; tall windows (260 px and up) stack the cover on top.
- * Media queries here answer for the picture-in-picture window, not the tab.
- */
+// Fits an always-on-top window at any size: under 90 px tall only title and buttons, 260 px up stacks the cover.
+// Media queries here answer for the picture-in-picture window, not the tab.
 function MiniPlayer() {
   const song = usePlayer(currentSong);
   const playing = usePlayer((state) => state.playing);

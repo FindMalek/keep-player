@@ -1,10 +1,7 @@
 import type { Database } from "bun:sqlite";
 import type { Moment } from "@keep/shared/moments";
 
-/*
- * Moments (#61): timestamps you save in a song, with a note. Subsonic's bookmarks keep one position per song, so these
- * live here, per account. The song is kept as it was played, like history, so the list shows without Navidrome.
- */
+// Subsonic bookmarks keep one position per song, so moments live here, per account.
 
 export function createMomentTables(db: Database): void {
   db.run(`create table if not exists moments (
@@ -29,7 +26,6 @@ interface Row {
 
 const toMoment = (row: Row): Moment => ({ id: row.id, song: JSON.parse(row.song), at: row.at, note: row.note, created: row.created });
 
-/** Newest first; one song's in time order when `songId` is given. */
 export function listMoments(db: Database, account: string, songId?: string): Moment[] {
   return songId
     ? db
@@ -59,7 +55,6 @@ export function deleteMoment(db: Database, account: string, id: number): boolean
   return db.query("delete from moments where id = ? and account = ?").run(id, account).changes > 0;
 }
 
-/** Song id → notes, for the search's `moment:` operator. */
 export function momentNotes(db: Database, account: string): Map<string, string[]> {
   const notes = new Map<string, string[]>();
   for (const row of db

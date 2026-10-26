@@ -9,10 +9,8 @@ const PAGE = 200;
 /** One song at a time, about two requests a second at most: LRCLIB is free and asks clients to be gentle. */
 const STEP_MS = 600;
 const MAX_BACKOFF_MS = 10 * 60_000;
-/** After a full pass, look for new songs once a day. */
 const REST_MS = 24 * 3_600_000;
 
-/** The account background jobs use: `INDEX_USER`/`INDEX_PASSWORD`, else the most recently active admin's session. */
 export function serviceAccount(
   sessions: SessionStore,
   upstream: Upstream,
@@ -34,10 +32,6 @@ export function serviceAccount(
   return () => fixed ?? sessions.adminCredentials(upstream.id);
 }
 
-/**
- * Walks the whole library and resolves lyrics for every song nobody has opened yet, so lyrics (and lyric search, #32)
- * cover the library over time. Resumable: the position is kept in the database.
- */
 export class LyricsBackfill {
   private timer: ReturnType<typeof setTimeout> | undefined;
   private backoff = STEP_MS;
@@ -69,7 +63,6 @@ export class LyricsBackfill {
     this.schedule(5000);
   }
 
-  /** Walk the library again from the start now (after misses were forgotten, so they're asked again). */
   restart(): void {
     this.offset = 0;
     this.queue = [];
@@ -87,7 +80,6 @@ export class LyricsBackfill {
     this.timer.unref?.();
   }
 
-  /** Handle one song; returns how long to wait before the next step. */
   async step(): Promise<number> {
     const credentials = this.account();
     // Nobody to run as yet (no admin has signed in): check again later.

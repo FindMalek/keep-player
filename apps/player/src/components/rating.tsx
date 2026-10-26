@@ -4,11 +4,8 @@ import { notify } from "@/lib/notify";
 import { api } from "@/lib/subsonic";
 import { cn } from "@/lib/utils";
 
-/*
- * Ratings you set win over what cached song objects say (their userRating is from before), so a rating never looks
- * undone when you come back to a list, or after a reload: the persisted cache keeps old song objects for up to an hour
- * (album staleTime) before they're refetched, so what you set is kept here for that long.
- */
+// Ratings set here win over cached song objects (the persisted cache keeps them up to an hour),
+// so a rating never looks undone after a reload or coming back to a list.
 const KEY = "keep-player:ratings";
 const KEEP_MS = 60 * 60_000;
 
@@ -27,9 +24,7 @@ function setRated(id: string, rating: number): void {
   rated.set(id, { rating, at: Date.now() });
   try {
     localStorage.setItem(KEY, JSON.stringify(Object.fromEntries(rated)));
-  } catch {
-    // Kept for this session only.
-  }
+  } catch {}
   for (const listener of listeners) listener();
 }
 function useRated(id: string, fallback: number): number {

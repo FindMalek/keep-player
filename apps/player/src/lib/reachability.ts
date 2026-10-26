@@ -1,9 +1,7 @@
 import { useSyncExternalStore } from "react";
 
-/*
- * Whether the server (and Navidrome behind it) answers. A failed or 502/503/504 call marks it unreachable; from then a
- * ping retries with backoff until it answers again. The banner says so; the queue keeps playing from the offline cache.
- */
+// A failed or 502/503/504 call marks the server unreachable and a ping retries with backoff until it answers; the
+// queue keeps playing from the offline cache meanwhile.
 
 const BACKOFF_MS = [5000, 10_000, 30_000, 60_000];
 
@@ -38,14 +36,13 @@ export function markUnreachable(): void {
   }
 }
 
-export function markReachable(): void {
+function markReachable(): void {
   if (!state.unreachable) return;
   clearTimeout(timer);
   attempt = 0;
   set({ unreachable: false, retryAt: null });
 }
 
-/** Ask the server now (the banner's "retry", the automatic retries, coming back online). */
 export async function retryNow(): Promise<void> {
   const response = await fetch("/rest/ping", { headers: { "x-keep-player": "1" }, cache: "no-store" }).catch(() => null);
   if (response && response.status < 500) markReachable();
@@ -53,7 +50,6 @@ export async function retryNow(): Promise<void> {
   else markUnreachable();
 }
 
-/** What a response says about reachability; returns it unchanged. */
 export function noteResponse(response: Response): Response {
   if (response.status === 502 || response.status === 503 || response.status === 504) markUnreachable();
   else markReachable();

@@ -6,11 +6,8 @@ export interface Notice {
   message: string;
   kind?: "info" | "error";
   action?: { label: string; onClick: () => void };
-  /** A second button ("keep mine"). */
   cancel?: { label: string; onClick: () => void };
-  /** How long it stays, ms (sonner's default otherwise). */
   duration?: number;
-  /** A toast with the same id replaces the one showing (a newer offer of the same kind). */
   id?: string;
 }
 
@@ -54,7 +51,6 @@ export function notify({ message, kind = "info", action, cancel, duration, id }:
   void ready.then(({ toast }) => (kind === "error" ? toast.error : toast)(message, { action, cancel, duration, id }));
 }
 
-/** A sample toast for the settings page, shown whatever the level so you can see where they land. */
 export function previewNotice(message: string): void {
   ready ??= mount();
   void ready.then(({ toast }) => toast(message, { id: "notifications-preview" }));

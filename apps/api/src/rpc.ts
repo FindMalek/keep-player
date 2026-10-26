@@ -20,11 +20,7 @@ import type { Session } from "./sessions";
 import { forgottenFavourites, listeningStats } from "./stats";
 import { weeklyPlaylists } from "./weekly-playlists";
 
-/*
- * The oRPC side of the API (`/api/rpc/*`): `@keep/orpc`'s contract implemented over the server's own services.
- * Inputs are checked against the contract's schemas before a handler runs; `createApi` checks the CSRF header and
- * finds the session first, so a handler only ever sees a signed-in user (or the `UNAUTHORIZED` it throws).
- */
+// `createApi` checks the CSRF header and finds the session first, so a handler only ever sees a signed-in user.
 
 export interface RpcDeps {
   library: Database;
@@ -37,10 +33,8 @@ export interface RpcDeps {
   lyrics: LyricsService;
 }
 
-/** `client`: the browser's id (`x-keep-client`), so a play says which device it was on. */
 type Context = { session: Session | null; client: string };
 
-/** Whose data it is: history, prefs, lyrics offsets and the rest are kept per server and user. */
 export const accountOf = (session: Session) => `${session.server}:${session.user}`;
 
 const MIXES_TTL_MS = 60 * 60_000;
@@ -182,7 +176,6 @@ export function createRpc({ library, updates, groq, fetcher, upstreamFor, folder
   });
 
   const rpcHandler = new RPCHandler(router);
-  // The same procedures as plain HTTP for integrations, with the reference (Scalar) at /api and the spec at /api/spec.json.
   const httpHandler = new OpenAPIHandler(router, {
     plugins: [
       new OpenAPIReferencePlugin({

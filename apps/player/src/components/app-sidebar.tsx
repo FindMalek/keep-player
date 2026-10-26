@@ -86,11 +86,9 @@ function tree(playlists: Playlist[]): FolderNode {
   return root;
 }
 
-/** The tree's "/A/B" as the "A / B" that starts the playlist names inside. */
 const playlistPrefix = (path: string) => path.replace(/^\//, "").split("/").join(" / ");
 
 function SubTree({ node, path, dropId }: { node: FolderNode; path: string; dropId: string | null }) {
-  // The playlist the queue came from, so you can see what's playing without opening it.
   const playingHref = usePlayer((state) => (state.queue.context.source?.kind === "playlist" ? state.queue.context.source.href : undefined));
   const playing = usePlayer((state) => state.playing);
   return (

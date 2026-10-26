@@ -1,9 +1,4 @@
-/**
- * Generates a copyright-free demo library: synthesized tracks (FLAC, Opus, MP3) with full tags, dithered covers,
- * synced lyrics for some, and a few playlists. Deterministic, so every run gives the same library.
- *
- *   bun scripts/demo-library.ts <dir> [--seconds 30] [--seed 2026]
- */
+// Generates a deterministic, copyright-free demo library: `bun scripts/demo-library.ts <dir> [--seconds 30] [--seed 2026]`
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { createCatalog, type DemoTrack, lrcFor } from "./demo/catalog";

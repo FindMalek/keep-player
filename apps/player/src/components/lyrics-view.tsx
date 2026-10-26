@@ -22,7 +22,6 @@ import { Delayed } from "./skeletons";
 type Size = "panel" | "full";
 type LineState = "past" | "active" | "future";
 
-/** Index of the line playing at `ms` (the last one that has started), by binary search. */
 export function activeLine(lines: { start: number }[], ms: number): number {
   let low = 0;
   let high = lines.length - 1;
@@ -80,9 +79,8 @@ const Line = memo(function Line({
         type="button"
         title={`${clock((line.start + offset) / 1000)} · click to play from here`}
         className={cn(
-          // One weight for every line: a bolder active line rewraps as it moves and makes the lines around it jump.
-          // It stands out by opacity and size instead (a transform, so nothing reflows); what's coming reads clearer
-          // than what's been sung; 60% still clears 4.5:1 contrast in both themes.
+          // One weight for every line: a bolder active line would rewrap and make its neighbours jump. It stands out
+          // by opacity and size (a transform, no reflow); 60% still clears 4.5:1 contrast in both themes.
           "flex-1 origin-left text-left text-foreground transition-[opacity,transform] duration-300 ease-out hover:opacity-100 motion-reduce:transition-none",
           state === "future" && "scale-[0.97] opacity-80",
           state === "past" && "scale-[0.97] opacity-60",
@@ -136,7 +134,6 @@ function LoadingLines() {
   );
 }
 
-/** Synced lyrics that follow the song, or plain ones, with every state; shared by the side panel and full screen. */
 export function LyricsView({ song, size }: { song: Song; size: Size }) {
   const { data: lyrics, isPending } = useQuery(queries.lyrics(song.id));
   const synced = lyrics?.status === "synced" ? lyrics.lines : null;
@@ -153,7 +150,6 @@ export function LyricsView({ song, size }: { song: Song; size: Size }) {
   });
   const translation = showTranslation ? lyrics?.translations?.[0] : undefined;
 
-  // Nudge timing with [ and ]; saved per song on the server so it follows you.
   const save = useRef<ReturnType<typeof setTimeout>>(undefined);
   const nudge = (delta: number) => {
     if (!synced) return false;
@@ -184,7 +180,6 @@ export function LyricsView({ song, size }: { song: Song; size: Size }) {
     clearTimeout(resume.current);
     resume.current = setTimeout(() => setFollowing(true), RESUME_SCROLL_MS);
   };
-  // The first jump (opening mid-song) is instant, then it glides from line to line.
   const placed = useRef(false);
   // biome-ignore lint/correctness/useExhaustiveDependencies: scroll when the line or following changes
   useEffect(() => {
@@ -246,9 +241,7 @@ export function LyricsView({ song, size }: { song: Song; size: Size }) {
                 setShowTranslation((value) => {
                   try {
                     localStorage.setItem(TRANSLATION_KEY, value ? "off" : "on");
-                  } catch {
-                    // Just for this session then.
-                  }
+                  } catch {}
                   return !value;
                 });
               }}
@@ -287,7 +280,6 @@ export function LyricsView({ song, size }: { song: Song; size: Size }) {
         <footer
           className={cn(
             "z-10",
-            // Full screen: after the last line, so nothing solid sits over the aura.
             panelFades && "sticky bottom-0 bg-background",
             "flex flex-wrap items-center gap-x-3 gap-y-1 border-t px-2 py-1.5 font-mono text-[11px] text-muted-foreground",
           )}

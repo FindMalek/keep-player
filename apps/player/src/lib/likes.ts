@@ -4,12 +4,6 @@ import { queries, queryClient } from "./queries";
 import { api, onAccountChange } from "./subsonic";
 import { done, record } from "./undo";
 
-/*
- * Likes (Subsonic stars), the ones Arpeggi and every other client see. One set of ids for songs, albums and artists,
- * read from getStarred2 and changed optimistically: a heart flips at once and flips back if the server says no.
- * Each heart subscribes to its own id, so liking one song re-renders one button, not the list.
- */
-
 export type LikeKind = "song" | "album" | "artist";
 
 let liked = new Set<string>();
@@ -42,7 +36,6 @@ export async function loadLikes(): Promise<void> {
   emit();
 }
 
-// A like made on the phone shows up when you come back to this tab.
 if (typeof window !== "undefined")
   window.addEventListener("focus", () => {
     if (Date.now() - lastLoad > REFRESH_MS) void loadLikes();
@@ -64,7 +57,6 @@ export function isLiked(id: string): boolean {
 
 const PARAM: Record<LikeKind, string> = { song: "id", album: "albumId", artist: "artistId" };
 
-/** Like or unlike, undoable with ⌘Z; unliking also offers an undo button. `replay`: an undo or redo doing it again. */
 export async function setLiked(kind: LikeKind, id: string, value: boolean, label: string, replay = false): Promise<void> {
   if (liked.has(id) === value) return;
   const apply = (state: boolean) => {

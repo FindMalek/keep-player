@@ -17,7 +17,6 @@ import type { Album, Artist, Song } from "@/lib/types";
 
 const LIMIT = 50;
 
-/** `/search?q=`: the palette's results, larger: top result, songs, albums, artists and lyrics. */
 export function SearchPage() {
   const initial = useSearchParam("q");
   const [text, setText] = useState(initial);

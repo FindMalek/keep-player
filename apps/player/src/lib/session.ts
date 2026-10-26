@@ -16,11 +16,8 @@ import * as Q from "./queue";
 import { sessionState } from "./session-state";
 import type { Song } from "./types";
 
-/*
- * One playback session across your devices, the browser side. Every open player joins; the one that plays
- * publishes its queue and playhead, the others mirror it and send their button presses to it. Pressing play on a
- * remote plays there, not here; "play here" in the device picker moves playback.
- */
+// One playback session across devices: the playing tab publishes its queue and playhead, the others mirror it and
+// send their button presses to it.
 
 const ID_KEY = "keep-player:device";
 const HEARTBEAT_MS = 5000;
@@ -32,11 +29,8 @@ const CLAIM_MS = 10_000;
 
 const random = () => crypto.randomUUID().slice(0, 12);
 
-/**
- * Per tab: kept in sessionStorage so a reload stays the same device. A duplicated tab gets a copy of sessionStorage,
- * so an open tab also keeps a claim on its id in localStorage (dropped on pagehide, which a reload fires first); an id
- * someone still claims is taken, and this tab picks a new one.
- */
+// Per tab in sessionStorage so a reload stays the same device; a duplicated tab copies it, so each tab also claims its
+// id in localStorage (dropped on pagehide) and picks a new one if it's taken.
 function deviceId(): string {
   try {
     let id = sessionStorage.getItem(ID_KEY);
@@ -57,7 +51,6 @@ function deviceId(): string {
   }
 }
 
-/** "chrome on mac", "the desktop app" */
 export function deviceLabel(ua: string): string {
   if (/keep-music-desktop/i.test(ua)) return "the desktop app";
   const browser = /Edg\//.test(ua)
@@ -95,7 +88,6 @@ function send(message: unknown): void {
 }
 
 const activeDevice = (): Device | undefined => sessionState.get().devices.find((device) => device.active);
-/** Another device is playing the session: this one is a remote. */
 const remoteOf = (): Device | undefined => {
   const active = activeDevice();
   return active && active.id !== sessionState.get().you ? active : undefined;
@@ -117,7 +109,6 @@ const toDeviceSong = (song: Song): DeviceSong => ({
   ...(song.replayGain ? { replayGain: song.replayGain } : {}),
 });
 
-/** What this tab plays: the current song, then what comes after it. */
 function snapshot(): DeviceState | null {
   const { queue, playing } = player.getState();
   if (!queue.current) return null;
@@ -133,7 +124,6 @@ function upcomingHere(): string {
   return ids([queue.current, ...queue.upNext, ...Q.contextUpcoming(queue)].slice(0, MAX_STATE_SONGS).map((entry) => entry.song));
 }
 
-/** As a remote: show the playing device's queue, play state and playhead. */
 function mirror(): void {
   if (!last || !remoteOf()) return;
   const wanted = last.state;
@@ -145,14 +135,12 @@ function mirror(): void {
   player.mirror(wanted.playing, at);
 }
 
-/** Publish this tab's playback while it plays (starting to play is what takes the session). */
 function startPublishing(): void {
   let key = "";
   const publish = (force: boolean) => {
     if (remoteOf()) return;
     const now = snapshot();
     if (!now) return;
-    // A paused tab that isn't the session's only says so when it was the one playing.
     if (!now.playing && activeDevice()?.id !== sessionState.get().you) return;
     const next = `${upcomingHere()}|${now.playing}`;
     if (force || next !== key) {
@@ -170,7 +158,6 @@ const command = (value: DeviceCommand) => send({ t: "command", command: value })
 
 const REMOTE = {
   toggle: (playing: boolean) => {
-    // The mirror shows the new state straight away; the playing device's next state confirms it.
     player.mirror(playing, player.getPosition());
     command({ action: "toggle", playing });
   },
@@ -200,7 +187,6 @@ const REMOTE = {
   },
 };
 
-/** Be a remote while another device plays, and this tab's own player otherwise. */
 function applyRole(): void {
   const remote = remoteOf();
   if (remote && !player.isRemote()) {
@@ -213,12 +199,10 @@ function applyRole(): void {
     player.setRemote(null);
     clearInterval(mirrorTimer);
     mirrored = "";
-    // Nobody plays now: what shows here is paused where it was, ready to play from this tab.
     player.mirror(false, player.getPosition());
   }
 }
 
-/** The playing device runs what the remotes ask. */
 function run(value: DeviceCommand): void {
   if (value.action === "toggle") player.toggle(value.playing);
   else if (value.action === "next") player.next();
@@ -277,16 +261,13 @@ function connect(): void {
   ws.onopen = () => {
     attempt = 0;
     sessionState.set({ connected: true });
-    // Back after a drop while playing: say so, so the remotes see this tab again.
     const now = snapshot();
     if (now?.playing) send({ t: "state", state: now });
   };
   ws.onmessage = (event) => {
     try {
       onMessage(JSON.parse(String(event.data)) as DeviceServerMessage);
-    } catch {
-      // A malformed message from the server is ignored.
-    }
+    } catch {}
   };
   ws.onclose = () => {
     if (socket !== ws) return;
@@ -300,7 +281,6 @@ function connect(): void {
 let started = false;
 
 export const session = {
-  /** Join the session once signed in. */
   async start(): Promise<void> {
     if (started) return;
     started = true;
@@ -311,7 +291,6 @@ export const session = {
     startPublishing();
     connect();
   },
-  /** Move playback to a device (this one included). */
   transfer(to: string): void {
     send({ t: "transfer", to });
   },

@@ -17,7 +17,6 @@ export interface WishState {
   stage: string;
 }
 
-/** Where the work is, in the order lyterion goes through it. */
 export const WISH_STEPS = [
   { stages: ["resolving"], label: "looking it up" },
   { stages: ["queued", "searching"], label: "finding a good copy" },
@@ -26,7 +25,6 @@ export const WISH_STEPS = [
   { stages: ["placed"], label: "in your library" },
 ] as const;
 
-/** 0-based index of the step a stage belongs to (-1 before anything started). */
 export function stepOf(stage: string): number {
   return WISH_STEPS.findIndex((step) => (step.stages as readonly string[]).includes(stage));
 }
@@ -38,7 +36,6 @@ export const SOURCE_LABEL: Record<WishPreview["source"], string> = {
   search: "best match on youtube, picked when it starts",
 };
 
-/** A pasted address rather than a song name. */
 export function isLink(text: string): boolean {
   return /^https?:\/\/\S+$/i.test(text.trim());
 }
@@ -60,8 +57,7 @@ export const wishlist = {
   status: (recordingId: string) => call<WishState>("status", { recordingId }),
 };
 
-/** The song once Navidrome has scanned it in, matched the way the search index would. */
-export async function findAdded(meta: Pick<WishPreview, "title" | "artists">): Promise<Song | null> {
+async function findAdded(meta: Pick<WishPreview, "title" | "artists">): Promise<Song | null> {
   const query = `${meta.artists[0] ?? ""} ${meta.title}`.trim();
   const response = await fetch(`/api/search?${new URLSearchParams({ q: query, limit: "5" })}`, { headers: HEADERS });
   if (!response.ok) return null;
@@ -76,10 +72,7 @@ export async function findAdded(meta: Pick<WishPreview, "title" | "artists">): P
 const POLL_MS = 3000;
 const GIVE_UP_MS = 30 * 60_000;
 
-/**
- * Keeps watching after the panel is closed: a toast when the song lands (with play) or when no good copy was found.
- * Lyterion works through one song at a time, so this stays a single light poll.
- */
+// Keeps polling after the panel closes; lyterion does one song at a time, so a single light poll is enough.
 export function followAdded(recordingId: string, meta: WishPreview): void {
   const started = Date.now();
   const name = meta.artists[0] ? `${meta.artists[0]} – ${meta.title}` : meta.title;

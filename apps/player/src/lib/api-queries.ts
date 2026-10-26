@@ -2,15 +2,11 @@ import type { IndexStatus, LyricsSearch, SearchResults } from "@keep/shared/sear
 import { queryOptions } from "@tanstack/react-query";
 import { rpc } from "./rpc";
 
-/*
- * Queries for the server's own /api endpoints that only lazy UI uses (palette, search page, lyrics panel, admin and
- * user menus), kept out of queries.ts so they stay off the first screen. Not persisted (see queries.ts).
- */
+// Only lazy UI uses these: kept out of queries.ts so they stay off the first screen.
 
 const MINUTE = 60_000;
 
 export const apiQueries = {
-  /** Your timing nudge for a song's lyrics: tiny, always fresh (it may have changed in another browser), never persisted. */
   lyricsOffset: (songId: string) =>
     queryOptions({
       queryKey: ["lyricsOffset", songId],
@@ -20,7 +16,6 @@ export const apiQueries = {
       },
       staleTime: 0,
     }),
-  /** Who is signed in and whether they are a Navidrome admin; asked once per load, never persisted. */
   session: () =>
     queryOptions({
       queryKey: ["session"],
@@ -34,15 +29,12 @@ export const apiQueries = {
           oneSession?: boolean;
           ai?: boolean;
           feedback?: boolean;
-          /** Admin, with Lyterion connected: songs can be added from a link or a name. */
           lyterionAdd?: boolean;
         };
       },
       staleTime: Number.POSITIVE_INFINITY,
     }),
-  /** The running version, and for admins a newer release when the server checks (`UPDATE_CHECK=on`). Hourly. */
   version: () => rpc.version.queryOptions({ staleTime: 60 * MINUTE }),
-  /** The server's search index (admins only), refreshed every 2 s while it rebuilds. */
   searchIndex: () =>
     queryOptions({
       queryKey: ["searchIndex"],
@@ -64,7 +56,6 @@ export const apiQueries = {
       },
       staleTime: MINUTE,
     }),
-  /** The server's ranked search (operators, typos, your likes first); keeps the previous results while typing. */
   search: (query: string, limit = 8) =>
     queryOptions({
       queryKey: ["search", query, limit],

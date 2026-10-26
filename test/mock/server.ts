@@ -3,10 +3,7 @@ import type { Album, Song } from "../../apps/player/src/lib/types";
 import { createLibrary } from "./library";
 import { greyPng } from "./png";
 
-/**
- * A small Subsonic/OpenSubsonic server over a seeded library, for e2e tests and perf budgets.
- * Login: demo / demo. Audio is generated silence, so streams are cheap and seekable.
- */
+/** Subsonic/OpenSubsonic mock over a seeded library for e2e and perf budgets. Login demo/demo, audio is silence. */
 const PORT = Number(process.env.MOCK_PORT ?? 4599);
 const USER = "demo";
 const PASSWORD = "demo";
@@ -184,11 +181,8 @@ function pausedStream(body: Uint8Array<ArrayBuffer>, seconds: number, onDone = (
   return new Response(stream, { headers: { "content-type": "audio/wav", "content-length": String(body.length) } });
 }
 
-/*
- * Test controls for streams the page can't route itself (the service worker's): `POST /mock/slow?id=&seconds=` makes the
- * next stream of that song stall like `mockPause`; `GET /mock/streams?id=` lists every stream of it and whether the
- * client hung up before it finished.
- */
+// Controls for streams the page can't route (the service worker's): `POST /mock/slow?id=&seconds=` stalls the next
+// stream like `mockPause`; `GET /mock/streams?id=` lists its streams and whether the client hung up early.
 const slowNext = new Map<string, number>();
 const streamLog: { id: string; aborted: boolean; finished: boolean }[] = [];
 
@@ -465,10 +459,7 @@ function handle(endpoint: string, params: Params, request: Request): Response {
   }
 }
 
-/**
- * A tiny LRCLIB at /lrclib: synced lyrics for songs Navidrome has none for, when their number is even (so some are
- * found there and some aren't anywhere).
- */
+/** A tiny LRCLIB at /lrclib: synced lyrics for songs Navidrome has none for, when their number is even. */
 function lrclib(url: URL): Response {
   if (url.pathname === "/lrclib/api/get") return new Response("not found", { status: 404 });
   if (url.pathname !== "/lrclib/api/search") return new Response("not found", { status: 404 });

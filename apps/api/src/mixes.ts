@@ -7,33 +7,25 @@ const DAY = 86_400_000;
 const WINDOW_DAYS = 90;
 const MIXES = 6;
 const PER_MIX = 50;
-/** Share of a mix that is songs you already play; the rest is the same artists' songs you rarely or never play. */
 const FAMILIAR = 0.6;
-/** An artist needs this many counted plays in the window to seed a mix. */
 const MIN_PLAYS = 5;
-/** Artists played this close together count as listened to together. */
 const SESSION_MS = 2 * 3_600_000;
-/** A mix is its seed artist plus up to this many artists you play around them. */
 const NEIGHBOURS = 4;
 const DISCOVER_SIZE = 30;
-/** Share of Discover Weekly from artists you play; the rest is artists you've never played at all. */
 const DISCOVER_KNOWN = 0.6;
 const DAYLIST_SIZE = 40;
 const RADAR_DAYS = 30;
 const RADAR_SIZE = 40;
-/** "On this day" looks at plays this many days either side of the date a year ago. */
 const ON_THIS_DAY_SPREAD = 3;
 
 export interface Mix {
   id: string;
   name: string;
-  /** "artist a, artist b, artist c" */
   description: string;
   songs: Song[];
 }
 
-/** Parts of the day for the daylist, by local hour. */
-export const SLOTS = [
+const SLOTS = [
   ["morning", 5, 12],
   ["afternoon", 12, 17],
   ["evening", 17, 22],
@@ -48,11 +40,11 @@ export function slotOf(hour: number): Slot {
 
 const WEEKDAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
 /** Day 0 (1970-01-01) was a Thursday. */
-export const weekdayOf = (day: number) => (day + 4) % 7;
+const weekdayOf = (day: number) => (day + 4) % 7;
 /** The last Friday on or before `day`: Discover Weekly turns over then. */
-export const lastFriday = (day: number) => day - ((weekdayOf(day) - 5 + 7) % 7);
+const lastFriday = (day: number) => day - ((weekdayOf(day) - 5 + 7) % 7);
 
-/** A small seeded PRNG, so a day's mixes are the same on every device and every reload. */
+/** Seeded, so a day's mixes are the same on every device and every reload. */
 export function seeded(seed: string): () => number {
   let h = 2166136261;
   for (const char of seed) h = Math.imul(h ^ char.charCodeAt(0), 16777619);
@@ -77,18 +69,15 @@ export const keyOf = (song: { artist?: string; title?: string }) => `${normalize
 
 export interface Listening {
   plays: { song: Song; started: number }[];
-  /** The library by artist (normalized), without songs marked "never in shuffle or radio". */
   byArtist: Map<string, Song[]>;
   counts: Map<string, number>;
-  /** Songs you played, by artist + title. */
   playedKeys: Set<string>;
-  /** artist → artists you play within two hours of them → how often. */
   together: Map<string, Map<string, number>>;
 }
 
 /**
- * What you listen to, matched to the library as it is now. Plays are matched by artist and title, not id: Navidrome
- * gives a song a new id when its file moves (a tagger renaming it), and genre tags are too often missing to group by.
+ * Plays are matched by artist and title, not id: Navidrome gives a song a new id when its file moves,
+ * and genre tags are too often missing to group by.
  */
 export function listening(db: Database, server: string, account: string, now: number): Listening | null {
   const plays = db
@@ -136,7 +125,6 @@ export function listening(db: Database, server: string, account: string, now: nu
   return { plays, byArtist, counts, playedKeys, together };
 }
 
-/** Mostly songs by `artists` you play, the rest theirs you rarely or never play, shuffled. */
 export function blend(l: Listening, artists: string[], size: number, random: () => number): Song[] {
   const pool = artists.flatMap((artist) => l.byArtist.get(artist) ?? []);
   const familiar = shuffle(
@@ -163,10 +151,6 @@ const topNeighbours = (l: Listening, artist: string, count: number) =>
     .slice(0, count)
     .map(([other]) => other);
 
-/**
- * Up to six mixes for the day, like Spotify's daily mixes but only from your library. Each starts from an artist you
- * play a lot and takes in the artists you play around the same time. `day` (days since the epoch) seeds the picks.
- */
 function daily(l: Listening, account: string, day: number): Mix[] {
   const seeds = [...l.counts.entries()]
     .filter(([artist, n]) => n >= MIN_PLAYS && l.byArtist.has(artist))
@@ -176,7 +160,6 @@ function daily(l: Listening, account: string, day: number): Mix[] {
   const mixes: Mix[] = [];
   for (const seed of seeds) {
     if (mixes.length === MIXES) break;
-    // An artist already in an earlier mix doesn't start another one.
     if (used.has(seed)) continue;
     const artists = [seed, ...topNeighbours(l, seed, NEIGHBOURS)];
     for (const artist of artists) used.add(artist);
@@ -190,10 +173,6 @@ function daily(l: Listening, account: string, day: number): Mix[] {
   return mixes;
 }
 
-/**
- * Discover Weekly, new every Friday: songs in your library you've never played, most by artists you play (the ones you
- * play most count most), the rest by artists you've never played at all.
- */
 function discover(l: Listening, account: string, friday: number): Mix | null {
   const random = seeded(`${account}:discover:${friday}`);
   const unplayed = (artist: string) => (l.byArtist.get(artist) ?? []).filter((song) => !l.playedKeys.has(keyOf(song)));
@@ -222,7 +201,6 @@ function discover(l: Listening, account: string, friday: number): Mix | null {
   };
 }
 
-/** Release radar, new every Friday: songs added to the library in the last month by artists you play, newest first. */
 function releaseRadar(l: Listening, now: number): Mix | null {
   const since = now - RADAR_DAYS * DAY;
   const fresh = [...l.byArtist.entries()]
@@ -238,7 +216,6 @@ function releaseRadar(l: Listening, now: number): Mix | null {
   return { id: "release-radar", name: "release radar", description: `new in your library: ${artistNames(l, artists)}`, songs: fresh };
 }
 
-/** What you played around this date a year ago, most played first, as it is in the library now. */
 function onThisDay(db: Database, l: Listening, account: string, now: number): Mix | null {
   const center = now - 365 * DAY;
   const rows = db
@@ -263,10 +240,6 @@ function onThisDay(db: Database, l: Listening, account: string, now: number): Mi
   return { id: "on-this-day", name: "on this day", description: `what you played around ${date} last year`, songs };
 }
 
-/**
- * The daylist: what you tend to play at this time of day (by your local hour), mostly the songs you play then plus some
- * by the same artists you haven't. Changes four times a day.
- */
 function daylist(l: Listening, account: string, day: number, slot: Slot, tzMinutes: number): Mix | null {
   const counts = new Map<string, number>();
   for (const play of l.plays) {
@@ -286,10 +259,7 @@ function daylist(l: Listening, account: string, day: number, slot: Slot, tzMinut
   return { id: "daylist", name: "daylist", description: `${WEEKDAYS[weekdayOf(day)]} ${slot}: ${artistNames(l, artists)}`, songs };
 }
 
-/**
- * Everything made for you right now: up to six daily mixes, Discover Weekly and the daylist. `day` is the browser's
- * local days since the epoch, `hour` its local hour and `tzMinutes` its `getTimezoneOffset()`.
- */
+/** `day` is the browser's local days since the epoch, `hour` its local hour, `tzMinutes` its `getTimezoneOffset()`. */
 export function madeForYou(
   db: Database,
   server: string,
@@ -308,7 +278,6 @@ export function madeForYou(
   ].filter((mix): mix is Mix => mix !== null);
 }
 
-/** Changes whenever made for you would: a play, a sync of the library index, a song marked "never in shuffle". */
 export function mixesVersion(db: Database, server: string, account: string): string {
   const plays = db
     .query<{ count: number; last: number | null }, [string]>("select count(*) as count, max(rowid) as last from plays where account = ?")
@@ -327,7 +296,6 @@ export function mixesVersion(db: Database, server: string, account: string): str
   return Bun.hash(`${plays?.count}:${plays?.last}:${synced}:${never ?? ""}`).toString(36);
 }
 
-/** The daily mixes alone. */
 export function dailyMixes(db: Database, server: string, account: string, day: number, now = Date.now()): Mix[] {
   const l = listening(db, server, account, now);
   return l ? daily(l, account, day) : [];

@@ -39,7 +39,6 @@ test("⌥[ starts a song later and ⌥] ends it early, for good, and the list ma
   const start = prefs[0].trimStart as number;
   expect(start).toBeGreaterThan(10);
 
-  // Played again from the list, it starts at the trim, not at 0:00.
   await page.locator("body").press("n");
   await page
     .getByRole("row", { name: titles[0] as string })
@@ -59,13 +58,11 @@ test("⌥[ starts a song later and ⌥] ends it early, for good, and the list ma
       .getByLabel("trimmed"),
   ).toBeVisible();
 
-  // An end set at the current position moves on to the next song at once.
   await page.locator("body").press("5");
   await page.locator("body").press("Alt+]");
   await expect(page.getByText(new RegExp(`^${titles[0]} now ends at \\d+:\\d\\d$`))).toBeVisible();
   await expect(bar.getByRole("link", { name: titles[1] as string, exact: true })).toBeVisible({ timeout: 5000 });
 
-  // ⌘Z puts the song back as it was.
   await page.locator("body").press("ControlOrMeta+z");
   await expect(page.getByText(/^undid: /)).toBeVisible();
   await reset(page);
@@ -88,11 +85,9 @@ test("hide a song: gone from other lists, still on its album, and settings bring
   await page.getByRole("menu").getByRole("menuitem", { name: "hide song" }).click();
   await expect(page.getByRole("row", { name: hideTitle })).toHaveCount(0);
 
-  // Still on its album, marked.
   await page.goto("/album/al-32");
   await expect(page.getByRole("row", { name: hideTitle }).first().getByLabel("hidden")).toBeVisible();
 
-  // The "never" flag shows on its own row too.
   await page
     .getByRole("row", { name: titles[2] as string })
     .first()
@@ -117,7 +112,6 @@ test("hide a song: gone from other lists, still on its album, and settings bring
     .click();
   await expect(page.getByText(/nothing set/)).toBeVisible();
 
-  // Back on the liked songs it shows again; then leave the account as it was.
   await page.goto("/liked");
   await expect(page.getByRole("row", { name: hideTitle }).first()).toBeVisible();
   await page.getByRole("row", { name: hideTitle }).first().click({ button: "right" });

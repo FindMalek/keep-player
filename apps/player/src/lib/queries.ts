@@ -7,12 +7,8 @@ import type { Album, Artist, ArtistInfo, Directory, Genre, Playlist, Song } from
 
 const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
-/** How long a persisted cache is trusted at all; each query still revalidates per its staleTime. */
 export const CACHE_MAX_AGE = 7 * 24 * HOUR;
-/**
- * Bump when cached shapes change. Accounts are kept apart by clearing the cache whenever the account changes (below),
- * not by this: it's read once at startup, before login.
- */
+// Bump when cached shapes change. Accounts are kept apart by clearing the cache on account change, not by this.
 export const CACHE_VERSION = "1";
 
 export const queryClient = new QueryClient({
@@ -21,22 +17,19 @@ export const queryClient = new QueryClient({
   },
 });
 
-/** The cache survives reloads in IndexedDB; on a cold start pages render from it and revalidate in the background. */
 export const persister = createAsyncStoragePersister({
   storage: { getItem: get, setItem: set, removeItem: del },
   key: "keep-player:cache",
   throttleTime: 1000,
 });
 
-/** Search results change with every keystroke, and offsets, history and moments change in other browsers: none is kept across reloads. */
 export const shouldPersist = (query: Query) =>
   query.state.status === "success" &&
   !["search", "lyricsSearch", "lyricsOffset", "session", "searchIndex", "history", "playlistHidden", "moments"].includes(
     query.queryKey[0] as string,
   );
 
-/** Long lists load this many items at a time, the next page fetched when the reader is 80% down. */
-export const PAGE_SIZE = 200;
+const PAGE_SIZE = 200;
 const ALL_SONGS_PAGE = 500;
 
 export interface IndexEntry {
@@ -44,10 +37,6 @@ export interface IndexEntry {
   artist: { id: string; name: string }[];
 }
 
-/**
- * Every query the app makes, with its key and freshness. Detail pages rarely change (1 h), lists a bit more (5 min),
- * playlists are edited from other clients (30 s), lyrics never change.
- */
 export const queries = {
   albumList: (type: string, size: number, extra: Record<string, string | number> = {}) =>
     queryOptions({
@@ -83,7 +72,6 @@ export const queries = {
       initialPageParam: 0,
       getNextPageParam: (last, _pages, offset) => (last.length === PAGE_SIZE ? offset + PAGE_SIZE : undefined),
     }),
-  /** Every song at once, for sorts Subsonic can't do server-side (the songs page loads it only once a sort is picked). */
   allSongs: () =>
     queryOptions({
       queryKey: ["allSongs"],
@@ -103,7 +91,6 @@ export const queries = {
         }
       },
     }),
-  /** Library size, for headers before the lists finish loading. Albums are summed from the (cached) artist index. */
   totals: () =>
     queryOptions({
       queryKey: ["totals"],
@@ -169,7 +156,6 @@ export const queries = {
       queryFn: () => api<{ genres: { genre?: Genre[] } }>("getGenres").then((response) => response.genres.genre ?? []),
       staleTime: HOUR,
     }),
-  /** Everything you liked (getStarred2), newest first per kind as Navidrome returns it. */
   starred: () =>
     queryOptions({
       queryKey: ["starred"],
@@ -185,16 +171,13 @@ export const queries = {
     queryOptions({
       queryKey: ["playlists"],
       queryFn: () => api<{ playlists: { playlist?: Playlist[] } }>("getPlaylists").then((response) => response.playlists.playlist ?? []),
-      // Edited from every device: painted from cache, checked again when shown anew after 30 s. Not 0: the sidebar
-      // always shows it, so every alt-tab refetched it.
+      // Not 0: the sidebar always shows it, so every alt-tab refetched it.
       staleTime: 30_000,
     }),
   playlist: (id: string) =>
     queryOptions({
       queryKey: ["playlist", id],
       queryFn: () => api<{ playlist: Playlist }>("getPlaylist", { id }).then((response) => response.playlist),
-      // Edited here and on other devices: shown from cache at once, checked when the page opens after 30 s. Edits made
-      // here read it fresh (playlists.ts) and update the cache themselves.
       staleTime: 30_000,
     }),
   folders: () =>
@@ -222,7 +205,6 @@ export const queries = {
     }),
 };
 
-/** Warm the data a link leads to, so the click shows a finished page. */
 export function prefetchPath(path: string): void {
   const [, section, raw] = path.split("/");
   const id = raw ? decodeURIComponent(raw) : "";
@@ -237,16 +219,10 @@ export function prefetchPath(path: string): void {
   if (section === "folders") void queryClient.prefetchQuery(queries.directory(id));
 }
 
-/**
- * The home page's rows (24 each, `SHELF_SIZE` in browse.tsx), requested as soon as we know who is signed in: the page's
- * code is still downloading then, and waiting for it to render would start the lists (and so the first covers) several
- * hundred milliseconds later.
- */
 export function prefetchHome(): void {
   for (const type of ["newest", "recent", "frequent", "random"] as const) void queryClient.prefetchQuery(queries.albumList(type, 24));
 }
 
-// Logout or a different account: forget everything the previous one loaded, in memory and on disk.
 onAccountChange(async () => {
   queryClient.clear();
   await persister.removeClient();
