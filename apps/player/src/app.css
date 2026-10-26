@@ -17,7 +17,7 @@
     @apply font-sans antialiased;
   }
   body {
-    @apply text-[13px] leading-[1.4];
+    @apply text-body leading-[1.4];
   }
 }
 

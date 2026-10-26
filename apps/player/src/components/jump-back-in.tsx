@@ -29,7 +29,7 @@ export function JumpBackIn() {
               <Cover id={source.coverArt ?? ""} size={48} className="size-12 shrink-0" />
               <span className="flex min-w-0 flex-1 flex-col">
                 <span className="truncate text-sm">{source.name}</span>
-                <span className="font-mono text-[10.5px] text-muted-foreground">{source.kind}</span>
+                <span className="font-mono text-label text-muted-foreground">{source.kind}</span>
               </span>
               {source.href === playingHref && <Equalizer playing={playing} />}
             </Link>

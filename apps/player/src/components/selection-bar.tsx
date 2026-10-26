@@ -59,7 +59,7 @@ export function SelectionBar({
         </DropdownMenuTrigger>
         <DropdownMenuContent side="top" className="max-h-80 min-w-52 overflow-y-auto">
           <DropdownMenuGroup>
-            <DropdownMenuLabel className="font-mono text-[10.5px] text-faint">add to</DropdownMenuLabel>
+            <DropdownMenuLabel className="font-mono text-label text-faint">add to</DropdownMenuLabel>
             <DropdownMenuItem onClick={() => openPlaylistDialog({ kind: "new", songs })}>
               <PlusIcon /> new playlist…
             </DropdownMenuItem>

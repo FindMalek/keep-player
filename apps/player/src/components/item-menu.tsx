@@ -97,7 +97,7 @@ export function ItemActions({ target }: { target: MenuTarget }) {
     <>
       {count && (
         <DropdownMenuGroup>
-          <DropdownMenuLabel className="font-mono text-[10.5px] text-faint">{count}</DropdownMenuLabel>
+          <DropdownMenuLabel className="font-mono text-label text-faint">{count}</DropdownMenuLabel>
         </DropdownMenuGroup>
       )}
       <DropdownMenuItem onClick={run(async () => player.play(await songsOf(target), 0, { album, source }))}>

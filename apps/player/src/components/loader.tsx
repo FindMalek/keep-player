@@ -6,13 +6,13 @@ const BARS = [0.4, 0.7, 1, 0.7, 0.4] as const;
 // One of the two things in the app that still move.
 export function Loader({ className, label = "loading" }: { className?: string; label?: string }) {
   return (
-    <span role="status" aria-label={label} className={cn("inline-flex size-4 items-center justify-center gap-[2px]", className)}>
+    <span role="status" aria-label={label} className={cn("inline-flex size-4 items-center justify-center gap-0.5", className)}>
       {BARS.map((height, index) => (
         <span
           // biome-ignore lint/suspicious/noArrayIndexKey: fixed list
           key={index}
           aria-hidden
-          className="w-[2px] origin-center animate-wave bg-current"
+          className="w-0.5 origin-center animate-wave bg-current"
           style={{ height: `${height * 100}%`, animationDelay: `${Math.abs(index - 2) * -140}ms` }}
         />
       ))}

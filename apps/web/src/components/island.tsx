@@ -19,7 +19,7 @@ function Bars({ playing, className }: { playing: boolean; className?: string }) 
         <span
           // biome-ignore lint/suspicious/noArrayIndexKey: four fixed bars
           key={index}
-          className="island-bar w-[3px] bg-white"
+          className="island-bar w-0.75 bg-white"
           style={{ animationDuration: `${speed}s`, animationPlayState: playing ? "running" : "paused", borderRadius: 2 }}
         />
       ))}
@@ -61,8 +61,8 @@ export function Island() {
   };
 
   return (
-    <div className="island-screen relative mx-auto h-[230px] w-full max-w-[560px] overflow-hidden border border-b-0 sm:h-[280px]">
-      <div className="absolute inset-x-0 top-0 flex h-7 items-center justify-between px-3 font-mono text-[10px] text-foreground/60">
+    <div className="island-screen relative mx-auto h-57.5 w-full max-w-[560px] overflow-hidden border border-b-0 sm:h-70">
+      <div className="absolute inset-x-0 top-0 flex h-7 items-center justify-between px-3 font-mono text-label text-foreground/60">
         <span>keep music</span>
         <span>{new Date(0, 0, 1, 9, 41).toLocaleTimeString("en", { hour: "numeric", minute: "2-digit" })}</span>
       </div>
@@ -75,7 +75,7 @@ export function Island() {
         // Keyboard too: the show-off toggle would close the island under a focused button.
         onFocusCapture={() => setTouched(true)}
         onMouseLeave={() => setOpen(false)}
-        className="absolute top-0 left-1/2 -translate-x-1/2 overflow-hidden bg-black text-white shadow-[0_8px_30px_rgba(0,0,0,0.5)] transition-[width,height] duration-300 ease-[cubic-bezier(0.3,1.3,0.5,1)]"
+        className="absolute top-0 left-1/2 -translate-x-1/2 overflow-hidden bg-black text-white shadow-float transition-[width,height] duration-300 ease-spring"
         style={{ width: open ? 340 : 236, height: open ? 150 : 32, borderRadius: open ? 26 : "0 0 14px 14px" }}
       >
         {open ? (
@@ -88,7 +88,7 @@ export function Island() {
               </div>
               <Bars playing={playing} />
             </div>
-            <div className="flex items-center gap-2 font-mono text-[10px] text-white/60">
+            <div className="flex items-center gap-2 font-mono text-label text-white/60">
               {clock(position)}
               <span className="h-1 flex-1 bg-white/20" style={{ borderRadius: 2 }}>
                 <span className="block h-full bg-white" style={{ width: `${(position / song.length) * 100}%`, borderRadius: 2 }} />
@@ -119,7 +119,7 @@ export function Island() {
           </button>
         )}
       </div>
-      <p className="absolute inset-x-0 bottom-4 text-center font-mono text-[11px] text-foreground/45">hover the notch</p>
+      <p className="absolute inset-x-0 bottom-4 text-center font-mono text-meta text-foreground/45">hover the notch</p>
     </div>
   );
 }

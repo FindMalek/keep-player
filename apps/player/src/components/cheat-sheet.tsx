@@ -98,7 +98,7 @@ export function CheatSheet({ open, onOpenChange }: { open: boolean; onOpenChange
             if (!items.length) return null;
             return (
               <section key={group} className="mb-4">
-                <h3 className="mb-1.5 font-mono text-[10.5px] text-faint">{title}</h3>
+                <h3 className="mb-1.5 font-mono text-label text-faint">{title}</h3>
                 <ul className="grid grid-cols-1 gap-x-6 sm:grid-cols-2">
                   {items.map((shortcut) => {
                     const custom = bindingsOf(shortcut) !== shortcut.keys;
@@ -106,7 +106,7 @@ export function CheatSheet({ open, onOpenChange }: { open: boolean; onOpenChange
                       <li
                         key={shortcut.id}
                         className={cn(
-                          "group/row flex h-8 items-center justify-between gap-3 border-muted border-b text-[13px]",
+                          "group/row flex h-8 items-center justify-between gap-3 border-muted border-b text-body",
                           !availableNow(shortcut, focusInList) && "text-muted-foreground",
                         )}
                       >
@@ -115,13 +115,13 @@ export function CheatSheet({ open, onOpenChange }: { open: boolean; onOpenChange
                           {recording === shortcut.id ? (
                             <span className="font-mono text-muted-foreground text-xs">press keys… (esc)</span>
                           ) : shortcut.id === "jump-0" ? (
-                            <span className="flex items-center gap-1 font-mono text-[10.5px] text-faint">
+                            <span className="flex items-center gap-1 font-mono text-label text-faint">
                               <KeyCombo binding="0" /> … <KeyCombo binding="9" />
                             </span>
                           ) : (
                             bindingsOf(shortcut).map((binding, index) => (
                               <span key={binding} className="flex items-center gap-1.5">
-                                {index > 0 && <span className="font-mono text-[10.5px] text-faint">or</span>}
+                                {index > 0 && <span className="font-mono text-label text-faint">or</span>}
                                 <KeyCombo binding={binding} />
                               </span>
                             ))

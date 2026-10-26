@@ -10,7 +10,7 @@ export function KeyCombo({ binding, className }: { binding: string; className?: 
     <span className={cn("inline-flex items-center gap-1", className)}>
       {steps.map((step, index) => (
         <Fragment key={step.join("+")}>
-          {index > 0 && <span className="font-mono text-[10.5px] text-faint">then</span>}
+          {index > 0 && <span className="font-mono text-label text-faint">then</span>}
           <KbdGroup>
             {step.map((key) => (
               <Kbd key={key} className="font-mono">

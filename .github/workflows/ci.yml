@@ -33,6 +33,7 @@ jobs:
       - run: bunx biome ci .
       - run: bunx knip
       - run: bunx oxlint
+      - run: cd packages/ui && bun run cn-tables && git diff --exit-code src/lib/cn-tables.ts
       - run: bun run colors
       - run: bun run test
       - run: bun run size

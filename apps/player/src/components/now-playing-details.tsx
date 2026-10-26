@@ -39,7 +39,7 @@ export function CoverDetails({ song }: { song: Song }) {
   return (
     <HoverCard>
       <HoverCardTrigger delay={400} render={<span className="shrink-0" />}>
-        <Cover id={song.coverArt} size={42} className="size-[42px] shrink-0" priority />
+        <Cover id={song.coverArt} size={42} className="size-10.5 shrink-0" priority />
       </HoverCardTrigger>
       <HoverCardContent side="top" align="start">
         <SongDetails song={song} />

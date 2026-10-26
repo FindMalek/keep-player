@@ -90,15 +90,15 @@ function Hero({
       </StickyBar>
       <header
         ref={setHeader}
-        className="relative isolate flex flex-wrap items-start gap-x-5 gap-y-3 border-b px-5 pt-[18px] pb-4 sm:items-end short:py-3"
+        className="relative isolate flex flex-wrap items-start gap-x-5 gap-y-3 border-b px-5 pt-4.5 pb-4 sm:items-end short:py-3"
       >
         {backdrop && <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden opacity-20">{backdrop}</div>}
         <div className="shrink-0">
-          <Cover id={cover} size={160} className="w-[104px] sm:w-[152px] short:w-[88px]" priority />
+          <Cover id={cover} size={160} className="w-26 sm:w-38 short:w-22" priority />
         </div>
         <div className="flex min-w-0 flex-1 basis-56 flex-col gap-1.5">
           <div className="self-start short:hidden">{kind}</div>
-          <h1 className="font-medium text-[26px] leading-[1.1] tracking-tight [overflow-wrap:anywhere] short:text-xl">
+          <h1 className="font-medium text-title leading-[1.1] tracking-tight [overflow-wrap:anywhere] short:text-xl">
             {titleSlot ?? title}
           </h1>
           <div className="flex flex-col gap-0.5">{children}</div>
@@ -197,7 +197,7 @@ function DetailSkeleton() {
 }
 
 const Kind = ({ children }: { children: ReactNode }) => (
-  <Badge variant="outline" className="border-ring font-mono font-normal text-[10.5px] text-muted-foreground">
+  <Badge variant="outline" className="border-ring font-mono font-normal text-label text-muted-foreground">
     {children}
   </Badge>
 );
@@ -376,7 +376,7 @@ export function ArtistPage({ id }: { id: string }) {
       >
         <span className="text-muted-foreground">{plural(artist.albumCount ?? albums.length, "album")}</span>
         {/* Always three lines tall: the bio arrives after the header, and the header is bottom-aligned to the cover. */}
-        <p className="line-clamp-3 h-[3lh] max-w-[72ch] text-[12.5px] text-muted-foreground">{bio}</p>
+        <p className="line-clamp-3 h-[3lh] max-w-[72ch] text-small text-muted-foreground">{bio}</p>
       </Hero>
       {/* Held open while loading (albums sit below it), so the grid doesn't jump when the top songs arrive. */}
       {(top.isPending || (top.data?.length ?? 0) > 0) && (
@@ -534,7 +534,7 @@ export function PlaylistPage({ id }: { id: string }) {
         kind={
           parts.length > 1 ? (
             <Breadcrumb>
-              <BreadcrumbList className="font-mono text-[10.5px]">
+              <BreadcrumbList className="font-mono text-label">
                 {parts.slice(0, -1).map((part) => (
                   <Fragment key={part}>
                     <BreadcrumbItem>{part}</BreadcrumbItem>
@@ -620,7 +620,7 @@ export function PlaylistPage({ id }: { id: string }) {
           reserve={canEdit(playlist)}
           placeholder="add a description"
           onSave={(comment) => void updatePlaylist(playlist.id, { comment })}
-          className="max-w-[72ch] text-[12.5px] text-muted-foreground"
+          className="max-w-[72ch] text-small text-muted-foreground"
         />
       </Hero>
       <Content>

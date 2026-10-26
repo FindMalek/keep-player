@@ -13,7 +13,7 @@ function CurrentLine({ songId }: { songId: string }) {
   const lines = data?.status === "synced" ? data.lines : null;
   const index = usePosition((seconds) => (lines ? activeLine(lines, seconds * 1000) : -1));
   const text = lines?.[index]?.text;
-  return text ? <span className="max-w-full truncate font-medium text-[12.5px]">{text}</span> : null;
+  return text ? <span className="max-w-full truncate font-medium text-small">{text}</span> : null;
 }
 
 // Fits an always-on-top window at any size: under 90 px tall only title and buttons, 260 px up stacks the cover.

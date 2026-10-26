@@ -84,8 +84,8 @@ const AlbumCard = memo(function AlbumCard({ album, priority = false }: { album: 
     <div className="group/album relative" onDragStart={(event) => startDrag(event, { kind: "album", album })} onDragEnd={endDrag}>
       <Link href={`/album/${album.id}`} className="flex flex-col gap-px">
         <Cover id={album.coverArt} size={180} className="mb-1.5 group-hover/album:[&_img]:opacity-85" priority={priority} />
-        <Truncated text={album.name} className="text-[12.5px]" />
-        <span className="truncate text-[11.5px] text-muted-foreground">
+        <Truncated text={album.name} className="text-small" />
+        <span className="truncate text-meta text-muted-foreground">
           {album.artist}
           {album.year ? ` · ${album.year}` : ""}
         </span>
@@ -114,8 +114,8 @@ export function AlbumGridSkeleton({ count }: { count: number }) {
         // biome-ignore lint/suspicious/noArrayIndexKey: placeholders have no identity
         <div key={index} className="flex flex-col gap-px">
           <Skeleton className="mb-1.5 aspect-square" />
-          <Skeleton className="my-[3px] h-3 w-3/4" />
-          <Skeleton className="my-[3px] h-2.5 w-1/2" />
+          <Skeleton className="my-0.75 h-3 w-3/4" />
+          <Skeleton className="my-0.75 h-2.5 w-1/2" />
         </div>
       ))}
     </div>
@@ -168,7 +168,7 @@ interface TrackListProps {
   asAlbum?: boolean;
 }
 
-const LABEL = "font-mono font-normal text-[10.5px] text-faint";
+const LABEL = "font-mono font-normal text-label text-faint";
 const SUBLINK = "truncate text-muted-foreground hover:text-foreground hover:underline underline-offset-3";
 
 interface TrackRowProps {
@@ -251,7 +251,7 @@ const TrackRow = memo(function TrackRow({
       className={cn(
         "group/row data-drop-target:shadow-[inset_0_2px_0_var(--foreground)] data-hidden:opacity-45 scroll-my-12 border-muted outline-none hover:bg-card focus-visible:bg-card focus-visible:shadow-[inset_2px_0_0_var(--foreground)]",
         // Title over artist needs room above and below, or both lines touch the row edges.
-        showArtist ? "h-11" : "h-[34px]",
+        showArtist ? "h-11" : "h-8.5",
       )}
       onDoubleClick={() => onPlay(index)}
       onClick={(event) => {
@@ -666,7 +666,7 @@ function TrackRows({
         <Table
           role="grid"
           aria-multiselectable="true"
-          className="table-fixed text-[13px]"
+          className="table-fixed text-body"
           aria-label="tracks"
           aria-rowcount={virtual ? items.length + 1 : undefined}
         >

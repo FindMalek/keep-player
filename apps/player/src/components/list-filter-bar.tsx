@@ -26,7 +26,7 @@ export function ListFilterBar({ scope, query, shown, total }: { scope: FilterSco
         className="font-mono text-xs"
       />
       <InputGroupAddon align="inline-end">
-        <InputGroupText className="font-mono text-[11px] tabular-nums">{query ? `${shown} of ${total}` : total}</InputGroupText>
+        <InputGroupText className="font-mono text-meta tabular-nums">{query ? `${shown} of ${total}` : total}</InputGroupText>
         <Hint label="close the filter" keys={["esc"]}>
           <InputGroupButton size="icon-xs" aria-label="close the filter" onClick={() => closeListFilter(scope)}>
             <XIcon />

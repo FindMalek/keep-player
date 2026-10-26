@@ -40,8 +40,8 @@ export function AlbumRows({ albums, onNearEnd }: { albums: Album[]; onNearEnd?: 
               style={{ height: ROW, transform: `translateY(${item.start - virtualizer.options.scrollMargin}px)` }}
             >
               <Cover id={album.coverArt} size={32} alt="" className="size-8 shrink-0" />
-              <span className="min-w-0 flex-1 truncate text-[12.5px]">{album.name}</span>
-              <span className="hidden w-48 shrink-0 truncate text-[12px] text-muted-foreground sm:block">{album.artist}</span>
+              <span className="min-w-0 flex-1 truncate text-small">{album.name}</span>
+              <span className="hidden w-48 shrink-0 truncate text-xs text-muted-foreground sm:block">{album.artist}</span>
               <span className="w-10 shrink-0 text-right font-mono text-muted-foreground text-xs tabular-nums">{album.year ?? ""}</span>
               <span className="hidden w-16 shrink-0 text-right font-mono text-muted-foreground text-xs tabular-nums md:block">
                 {album.songCount ? `${album.songCount} tr` : ""}
