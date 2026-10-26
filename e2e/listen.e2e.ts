@@ -31,11 +31,9 @@ test("a listener follows the host: same song and play state, and hears when the 
   const guestBar = other.getByRole("contentinfo");
   await expect(guestBar.getByRole("button", { name: "pause" })).toBeVisible({ timeout: 10_000 });
 
-  // Pausing the host pauses the listener.
   await hostBar.getByRole("button", { name: "pause" }).click();
   await expect(guestBar.getByRole("button", { name: "play", exact: true })).toBeVisible({ timeout: 10_000 });
 
-  // Ending the session tells the listener.
   await page.goto("/listen");
   await page.getByRole("button", { name: "end session" }).click();
   await expect(other.getByText("the host ended the session")).toBeVisible();

@@ -1,10 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { type ClientMessage, type HostState, type Member, parseClientMessage, type ServerMessage } from "@keep/shared/listen";
 
-/*
- * Listen-together rooms (#65), in memory: a room dies with the process or when its host ends it or stays away. A room is
- * only joinable from the same Navidrome server, and only by someone with a session there.
- */
+// In memory: a room dies with the process, or when its host ends it or stays away.
 
 export interface Peer {
   /** The browser session id: one host per room, however many tabs. */
@@ -38,7 +35,6 @@ export class ListenRooms {
     private grace = HOST_GRACE_MS,
   ) {}
 
-  /** A new room hosted by this session; null when the server is full. */
   create(server: string, hostSession: string, anyoneCanSkip = false, partyMode = false): string | null {
     if (this.rooms.size >= MAX_ROOMS) return null;
     const bytes = randomBytes(6);
@@ -51,7 +47,6 @@ export class ListenRooms {
     return this.rooms.has(code);
   }
 
-  /** Connect a peer. False when the room doesn't exist or belongs to another server. */
   join(code: string, peer: Peer): boolean {
     const room = this.rooms.get(code);
     if (!room || room.server !== peer.server) return false;

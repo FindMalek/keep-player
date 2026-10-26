@@ -1,9 +1,6 @@
 import type { Lyrics } from "@keep/shared/lyrics";
 
-/*
- * The now-playing remote (#193): what a terminal (the Claude Code / OpenCode mod) shows and controls. It signs in with
- * a token made in the player's settings, a session of its own that the sessions list can sign out.
- */
+// The terminal's token is a session of its own, so the sessions list can sign it out.
 
 export interface RemoteSong {
   id: string;
@@ -18,11 +15,8 @@ export interface RemoteNow {
   /** Seconds in; null when only Navidrome's now-playing knows the song (another app plays it). */
   position: number | null;
   playing: boolean;
-  /** "chrome on mac", "Arpeggi" */
   device: string | null;
-  /** The synced lyric line at `position`. */
   line: string | null;
-  /** Play/pause and skipping reach the device: it is one of the player's own. */
   controllable: boolean;
 }
 
@@ -36,7 +30,6 @@ export const remoteSong = (song: RemoteSong): RemoteSong => ({
   ...(song.duration ? { duration: song.duration } : {}),
 });
 
-/** The synced line sung at `seconds` (with this user's nudge in ms); null between lines, or with no synced lyrics. */
 export function lineAt(lyrics: Lyrics, seconds: number, offsetMs = 0): string | null {
   if (lyrics.status !== "synced") return null;
   const at = seconds * 1000 + offsetMs;

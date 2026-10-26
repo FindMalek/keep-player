@@ -45,7 +45,6 @@ export function Aura({ id, songs, className }: { id: string; songs: AuraSong[]; 
   return <canvas ref={canvas} aria-hidden className={className} style={{ filter: `blur(${(blurPixels(params, 1) * 2).toFixed(1)}px)` }} />;
 }
 
-/** Download the still aura as a square PNG, for a playlist cover that shows up in other Subsonic apps too. */
 export function exportAura(id: string, songs: AuraSong[], name: string, size = 1024): void {
   const target = document.createElement("canvas");
   target.width = size;

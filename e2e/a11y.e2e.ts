@@ -24,7 +24,6 @@ async function violations(page: Page, options: { popupOpen?: boolean } = {}): Pr
   await page.waitForFunction(() =>
     document
       .getAnimations()
-      // The playing equalizer loops forever; only wait for animations that end.
       .filter((animation) => animation.effect?.getTiming().iterations !== Number.POSITIVE_INFINITY)
       .every((animation) => animation.playState !== "running"),
   );

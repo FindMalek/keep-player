@@ -35,9 +35,7 @@ function ArtistPreview({ id, name }: { id: string; name: string }) {
   );
 }
 
-/** An artist link with a hover card: a few lines of bio and their top track, one click to play it. */
 export function ArtistCard({ id, name, children }: { id: string; name?: string; children: ReactElement }) {
-  // No name, nothing to look up: just the link.
   if (!name) return children;
   return (
     <HoverCard>

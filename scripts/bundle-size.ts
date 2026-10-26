@@ -1,17 +1,8 @@
 import { gzipSync } from "node:zlib";
 import tailwind from "bun-plugin-tailwind";
 
-/**
- * Fails when the JS and CSS the first screen needs grow past the budget (gzipped KB). Lazy chunks (⌘K, later pages)
- * are reported but not budgeted. Tighten as the app gets faster, never loosen without saying why in the PR.
- */
-// React DOM alone is ~62 KB, TanStack Query + its IndexedDB persistence ~13 KB (#18), the playback engine (queue model,
-// two-deck gapless, resilience) a few more; the rest is Base UI (sidebar tooltips need floating-ui on the first screen)
-// and the app. Lighthouse ≥ 93 (e2e/lighthouse.e2e.ts) is the real gate.
-// Tooltips (Base UI + floating-ui, ~28 KB) load after the first screen since #99, hence 175 → 155.
-// 155 → 160 with #119: nine features landed in one stretch (undo, drag and drop, stats, lyrics, radio, moments, settings),
-// each adding its shortcuts, route table entry and a little shared code to the first screen: 151.5 → 155.3 KB in all.
-// Everything big stays lazy (charts, recap, radio controls, the pages); Lighthouse (e2e) still gates the real speed.
+// Fails when the first screen's gzipped JS and CSS grow past the budget; lazy chunks aren't budgeted. Never loosen
+// without saying why in the PR (#99 lazy tooltips 175 → 155, #119 nine features 155 → 160).
 const BUDGET_KB = { js: 160, css: 30 };
 
 const result = await Bun.build({

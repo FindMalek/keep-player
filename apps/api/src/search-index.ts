@@ -4,11 +4,7 @@ import type { IndexStatus } from "@keep/shared/search";
 import type { Upstream } from "./config";
 import { type Credentials, subsonic } from "./subsonic";
 
-/*
- * The library search index, in library.db. Navidrome's search is a word prefix match; this adds typo tolerance,
- * substrings ("okcomputer"), accent folding and ranking, and lyrics search on top (#32). Built in the background as
- * the service account, per music folder, so results can be limited to the folders each user may see.
- */
+// Built as the service account per music folder, so results can be limited to the folders each user may see.
 
 const PAGE = 500;
 const CHECK_MS = 5 * 60_000;
@@ -44,7 +40,6 @@ const searchText: Record<Kind, (data: Record<string, unknown>) => string> = {
   artist: (artist) => String(artist.name ?? ""),
 };
 
-/** Index one item (insert or update), in both full-text tables. */
 function put(db: Database, server: string, kind: Kind, folder: string, data: Record<string, unknown>, generation: number): void {
   const name = String(kind === "song" ? data.title : data.name);
   const text = normalize(searchText[kind](data));
@@ -72,10 +67,6 @@ function setMeta(db: Database, key: string, value: string): void {
 
 type Item = Record<string, unknown>;
 
-/**
- * Keeps one server's index in step with Navidrome: a full pass after each library scan (cheap: a few hundred pages
- * of `search3` even for big libraries) and at least once a day, which also drops whatever was deleted.
- */
 export class IndexSync {
   private building = false;
   private timer: ReturnType<typeof setTimeout> | undefined;
@@ -123,7 +114,6 @@ export class IndexSync {
     };
   }
 
-  /** Rebuild when Navidrome scanned since the last pass, or that pass is a day old. */
   async check(): Promise<void> {
     const credentials = this.account();
     if (!credentials) return;
@@ -135,7 +125,6 @@ export class IndexSync {
     if (await this.rebuild()) setMeta(this.db, this.key("last-scan"), lastScan);
   }
 
-  /** Page through every folder's songs, albums and artists; whatever this pass didn't see is deleted. */
   async rebuild(): Promise<boolean> {
     const credentials = this.account();
     if (!credentials || this.building) return false;
@@ -189,13 +178,11 @@ export class IndexSync {
 export interface Hit {
   kind: Kind;
   id: string;
-  /** Lower is better: 0 exact, 1 prefix, 2 words, 3 typo-tolerant. */
   tier: number;
   score: number;
   data: Item;
 }
 
-/** Free text as an FTS5 query matching every word as a prefix: `"ok"* "comp"*`. */
 function wordsQuery(query: string): string {
   return query
     .split(" ")
@@ -206,10 +193,6 @@ function wordsQuery(query: string): string {
 
 type Row = { id: string; folder: string; name: string; data: string; plays: number };
 
-/**
- * Ranked matches of one kind on one server: exact name, then name prefix, then every word (bm25), then typo-tolerant
- * trigram similarity; plays break ties. `folders` limits results to the music folders the user may see.
- */
 export function queryIndex(db: Database, server: string, text: string, kind: Kind, limit: number, folders: string[] | null): Hit[] {
   const query = normalize(text);
   if (!query) return [];
@@ -226,7 +209,6 @@ export function queryIndex(db: Database, server: string, text: string, kind: Kin
     add(row, 0, 0);
   for (const row of db
     .query<Row, [string, Kind, string]>(`select ${columns} from idx_items i where server = ? and kind = ? and norm like ? limit 100`)
-    // Normalized text is letters, digits and spaces only, so nothing to escape.
     .all(server, kind, `${query}%`))
     add(row, 1, 0);
   for (const row of db
@@ -237,7 +219,6 @@ export function queryIndex(db: Database, server: string, text: string, kind: Kin
     .all(wordsQuery(query), server, kind))
     add(row, 2, row.rank);
 
-  // Typos: anything sharing a trigram with the query, kept when it has most of the query's trigrams.
   const compact = query.replace(/\s+/g, "");
   if (hits.size < limit && compact.length >= 3) {
     const grams = new Set<string>();
@@ -249,7 +230,6 @@ export function queryIndex(db: Database, server: string, text: string, kind: Kin
          where fts_trigram match ? and i.server = ? and i.kind = ? order by f.rank limit 300`,
       )
       .all(match, server, kind)) {
-      // Against everything indexed (title, artist, album), so "radiohed" finds Radiohead's songs too.
       const score = similarity(query, row.text);
       if (score >= 0.5) add(row, 3, -score);
     }

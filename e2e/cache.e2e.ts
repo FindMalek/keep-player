@@ -11,14 +11,12 @@ async function slowApi(page: Page): Promise<void> {
 
 test("hovering an album prefetches it, and back to home needs no network", async ({ page, signedIn }) => {
   await expect(signedIn.locator('a[href^="/album/"]').first()).toBeVisible();
-  // One exact album, so the link clicked is the link hovered even if the grid re-renders in between.
   const href = (await page.locator('a[href^="/album/"]').first().getAttribute("href")) ?? "";
   const id = href.split("/").pop() ?? "";
   const link = page.locator(`a[href="${href}"]`).first();
   // Listen before hovering: a fast prefetch can finish before a later listener starts.
   const prefetched = page.waitForResponse((response) => response.url().includes("/rest/getAlbum?") && response.url().includes(`id=${id}`));
   await link.hover();
-  // Wait for the whole prefetch (not just its headers) before the server slows down.
   await (await prefetched).finished();
   await slowApi(page);
   await link.click();
@@ -38,14 +36,11 @@ test("a reload paints the library from IndexedDB before the server answers", asy
 
 test("logging out deletes the persisted cache", async ({ page, signedIn }) => {
   await expect(signedIn.locator('a[href^="/album/"]').first()).toBeVisible();
-  // Number of queries in the persisted cache (the persister may leave an empty snapshot behind).
-  // -1 while a navigation (logout reloads the page) is in the way; the poll just tries again.
   const cached = () =>
     page
       .evaluate(
         () =>
           new Promise<number>((resolve) => {
-            // idb-keyval's default database and store.
             const open = indexedDB.open("keyval-store");
             open.onsuccess = () => {
               const request = open.result.transaction("keyval").objectStore("keyval").get("keep-player:cache");

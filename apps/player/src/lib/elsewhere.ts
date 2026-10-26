@@ -7,15 +7,10 @@ import { getSetting } from "./settings";
 import { api, CLIENT_NAME, getUser } from "./subsonic";
 import type { Song } from "./types";
 
-/*
- * Your other devices: Navidrome's getNowPlaying, polled every 30 s while this tab is in front. Another client of
- * yours playing something shows in the sidebar (with the queue hand-off one click away), and starting playback here
- * while it plays gets a one-line heads-up. Subsonic can't pause another device, so it stays informational.
- */
+// Subsonic can't pause another device, so this stays informational.
 
 export interface Elsewhere {
   song: Song;
-  /** The client's name: "Arpeggi", or another browser of ours. */
   device: string;
 }
 
@@ -31,7 +26,6 @@ function set(next: Elsewhere[]): void {
   courtesy();
 }
 
-/** Once per stretch of playing here: say so when another device of yours plays too, whichever started first. */
 let hinted = false;
 function courtesy(): void {
   // A remote's "playing" is the other device's, and that one is in the same session, not competing.
@@ -49,7 +43,6 @@ export function deviceName(client: string): string {
 
 type Entry = Song & { username?: string; playerName?: string; minutesAgo?: number };
 
-/** The last answer, kept so the list can be redone when the session connects. */
 let entries: Entry[] = [];
 
 function refresh(): void {
@@ -57,7 +50,6 @@ function refresh(): void {
   set(
     entries
       .filter((entry) => entry.username === me && entry.playerName !== CLIENT_NAME && stillPlaying(entry))
-      // Our other tabs are in the device picker when they share the session.
       .filter((entry) => !(sessionState.get().connected && entry.playerName?.startsWith("keep-player@")))
       // Another app (your phone) before another browser of ours: the more useful one to show.
       .sort((a, b) => Number(a.playerName?.startsWith("keep-player@")) - Number(b.playerName?.startsWith("keep-player@")))

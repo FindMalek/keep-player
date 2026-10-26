@@ -4,16 +4,11 @@ import type { Upstream } from "./config";
 import { type NewPlay, recordPlay } from "./history";
 import { subsonic } from "./subsonic";
 
-/*
- * Demo history (`DEMO_SEED=on`, used by PR previews): months of believable listening for the demo account, so Stats,
- * History and the recap have something to show. Generated from the demo library's own songs and deterministic, so
- * previews, screenshots and the README all see the same history. Only fills an account that has no plays yet.
- */
+// `DEMO_SEED=on` (PR previews): deterministic, so previews, screenshots and the README see the same history.
 
 const DAY = 86_400_000;
 type Song = { id: string; duration?: number } & Record<string, unknown>;
 
-/** A small seeded generator (mulberry32). */
 function random(seed: number): () => number {
   let value = seed;
   return () => {
@@ -24,10 +19,6 @@ function random(seed: number): () => number {
   };
 }
 
-/**
- * Plays over the last `days` days ending at `now`: a few favourites heard a lot, a long tail heard once or twice,
- * busier evenings and weekends, some skips and some songs left halfway.
- */
 export function generatePlays(songs: Song[], now: number, days = 180, seed = 7): NewPlay[] {
   if (songs.length === 0) return [];
   const next = random(seed);
@@ -47,9 +38,7 @@ export function generatePlays(songs: Song[], now: number, days = 180, seed = 7):
   for (let back = days; back >= 0; back -= 1) {
     const day = new Date(now - back * DAY);
     const weekend = day.getUTCDay() === 0 || day.getUTCDay() === 6;
-    // Some days are silent; the rest range from a handful of songs to a long evening.
     const count = next() < 0.15 ? 0 : Math.floor(next() * (weekend ? 34 : 22));
-    // Listening clusters in two sessions: the commute and the evening.
     const sessions = [8.5 + next() * 1.5, 19 + next() * 3];
     for (let i = 0; i < count; i += 1) {
       const song = pick();
@@ -66,7 +55,6 @@ export function generatePlays(songs: Song[], now: number, days = 180, seed = 7):
   return plays;
 }
 
-/** Inserts the generated history, unless the account already has plays. Returns how many were written. */
 export function seedHistory(db: Database, account: string, songs: Song[], now = Date.now()): number {
   const existing = db.query<{ n: number }, [string]>("select count(*) as n from plays where account = ?").get(account)?.n ?? 0;
   if (existing > 0) return 0;
@@ -77,7 +65,6 @@ export function seedHistory(db: Database, account: string, songs: Song[], now = 
   return plays.length;
 }
 
-/** Every song of the upstream's library, via its albums. Empty while Navidrome isn't ready. */
 export async function demoSongs(upstream: Upstream, user: string, password: string): Promise<Song[]> {
   const salt = randomBytes(8).toString("hex");
   const credentials = {

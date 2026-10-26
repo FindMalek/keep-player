@@ -4,7 +4,6 @@ import { defineConfig, devices } from "@playwright/test";
 const OFFSET = Number(process.env.E2E_PORT_OFFSET ?? 0);
 const APP = 4580 + OFFSET;
 const MOCK = 4599 + OFFSET;
-// Tests that call the mock directly read it from here (workers inherit the env).
 process.env.E2E_MOCK_URL = `http://127.0.0.1:${MOCK}`;
 
 export default defineConfig({
@@ -17,7 +16,6 @@ export default defineConfig({
   use: { baseURL: `http://127.0.0.1:${APP}`, trace: "retain-on-failure" },
   projects: [
     { name: "chromium", testIgnore: /lighthouse|webkit/, use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 } } },
-    // Safari's engine, signed in: the app must render there too (it once threw on a missing requestIdleCallback).
     { name: "webkit", testMatch: /webkit/, use: { ...devices["Desktop Safari"], viewport: { width: 1440, height: 900 } } },
     // Alone and last: a busy CPU from parallel tests would skew the score.
     { name: "lighthouse", testMatch: /lighthouse/, dependencies: ["chromium"] },
@@ -29,7 +27,6 @@ export default defineConfig({
       env: { MOCK_PORT: String(MOCK) },
     },
     {
-      // The real artifact: the compiled executable with the bundled, minified, code-split app.
       command: "bun scripts/build.ts && ./dist/keep-player",
       url: `http://127.0.0.1:${APP}/healthz`,
       env: {

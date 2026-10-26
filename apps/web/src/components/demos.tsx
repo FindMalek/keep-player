@@ -26,7 +26,6 @@ const LINES = [
   "so play it once again for me",
 ];
 
-/** The lyrics panel: the line being sung stands out, the rest stay quiet, the view follows along. */
 export function LyricsDemo() {
   const active = (useTick(2200) ?? 1) % LINES.length;
   return (
@@ -59,7 +58,6 @@ const RESULTS = [
   { title: "Planet Caravan", sub: "Pantera · 1994", art: 5 },
 ];
 
-/** ⌘K typing a filter query, the results arriving as it types. */
 export function PaletteDemo() {
   const tick = useTick(110);
   const cycle = tick === null ? QUERY.length : tick % (QUERY.length + 30);

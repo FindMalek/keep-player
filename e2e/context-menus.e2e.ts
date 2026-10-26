@@ -70,7 +70,6 @@ test("drag songs onto a sidebar playlist, onto the player bar to play next, and 
   await page.goto("/album/al-3");
   const titles = await trackTitles(page);
 
-  // Onto the playlist in the sidebar.
   const target = page.getByRole("navigation", { name: "sidebar" }).getByRole("link", { name, exact: true });
   await page
     .getByRole("row", { name: titles[0] as string })
@@ -78,7 +77,6 @@ test("drag songs onto a sidebar playlist, onto the player bar to play next, and 
     .dragTo(target);
   await expect(page.getByText(`added ${titles[0]} to ${name}`)).toBeVisible();
 
-  // Onto the player bar: plays next.
   await page.getByRole("button", { name: "play", exact: true }).first().click();
   await page
     .getByRole("row", { name: titles[4] as string })
@@ -122,7 +120,6 @@ test("on your own playlist, a row dropped onto another takes its place", async (
     .first()
     .dragTo(page.getByRole("row", { name: titles[0] as string }).first());
   await expect.poll(order).toEqual([titles[2], titles[0], titles[1]]);
-  // Saved: the same order after a reload.
   await page.reload();
   await expect.poll(order).toEqual([titles[2], titles[0], titles[1]]);
 });

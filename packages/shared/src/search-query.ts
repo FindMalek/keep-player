@@ -1,4 +1,3 @@
-/** What a search box string asks for: free text plus `key:value` operators, shown as removable chips. */
 export interface ParsedQuery {
   text: string;
   /** `lyrics: words`: only lyrics, everything after the colon is the phrase. */
@@ -17,7 +16,6 @@ export interface Filters {
   format?: string;
   liked?: boolean;
   unplayed?: boolean;
-  /** `moment:note` (songs with a moment whose note matches) or `is:moment` (""): songs you saved a moment in. */
   moment?: string;
 }
 

@@ -1,11 +1,8 @@
 import type { Database } from "bun:sqlite";
 import type { Play } from "@keep/shared/history";
 
-/*
- * Every listen in this app, per user: what played, when, how long you actually listened and whether it was a skip
- * (under 30 s and not finished). Navidrome only counts plays; skips are the better signal for radio and smart
- * shuffle (#55, #56). The song is kept as it was, so history survives a re-tag or a deleted file.
- */
+// Navidrome only counts plays; skips (under 30 s, not finished) are the better signal for radio and shuffle.
+// The song is kept as it was, so history survives a re-tag or a deleted file.
 
 const SKIP_SECONDS = 30;
 
@@ -28,7 +25,6 @@ export interface NewPlay {
   started: number;
   /** Seconds actually listened (seeking ahead doesn't count). */
   listened: number;
-  /** Whether it played to its end. */
   finished: boolean;
 }
 
@@ -45,7 +41,6 @@ export function recordPlay(db: Database, account: string, client: string, play: 
   );
 }
 
-/** Newest first, `limit` plays older than `before` (ms). */
 export function readPlays(db: Database, account: string, before: number, limit: number): Play[] {
   return db
     .query<{ song: string; started: number; listened: number; skipped: number; client: string }, [string, number, number]>(

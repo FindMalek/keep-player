@@ -2,10 +2,7 @@ import type { Database } from "bun:sqlite";
 import { normalize } from "@keep/shared/normalize";
 import { blend, type Listening, type Mix, seeded } from "./mixes";
 
-/*
- * Mood mixes (#57): focus, late night, energy. Once a week Groq sorts the artists you play into those moods (one call
- * per account per week, cached in `meta`); every day each mood is a fresh blend of those artists' songs you own.
- */
+// One Groq call per account per week (cached in `meta`); each day every mood is a fresh blend of your songs.
 
 const MOODS = ["focus", "late night", "energy"] as const;
 type Mood = (typeof MOODS)[number];
@@ -26,10 +23,7 @@ type Moods = Partial<Record<Mood, string[]>>;
 
 export type Groq = { key: string; model: string; url: string };
 
-/**
- * One JSON answer from Groq for a week, cached in `meta` under `${prefix}:${account}:${week}`: asked once a week per
- * account (and again next time only if it failed); the week before is deleted when a new one is stored.
- */
+/** Asked again next time only if it failed; the week before is deleted when a new one is stored. */
 export async function weeklyAnswer<T>(
   db: Database,
   groq: Groq,
@@ -77,7 +71,6 @@ export async function weeklyAnswer<T>(
   return answer;
 }
 
-/** The artists you play most, as the library spells them. */
 export function topArtistNames(l: Listening, limit: number): string[] {
   return [...l.counts.entries()]
     .filter(([artist]) => l.byArtist.has(artist))
@@ -86,7 +79,6 @@ export function topArtistNames(l: Listening, limit: number): string[] {
     .map(([artist]) => l.byArtist.get(artist)?.[0]?.artist ?? artist);
 }
 
-/** Focus, late night and energy for today; none without Groq or enough listening. */
 export async function moodMixes(
   db: Database,
   groq: Groq | null,

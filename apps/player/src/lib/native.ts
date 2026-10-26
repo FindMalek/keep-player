@@ -4,11 +4,6 @@ import { queries, queryClient } from "./queries";
 import * as Q from "./queue";
 import { coverUrl, HEADERS } from "./subsonic";
 
-/*
- * The bridge to the macOS app (apps/macos): inside its web view, what's playing goes to the native side (the notch,
- * the mini player, the menu bar) and its buttons come back here. Anywhere else this does nothing.
- */
-
 interface NowPlaying {
   id: string | null;
   title: string | null;
@@ -45,7 +40,6 @@ async function coverData(id: string | undefined): Promise<string | undefined> {
   return data;
 }
 
-/** The next songs, for the notch's queue. */
 function upcoming(limit = 25) {
   const { queue } = player.getState();
   return [...queue.upNext, ...Q.contextUpcoming(queue)].slice(0, limit).map((entry) => ({
@@ -105,13 +99,11 @@ export function startNativeBridge(): void {
       const entry = [...queue.upNext, ...Q.contextUpcoming(queue)].find((item) => item.uid === uid);
       if (entry) player.jumpTo(entry);
     },
-    /** The app shows bars (the island is up): send the music's levels ~15 times a second while a song plays. */
     levels: (on: boolean) => {
       player
         .levels(on ? (levels) => player.getState().playing && native.postMessage({ levels }) : null)
         .catch((error: unknown) => native.postMessage({ debug: `levels: ${error}` }));
     },
-    /** Synced lines (ms) for the song playing, or plain ones with no times. */
     lyrics: async () => {
       const song = currentSong(player.getState());
       if (!song) return { status: "missing", lines: [] };

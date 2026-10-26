@@ -21,17 +21,14 @@ test("radio from a song: it starts with that song, keeps 10 ahead as it plays, a
   await expect(radio).toContainText(`${titles[0]} radio`);
   const upcoming = panel.getByRole("list", { name: "queue" }).locator("[data-queue-index]");
 
-  // Endless: skipping ahead refills it.
   for (let i = 0; i < 7; i++) await page.locator("body").press("n");
   await expect.poll(async () => (await panel.getByText(/radio$/).count()) > 0).toBe(true);
   await expect.poll(async () => upcoming.count(), { timeout: 10_000 }).toBeGreaterThanOrEqual(10);
 
-  // 👎 skips the song and it never comes back on this station.
   const before = await bar.getByRole("link").first().textContent();
   await radio.getByRole("button", { name: /^not for this station: / }).click();
   await expect(bar.getByRole("link").first()).not.toHaveText(before ?? "");
 
-  // 👍 marks it, the locks toggle, the variety slider is there.
   await radio.getByRole("button", { name: /^more like / }).click();
   await expect(radio.getByRole("button", { name: /^more like / })).toHaveAttribute("aria-pressed", "true");
   await radio.getByRole("button", { name: "artist lock" }).click();

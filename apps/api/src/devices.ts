@@ -1,15 +1,10 @@
 import { type Device, type DeviceCommand, type DeviceServerMessage, type DeviceState, parseDeviceMessage } from "@keep/shared/devices";
 
-/*
- * One playback session per account (#192), in memory. Each open player (a tab, the desktop app) is a device; at most
- * one plays. The last state survives the playing device closing, so another one can pick up where it stopped.
- */
+// At most one device plays; the last state survives it closing, so another can pick up where it stopped.
 
 export interface DevicePeer {
-  /** Stable per tab, so a reload comes back as the same device. */
   id: string;
   name: string;
-  /** The browser session it signed in with: signing that out closes it. */
   session: string;
   send(message: string): void;
   close(): void;
@@ -29,7 +24,6 @@ export class DeviceHub {
 
   constructor(private now: () => number = Date.now) {}
 
-  /** Connect a device of `account` (server + user). False when the account already has too many open. */
   join(account: string, peer: DevicePeer): boolean {
     const entry = this.accounts.get(account) ?? { peers: new Map(), active: null, state: null, stamped: 0 };
     if (!entry.peers.has(peer.id) && entry.peers.size >= MAX_DEVICES) return false;
@@ -90,7 +84,6 @@ export class DeviceHub {
     }
   }
 
-  /** What the account's playing device plays right now, for the now-playing remote; null when nothing does. */
   nowPlaying(account: string): { state: DeviceState; position: number; device: string } | null {
     const entry = this.accounts.get(account);
     const device = entry?.active ? entry.peers.get(entry.active) : undefined;
@@ -98,7 +91,6 @@ export class DeviceHub {
     return { state: entry.state, position: this.position(entry), device: device.name };
   }
 
-  /** A command from outside the browsers (the now-playing remote) for the playing device. False when none plays. */
   command(account: string, command: DeviceCommand): boolean {
     const entry = this.accounts.get(account);
     const device = entry?.active ? entry.peers.get(entry.active) : undefined;
@@ -107,12 +99,10 @@ export class DeviceHub {
     return true;
   }
 
-  /** A signed-out or revoked browser session loses its devices straight away. */
   dropSession(session: string): void {
     for (const entry of this.accounts.values()) for (const peer of entry.peers.values()) if (peer.session === session) peer.close();
   }
 
-  /** Make `id` the playing device; the one before it is told to stop. */
   private activate(entry: Account, id: string): void {
     const before = entry.active ? entry.peers.get(entry.active) : undefined;
     entry.active = id;
@@ -120,7 +110,6 @@ export class DeviceHub {
     this.broadcastDevices(entry);
   }
 
-  /** Where the playhead is now, from the last state and the time since. */
   private position(entry: Account): number {
     if (!entry.state) return 0;
     return entry.state.playing ? entry.state.position + (this.now() - entry.stamped) / 1000 : entry.state.position;

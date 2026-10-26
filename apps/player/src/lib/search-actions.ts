@@ -9,7 +9,6 @@ export type ResultKind = NonNullable<SearchResults["top"]>["kind"];
 
 const source = (query: string) => ({ kind: "search", name: `“${query}”` });
 
-/** Play a result: a song alone, an album in order, an artist's top songs. */
 export async function playResult(kind: ResultKind, item: Record<string, unknown>, query: string): Promise<void> {
   if (kind === "song") return player.play([item as unknown as Song], 0, { source: source(query) });
   if (kind === "album") {
@@ -21,7 +20,6 @@ export async function playResult(kind: ResultKind, item: Record<string, unknown>
   player.play(songs, 0, { source: { kind: "artist", name: artist.name } });
 }
 
-/** Enter on a result: songs play, albums and artists open. */
 export function openResult(kind: ResultKind, item: Record<string, unknown>, query: string): void {
   if (kind === "song") void playResult(kind, item, query);
   else go(`/${kind}/${encodeURIComponent(String(item.id))}`);
@@ -56,7 +54,6 @@ export function recentSearches(): string[] {
   }
 }
 
-/** Remember a search you acted on (most recent first, eight kept). */
 export function rememberSearch(query: string): void {
   const text = query.trim();
   if (!text) return;
@@ -67,7 +64,6 @@ export function rememberSearch(query: string): void {
   }
 }
 
-/** What a right-click on a result acts on. */
 export function resultTarget(kind: ResultKind, item: Record<string, unknown>): MenuTarget {
   if (kind === "song") return { kind: "songs", songs: [item as unknown as Song] };
   if (kind === "album") return { kind: "album", album: item as unknown as Album };

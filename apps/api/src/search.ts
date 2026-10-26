@@ -4,11 +4,9 @@ import type { SearchResults } from "@keep/shared/search";
 import { type Filters, parseQuery } from "@keep/shared/search-query";
 import { type Hit, type Kind, queryIndex } from "./search-index";
 
-/** What the search may show this user: their music folders and the ids they liked. */
 export interface SearchContext {
   folders: string[] | null;
   liked: Set<string>;
-  /** Song id → the notes of this user's moments in it, for `moment:` and `is:moment`. */
   moments?: Map<string, string[]>;
 }
 
@@ -17,7 +15,6 @@ const CANDIDATES = 200;
 const field = (data: Record<string, unknown>, key: string) => normalize(String(data[key] ?? ""));
 const has = (value: string, wanted: string) => value.includes(normalize(wanted));
 
-/** Whether an item passes the operators; fields an item kind doesn't have (an artist's year) don't filter it. */
 function passes(kind: Kind, id: string, data: Record<string, unknown>, filters: Filters, context: SearchContext): boolean {
   const { artist, album, genre, year, format, liked, unplayed, moment } = filters;
   if (liked && !context.liked.has(id)) return false;
@@ -39,7 +36,6 @@ function passes(kind: Kind, id: string, data: Record<string, unknown>, filters: 
   return true;
 }
 
-/** Every item of a kind, most played first, parsed lazily so a filter that matches early stops the read early. */
 function* scan(db: Database, server: string, kind: Kind, folders: string[] | null): Generator<Hit> {
   const rows = db
     .query<{ id: string; folder: string; data: string; plays: number }, [string, Kind]>(
@@ -51,10 +47,7 @@ function* scan(db: Database, server: string, kind: Kind, folders: string[] | nul
       yield { kind, id: row.id, tier: 2, score: -Math.log1p(row.plays), data: JSON.parse(row.data) };
 }
 
-/**
- * One ranked group per kind. Order: an "artist - title" match, then exact, prefix, words and typo matches; inside a
- * tier your likes and plays win. Likes are this user's, so `starred` is replaced with theirs.
- */
+/** Likes are this user's, so `starred` is replaced with theirs. */
 export function search(db: Database, server: string, raw: string, context: SearchContext, limit = 8): SearchResults {
   const query = parseQuery(raw);
   const empty: SearchResults = { top: null, songs: [], albums: [], artists: [], chips: query.chips };

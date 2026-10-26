@@ -133,7 +133,6 @@ export function HomePage() {
   );
 }
 
-/** Pages of an infinite list as one array, plus a callback that loads the next page once (no duplicate requests). */
 export function useAllPages<T>(query: {
   data?: { pages: T[][] };
   hasNextPage: boolean;
@@ -148,7 +147,6 @@ export function useAllPages<T>(query: {
   return { items, loadMore };
 }
 
-/** "Only what I liked" on the albums and artists pages. */
 export function LikedToggle({ pressed, onPressedChange }: { pressed: boolean; onPressedChange: (pressed: boolean) => void }) {
   return (
     <Toggle variant="outline" size="sm" pressed={pressed} onPressedChange={onPressedChange} className="font-mono font-normal">
@@ -259,7 +257,6 @@ export function ArtistsPage() {
   );
 }
 
-/** Right-click an artist: the element carries its id and name. */
 function artistTarget(element: Element): MenuTarget | null {
   const item = element.closest("[data-artist-id]");
   const id = item?.getAttribute("data-artist-id");
@@ -413,7 +410,6 @@ function SortBar<T extends string>({
   );
 }
 
-/** Liked Songs (`g l`): your stars from every client, sortable, filterable with ⌘F, optionally grouped by artist. */
 export function LikedPage() {
   const { data } = useQuery(queries.starred());
   const [sort, setSort] = useState<LikedSort>("added");

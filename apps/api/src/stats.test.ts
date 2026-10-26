@@ -15,7 +15,6 @@ describe("listening stats", () => {
     const db = openLibraryDb(":memory:");
     const play = (id: string, at: number, listened: number, finished = true, artist?: string) =>
       recordPlay(db, "s:u", "", { song: song(id, artist), started: at, listened, finished });
-    // Heard before the range: familiar.
     play("1", NOW - 40 * DAY, 200);
     play("1", NOW - 2 * DAY, 200);
     play("1", NOW - DAY, 200);

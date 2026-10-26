@@ -3,7 +3,6 @@ import { expect, fakeMediaClock, test, trackTitles } from "./fixtures";
 test("once the next tracks are precached, going offline still plays and seeks them", async ({ page, context, signedIn }) => {
   await page.addInitScript(fakeMediaClock);
   await signedIn.goto("/album/al-3");
-  // The service worker controls the page from its first load on.
   await page.evaluate(() => navigator.serviceWorker.ready);
   await page.reload();
   const titles = await trackTitles(page);
@@ -23,7 +22,6 @@ test("once the next tracks are precached, going offline still plays and seeks th
   await page.waitForTimeout(1500);
   await expect(bar.getByRole("button", { name: "retry" })).toHaveCount(0);
   await expect(bar.getByRole("button", { name: "pause" })).toBeVisible();
-  // The bar keeps quiet about it unless you ask; the rows above always say it.
   await expect(bar.getByLabel("saved for offline")).toHaveCount(0);
   expect(await page.locator("[data-slot=audio-player-time][data-type=current]").textContent()).not.toBe("0:00");
 });
@@ -47,14 +45,12 @@ test("close to the end, the next song loads once: the service worker drops its c
     (await (await page.request.get(`${mock}/streams?id=${encodeURIComponent(second)}`)).json()) as { aborted: boolean }[];
 
   await page.getByRole("button", { name: "play", exact: true }).first().click();
-  // Once the first song is buffered, the worker starts on the second (and stalls).
   await expect.poll(async () => (await streams()).length, { timeout: 15_000 }).toBeGreaterThanOrEqual(1);
   // Jump to the last seconds: the deck now loads the second song itself.
   const seek = page.locator("[data-slot=audio-player-seek]");
   const box = await seek.boundingBox();
   if (!box) throw new Error("no seek bar");
   await page.mouse.click(box.x + box.width - 10, box.y + box.height / 2);
-  // The stalled worker download was cancelled, and the deck's own request is the only other one.
   await expect.poll(async () => (await streams())[0]?.aborted, { timeout: 10_000 }).toBe(true);
   await expect.poll(async () => (await streams()).length).toBe(2);
 });

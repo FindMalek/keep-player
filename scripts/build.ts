@@ -3,11 +3,8 @@ import { relative } from "node:path";
 import { brotliCompressSync, constants, gzipSync } from "node:zlib";
 import tailwind from "bun-plugin-tailwind";
 
-/*
- * 1. Bundle the web app (minified, code-split, hashed names) into dist/web and precompress every file (brotli + gzip).
- * 2. Generate apps/api/src/assets.generated.ts, which imports each file `with { type: "file" }` so it gets embedded.
- * 3. Compile the server into one executable, then restore the empty manifest so the working tree stays clean.
- */
+// Bundles and precompresses the web app, embeds it via the generated manifest, compiles one executable,
+// then restores the empty manifest so the working tree stays clean.
 const OUT = "dist/web";
 const MANIFEST = "apps/api/src/assets.generated.ts";
 const define = { "process.env.NODE_ENV": '"production"' };
@@ -29,7 +26,6 @@ const web = await Bun.build({
 });
 if (!web.success) fail(web.logs);
 
-// The service worker, with the shell (index + hashed files + the two preloaded fonts) it should keep for offline.
 const shell = [
   "/",
   ...web.outputs.map((output) => `/${relative(OUT, output.path)}`).filter((url) => /\.(js|css)$/.test(url)),

@@ -52,11 +52,8 @@ function Steps({ stage }: { stage: string }) {
   );
 }
 
-/**
- * Add a song to the library through Lyterion: a link (YouTube, SoundCloud, Deezer) or a name. Shows what it understood
- * before anything downloads, then follows the work step by step and offers to play it. Closing it keeps the work going;
- * a toast says when the song lands.
- */
+// Add a song through Lyterion (a link or a name): shows what it understood before anything downloads.
+// Closing it keeps the work going; a toast says when the song lands.
 export function AddTrack({ initial, onBack, onClose }: { initial: string; onBack: () => void; onClose: () => void }) {
   const [text, setText] = useState(initial);
   const [asked, setAsked] = useState(initial.trim());

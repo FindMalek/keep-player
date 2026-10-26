@@ -20,7 +20,6 @@ interface Mix {
 
 const SAVED_KEY = "keep-player:mixes-saved";
 
-/** The browser's local day and part of it: mixes turn over at your midnight, the daylist four times a day. */
 function now() {
   const date = new Date();
   const tz = date.getTimezoneOffset();
@@ -29,11 +28,8 @@ function now() {
   return { day: Math.floor((date.getTime() - tz * 60_000) / 86_400_000), hour, tz, slot };
 }
 
-/**
- * Everything made for you as real Navidrome playlists ("daily mix 1"…, "discover weekly", "daylist"), replaced in place
- * when they turn over, so the phone and every other client has them too. Doing it twice just writes the same songs.
- * Returns the playlists it had to create, for the sidebar.
- */
+// Mixes are real Navidrome playlists, replaced in place when they turn over, so every client has them too.
+// Doing it twice just writes the same songs.
 async function saveAsPlaylists(stamp: string, mixes: Mix[]): Promise<Playlist[]> {
   try {
     if (localStorage.getItem(SAVED_KEY) === stamp) return [];
@@ -66,20 +62,16 @@ async function saveAsPlaylists(stamp: string, mixes: Mix[]): Promise<Playlist[]>
   return created;
 }
 
-/** "made for you": daily mixes, Discover Weekly and the daylist on the home page; each card opens its playlist. */
 export function MixRow() {
   const { day, hour, tz, slot } = now();
   const { data } = useQuery(
     rpc.mixes.queryOptions({
       input: { day, hour, tz },
-      // An empty answer (no plays yet, or the index still building) is asked again on the next visit, never kept.
       staleTime: (query) => (query.state.data?.mixes.length ? 60 * 60_000 : 0),
-      // Mixes change with the day and hour (the key), not while you're in another tab.
       refetchOnWindowFocus: false,
       select: (result) => result.mixes as Mix[],
     }),
   );
-  // Read what the sidebar already has: mounting must not refetch it (that would bring back a playlist mid-undo).
   const playlists = useQuery({ ...queries.playlists(), refetchOnMount: false }).data;
   useEffect(() => {
     // New playlists go straight into the cached list: a refetch could undo a delete still waiting out its undo.

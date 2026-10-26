@@ -1,10 +1,7 @@
 import { type FocusEvent, useRef } from "react";
 
-/*
- * Keyboard navigation for lists and grids. The list that holds focus registers a handler; the registry's "list"
- * shortcuts (j/k, enter, x, …, see app-shortcuts.ts) send it commands. A handler returns false for a command it doesn't
- * do, so the global shortcut on the same key (↑ = volume, esc = close) still runs.
- */
+// A handler returns false for a command it doesn't do, so the global shortcut on the same key (↑ = volume, esc =
+// close) still runs.
 export type ListCommand =
   | "down"
   | "up"
@@ -34,10 +31,7 @@ export function runListCommand(command: ListCommand): boolean {
   return active.handler(command);
 }
 
-/**
- * Props for a list container: marks the "list" shortcut scope and makes it the target while focus is inside. Commands
- * always reach the latest `handler` (it closes over state like the selection, which changes without focus moving).
- */
+// Commands always reach the latest `handler`: the selection changes without focus moving.
 export function useListNav(handler: ListHandler): {
   "data-shortcut-scope": "list";
   onFocusCapture: (event: FocusEvent<HTMLElement>) => void;
@@ -52,7 +46,6 @@ export function useListNav(handler: ListHandler): {
   };
 }
 
-/** Last focused position per page, so back/forward puts focus where it was. */
 const remembered = new Map<string, number>();
 
 export function rememberFocus(index: number): void {
@@ -63,7 +56,6 @@ export function rememberedFocus(): number | undefined {
   return remembered.get(window.location.pathname);
 }
 
-/** Focus the element for `index` once it exists (virtual lists render it after scrolling there). */
 export function focusWhenRendered(find: () => HTMLElement | null, tries = 10): void {
   const element = find();
   if (element) element.focus({ preventScroll: true });

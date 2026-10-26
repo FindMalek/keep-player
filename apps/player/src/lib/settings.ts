@@ -1,50 +1,32 @@
 import { useSyncExternalStore } from "react";
 import type { StreamQuality } from "./stream-quality";
 
-/*
- * Preferences in localStorage, shown on the settings page (#53). The ones in SYNCED also follow you to every browser
- * through the server (settings-sync.ts); the rest belong to this device.
- */
+// Prefs in SYNCED follow you to every browser through the server (settings-sync.ts); the rest belong to this device.
 
-/** Which toasts show: all of them, the ones with something to press (undo, resume), or only the errors. */
 export const TOAST_LEVELS = ["all", "important", "errors"] as const;
 export type ToastLevel = (typeof TOAST_LEVELS)[number];
-/** Where toasts pop up. Bottom ones sit above the player bar, and above the "up next" card on the right. */
 export const TOAST_POSITIONS = ["bottom-center", "bottom-right", "bottom-left", "top-center", "top-right"] as const;
 export type ToastPosition = (typeof TOAST_POSITIONS)[number];
 
 export interface Settings {
-  /** Which notices pop up at the bottom: errors always do. */
   toasts: ToastLevel;
   toastPosition: ToastPosition;
-  /** The "up next · skip it" card that shows over the bar near the end of a song. */
   upNext: boolean;
-  /** 1–5 star ratings (setRating) as a column in track lists, for smart playlists in other clients. */
   ratings: boolean;
-  /** The "saved for offline" arrow next to the format in the player bar; track rows always show it. */
   offlineInBar: boolean;
-  /** The thin line at the top while lists refresh; off by default, the skeletons already say it. */
   loadingBar: boolean;
-  /** Open the mini player by itself when you leave the tab while music plays (Chromium). */
   miniPlayerWhenHidden: boolean;
-  /** Save the queue to the server and offer queues from Arpeggi or other browsers. */
   queueSync: boolean;
-  /** Take a newer queue from another device without asking (never while this one plays). */
   followOtherDevices: boolean;
-  /** Seconds the next song starts before the playing one ends (0 = off, up to 12); never inside an album played in order. */
+  /** Never inside an album played in order. */
   crossfade: number;
-  /** What to stream: the original file, or a transcode for slow or metered connections. This device only. */
   streamQuality: StreamQuality;
-  /** Which ReplayGain to apply: none, the song's, the album's, or the album's while an album plays in order (auto). */
   normalization: "off" | "track" | "album" | "auto";
-  /** Extra gain on top of the normalization, in dB (-12 to +12). */
   preamp: number;
-  /** The ten-band equalizer, off by default; its gains in dB per band (lib/eq.ts). */
   eqOn: boolean;
   eqGains: number[];
 }
 
-/** Follow the user to every browser; the others (the mini player) depend on this device. */
 export const SYNCED = [
   "toasts",
   "toastPosition",
@@ -82,7 +64,6 @@ const DEFAULTS: Settings = {
 
 const NORMALIZATIONS = ["off", "track", "album", "auto"];
 
-/** A value from another browser, made safe: the right type and range, or undefined to ignore it. */
 export function sanitize<K extends keyof Settings>(key: K, value: unknown): Settings[K] | undefined {
   const fallback = DEFAULTS[key];
   if (typeof value !== typeof fallback) return undefined;
@@ -97,7 +78,6 @@ export function sanitize<K extends keyof Settings>(key: K, value: unknown): Sett
   return value as Settings[K];
 }
 
-/** Read outside React (the queue sync). */
 export function getSetting<K extends keyof Settings>(key: K): Settings[K] {
   return settings[key];
 }

@@ -2,11 +2,8 @@ import { getSetting, type Settings, SYNCED, sanitize, setSetting, subscribeSetti
 import { HEADERS, onAccountChange } from "./subsonic";
 import { getTheme, setTheme, subscribeTheme, type Theme } from "./theme";
 
-/*
- * Your preferences follow you (#53): after sign-in the server's copy wins (set up once, the same everywhere), and
- * every change here is saved back a second later. Device-only settings (mini player, offline storage, output device)
- * never leave this browser.
- */
+// After sign-in the server's copy wins and every change is saved back a second later. Device-only settings (mini
+// player, offline storage, output device) never leave this browser.
 
 type Synced = Partial<Pick<Settings, (typeof SYNCED)[number]>> & { theme?: Theme };
 
@@ -36,7 +33,6 @@ function apply(remote: Synced): void {
   try {
     for (const key of SYNCED) {
       const value = sanitize(key, remote[key]);
-      // Different from ours (lists compare by content); a wrong-shaped value from the server is ignored.
       if (value !== undefined && JSON.stringify(value) !== JSON.stringify(getSetting(key))) setSetting(key, value as never);
     }
     if ((remote.theme === "system" || remote.theme === "dark" || remote.theme === "light") && remote.theme !== getTheme())

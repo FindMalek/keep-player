@@ -3,13 +3,8 @@ import { listeningStatsSchema } from "@keep/shared/stats";
 import { oc } from "@orpc/contract";
 import { z } from "zod";
 
-/*
- * The API's contract: every procedure's input and output, in Zod. `apps/api` implements it, the player calls it
- * through a client typed from it (`/api/rpc`), and the same procedures are plain HTTP under `/api` for integrations,
- * documented at `/api` (spec at `/api/spec.json`). Areas move here from the hand-written routes one at a time.
- *
- * Numbers are `z.coerce`: over HTTP they arrive as query strings, over RPC as numbers.
- */
+// The API contract: `apps/api` implements it; the same procedures are plain HTTP under `/api` for integrations.
+// Numbers are `z.coerce`: over HTTP they arrive as query strings, over RPC as numbers.
 
 const DAY = 86_400_000;
 const tz = z.coerce.number().int().min(-840).max(840);

@@ -1,10 +1,7 @@
 import type { Database } from "bun:sqlite";
 import type { ListeningStats, StatItem } from "@keep/shared/stats";
 
-/*
- * Listening stats from the plays table (#59): any range, not only once a year. Days and the listening clock use the
- * viewer's time zone, passed as minutes east of UTC (what `-new Date().getTimezoneOffset()` gives).
- */
+// Days and the clock use the viewer's time zone, as minutes east of UTC (`-new Date().getTimezoneOffset()`).
 
 const DAY = 86_400_000;
 const TOP = 10;
@@ -39,7 +36,6 @@ function bump(map: Map<string, StatItem>, id: string, name: string, minutes: num
   map.set(id, item);
 }
 
-/** Consecutive local days with at least one counted play: the longest run ever, and the one still going (today or yesterday). */
 export function streaks(days: number[], today: number): { current: number; longest: number } {
   const sorted = [...new Set(days)].sort((a, b) => a - b);
   let longest = 0;
@@ -64,7 +60,6 @@ export function listeningStats(db: Database, account: string, from: number, to: 
       "select song_id, song, started, listened, skipped from plays where account = ? and started >= ? and started < ? order by started",
     )
     .all(account, from, to);
-  // First time each song in range was ever heard here: new in this range or already familiar.
   const firstHeard = new Map(
     db
       .query<{ song_id: string; first: number }, [string, string, number, number]>(
@@ -136,7 +131,6 @@ export function genresOf(song: Song): string[] {
   return list.length ? list : song.genre ? [song.genre] : [];
 }
 
-/** Songs you played a lot (3+ counted plays) and not in `days` days, most played first. */
 export function forgottenFavourites(db: Database, account: string, days: number, now = Date.now()): Song[] {
   return db
     .query<{ song: string }, [string, number]>(

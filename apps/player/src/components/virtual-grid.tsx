@@ -14,18 +14,12 @@ interface VirtualGridProps<T> {
   rowGap: number;
   /** Row height for a given column width (measured afterwards, so close is enough). */
   estimateRow: (columnWidth: number) => number;
-  /** Below this many items everything renders as a plain CSS grid. */
   virtualizeFrom?: number;
   onNearEnd?: () => void;
   className?: string;
-  /** Keyboard actions for the focused item (enter opens, ⇧enter plays next, a queues). */
   actions?: { open?: (item: T) => void; play?: (item: T) => void; playNext?: (item: T) => void; queue?: (item: T) => void };
 }
 
-/**
- * A responsive grid that only renders the rows on screen. Columns follow the container width like
- * `repeat(auto-fill, minmax(min, 1fr))`; rows are measured as they render.
- */
 export function VirtualGrid<T>({
   items,
   getKey,

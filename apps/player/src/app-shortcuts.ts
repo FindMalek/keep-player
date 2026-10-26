@@ -32,7 +32,6 @@ export interface AppActions {
 const inField = (event: KeyboardEvent) =>
   event.target instanceof HTMLElement && (event.target.isContentEditable || ["INPUT", "TEXTAREA"].includes(event.target.tagName));
 
-/** The default map. Everything it calls is passed in, so a unit test can check it for conflicts without a browser. */
 export function appShortcuts(actions: AppActions): Shortcut[] {
   const { player, go, notify } = actions;
   const seekBy = (seconds: number) => () => player.seek(player.getPosition() + seconds);
@@ -139,7 +138,6 @@ function listShortcuts(run: typeof runListCommand): Shortcut[] {
   ];
 }
 
-/** While lyrics show: shift them earlier or later. `nudge` takes milliseconds; false lets the key fall through. */
 export function lyricsShortcuts(nudge: (ms: number) => boolean, stepMs: number): Shortcut[] {
   return [
     {

@@ -13,7 +13,7 @@ const BAYER = [
   [63, 31, 55, 23, 61, 29, 53, 21],
 ] as const;
 
-/** A smooth field in 0..1 for one of a few looks, chosen by the seed. */
+/** A smooth field in 0..1 chosen by the seed: rings, a lit sphere, diagonal waves or a horizon fade. */
 function field(kind: number, seed: number): (x: number, y: number) => number {
   const next = random(seed);
   const cx = 0.25 + next() * 0.5;
@@ -21,24 +21,21 @@ function field(kind: number, seed: number): (x: number, y: number) => number {
   const freq = 2 + Math.floor(next() * 5);
   const angle = next() * Math.PI;
   switch (kind % 4) {
-    case 0: // rings around a point
+    case 0:
       return (x, y) => 0.5 + 0.5 * Math.cos(Math.hypot(x - cx, y - cy) * freq * Math.PI * 2);
-    case 1: // soft sphere lit from a corner
+    case 1:
       return (x, y) => {
         const d = Math.hypot(x - cx, y - cy);
         return d > 0.38 ? 0.08 : 1 - d / 0.38 + (1 - x) * 0.15;
       };
-    case 2: // diagonal waves
+    case 2:
       return (x, y) => 0.5 + 0.5 * Math.sin((x * Math.cos(angle) + y * Math.sin(angle)) * freq * Math.PI * 2);
-    default: // vertical fade with a horizon
+    default:
       return (x, y) => (y < cy ? y / cy : 1 - (y - cy) / (1 - cy)) * (0.7 + 0.3 * Math.sin(x * freq * Math.PI));
   }
 }
 
-/**
- * Monochrome, ordered-dither album art: deterministic per seed. `levels` greys (2 is pure black and white),
- * so every cover reads as the same family next to the others.
- */
+/** Monochrome ordered-dither album art, deterministic per seed; `levels` greys (2 is pure black and white). */
 export function ditheredCover(seed: number, size = 600, levels = 4): Uint8Array<ArrayBuffer> {
   const f = field(seed, seed * 7919 + 13);
   const pixels = new Uint8Array(size * size);

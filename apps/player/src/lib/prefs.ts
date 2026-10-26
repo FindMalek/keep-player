@@ -3,11 +3,7 @@ import { useSyncExternalStore } from "react";
 import { setShuffleRules } from "./queue";
 import { HEADERS, onAccountChange } from "./subsonic";
 
-/*
- * Your playback rules for songs and albums (#62), read by the player (trims), the shuffle (never, keep in order) and the
- * radio. Loaded after sign-in; the editing side (menus, shortcuts, saving) is in prefs-edit.ts so it stays off the
- * first screen.
- */
+// The editing side lives in prefs-edit.ts so it stays off the first screen.
 
 let songs = new Map<string, SongPref>();
 let albums = new Map<string, AlbumPref>();
@@ -35,7 +31,7 @@ export interface RuleMarks {
 }
 const MARKS = new Map<string, RuleMarks>();
 
-/** The marks a row shows for a song's rules, the same object for the same marks so a memoized row doesn't re-render. */
+/** The same object for the same marks, so a memoized row doesn't re-render. */
 export function ruleMarks(song: { id: string; albumId?: string }): RuleMarks | null {
   const pref = songs.get(song.id);
   const trim = pref?.trimStart != null || pref?.trimEnd != null;
@@ -60,7 +56,6 @@ export function replacePrefs(prefs: Prefs): void {
   for (const listener of listeners) listener();
 }
 
-/** Shuffle skips what you said never, and keeps flagged albums together, in order. */
 setShuffleRules({
   skip: isSkipped,
   block: (song) => (song.albumId && albums.get(song.albumId)?.keepOrder ? song.albumId : null),
@@ -73,7 +68,6 @@ export async function loadPrefs(): Promise<void> {
 
 onAccountChange(() => replacePrefs({ songs: [], albums: [] }));
 
-/** Re-renders when any rule changes: track lists read their rows' flags from it. */
 export function usePrefsVersion(): number {
   return useSyncExternalStore(
     (listener) => {

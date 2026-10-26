@@ -12,7 +12,6 @@ const SONGS = [
 
 const clock = (seconds: number) => `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, "0")}`;
 
-/** Four bars that move like the island's level meter; still when paused. */
 function Bars({ playing, className }: { playing: boolean; className?: string }) {
   return (
     <span aria-hidden className={className} style={{ display: "flex", alignItems: "flex-end", gap: 2, height: 14 }}>
@@ -28,10 +27,7 @@ function Bars({ playing, className }: { playing: boolean; className?: string }) 
   );
 }
 
-/**
- * The mac app's notch island, rebuilt for the page: the song and its bars sit beside the notch, and hovering (or a tap)
- * opens the controls, which work. The real one is SwiftUI (apps/macos); this one is a picture of it you can touch.
- */
+// The mac app's notch island (the real one is SwiftUI in apps/macos), rebuilt as a picture you can touch.
 export function Island() {
   const [open, setOpen] = useState(false);
   const [playing, setPlaying] = useState(true);
@@ -65,7 +61,6 @@ export function Island() {
   };
 
   return (
-    // A laptop screen's top edge with the notch in the middle, over a quiet wallpaper.
     <div className="island-screen relative mx-auto h-[230px] w-full max-w-[560px] overflow-hidden border border-b-0 sm:h-[280px]">
       <div className="absolute inset-x-0 top-0 flex h-7 items-center justify-between px-3 font-mono text-[10px] text-foreground/60">
         <span>keep music</span>

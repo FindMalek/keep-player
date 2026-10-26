@@ -1,14 +1,7 @@
 import type { Song } from "./types";
 
-/*
- * The play queue as plain data plus pure functions, so every operation is unit-testable without audio.
- *
- *   history ← current ← up next (added by you) ← next from the context (album, playlist, …)
- *
- * "Play next" / "add to queue" go to `upNext`, which survives starting a new context. The context keeps its natural
- * order in `songs` and the play order in `order` (shuffled or not), with `cursor` pointing at the last context song
- * that played.
- */
+// Plain data + pure functions so every operation is unit-testable without audio. `upNext` (play next / add to queue)
+// survives a new context; the context keeps natural order in `songs` and play order in `order`.
 
 export type Repeat = "off" | "all" | "one";
 
@@ -16,13 +9,11 @@ export interface Entry {
   /** Unique per queue slot: the same song can be queued twice. */
   uid: string;
   song: Song;
-  /** Where it came from: your queue, or position `orderIndex` of the context's play order. */
   from: "user" | "context";
   orderIndex?: number;
 }
 
 export interface QueueSource {
-  /** "album", "playlist", "artist", "songs", … */
   kind: string;
   name: string;
   href?: string;
@@ -34,12 +25,10 @@ export interface Queue {
   upNext: Entry[];
   context: {
     songs: Song[];
-    /** Play order: indexes into `songs`. */
     order: number[];
     /** Position in `order` of the context song playing or last played; -1 before the first. */
     cursor: number;
     source: QueueSource | null;
-    /** An album played in order: ReplayGain uses album gain. */
     album: boolean;
   };
   shuffle: boolean;
@@ -55,7 +44,6 @@ export const EMPTY_QUEUE: Queue = {
   repeat: "off",
 };
 
-/** Older entries beyond this are dropped from history; it only feeds "previous" and the queue panel. */
 const HISTORY_LIMIT = 500;
 
 let uidCounter = 0;
@@ -81,10 +69,7 @@ function fisherYates<T>(items: T[], random: Random): T[] {
   return copy;
 }
 
-/**
- * Balanced shuffle: each artist's songs are spread evenly over the whole order (with a random offset), so the same
- * artist rarely plays twice in a row; within an artist, songs played least come first more often. Returns indexes.
- */
+// Balanced shuffle: each artist spread evenly with a random offset; within an artist, least played first more often.
 export function balancedShuffle(songs: Song[], indexes: number[], random: Random = Math.random): number[] {
   const groups = new Map<string, number[]>();
   for (const index of indexes) {
@@ -105,7 +90,6 @@ export function balancedShuffle(songs: Song[], indexes: number[], random: Random
     });
   }
   const order = placed.sort((a, b) => a.position - b.position).map((item) => item.index);
-  // Fix the remaining back-to-back repeats where a swap can.
   const artist = (index: number | undefined) => (index === undefined ? undefined : (songs[index]?.artistId ?? songs[index]?.artist));
   for (let i = 1; i < order.length; i += 1) {
     if (artist(order[i]) !== artist(order[i - 1])) continue;
@@ -117,9 +101,7 @@ export function balancedShuffle(songs: Song[], indexes: number[], random: Random
   return order;
 }
 
-/** Songs you said never to shuffle, and albums to keep together (#62); set once the rules load. */
 export interface ShuffleRules {
-  /** Never comes up in a shuffle (an interlude, a hidden song). */
   skip?: (song: Song) => boolean;
   /** The block a song belongs to (an album kept in order), or null. A block moves as one, in its own order. */
   block?: (song: Song) => string | null;
@@ -129,7 +111,6 @@ export function setShuffleRules(next: ShuffleRules): void {
   rules = next;
 }
 
-/** `balancedShuffle` with the rules: skipped songs dropped, blocks kept together at the slot of their first member. */
 export function shuffled(songs: Song[], indexes: number[], random: Random = Math.random, applied: ShuffleRules = rules): number[] {
   const kept = applied.skip ? indexes.filter((index) => !applied.skip?.(songs[index] as Song)) : indexes;
   const order = balancedShuffle(songs, kept, random);
@@ -140,7 +121,6 @@ export function shuffled(songs: Song[], indexes: number[], random: Random = Math
     const key = block(songs[index] as Song);
     if (key) members.set(key, [...(members.get(key) ?? []), index]);
   }
-  // A block plays in the album's own order: disc, then track, then where it was in the list.
   const position = (index: number) => {
     const song = songs[index] as Song & { discNumber?: number; track?: number };
     return [song.discNumber ?? 1, song.track ?? 0, index] as const;
@@ -159,7 +139,6 @@ export function shuffled(songs: Song[], indexes: number[], random: Random = Math
   return out;
 }
 
-/** Start a new context (album, playlist, …) at `start` (-1: a random song, for shuffle buttons). Your up-next queue stays. */
 export function playContext(
   queue: Queue,
   songs: Song[],
@@ -189,7 +168,6 @@ export function playContext(
   return { ...next, current: contextEntry(next, next.context.cursor) };
 }
 
-/** Add songs to the end of the context's play order (an endless radio refilling), shuffle or not. */
 export function appendContext(queue: Queue, songs: Song[]): Queue {
   if (!songs.length) return queue;
   const start = queue.context.songs.length;
@@ -203,7 +181,6 @@ export function appendContext(queue: Queue, songs: Song[]): Queue {
   };
 }
 
-/** What `next` would play, without changing anything (gapless preloading uses this). */
 export function peekNext(queue: Queue): Song | null {
   if (queue.upNext[0]) return queue.upNext[0].song;
   const following = queue.context.songs[queue.context.order[queue.context.cursor + 1] ?? -1];
@@ -212,7 +189,6 @@ export function peekNext(queue: Queue): Song | null {
   return null;
 }
 
-/** The next `count` songs in play order (your queue, then the context, wrapping on repeat all). For the precache. */
 export function peekUpcoming(queue: Queue, count: number): Song[] {
   const songs = queue.upNext.slice(0, count).map((entry) => entry.song);
   const { order, cursor } = queue.context;
@@ -225,7 +201,6 @@ export function peekUpcoming(queue: Queue, count: number): Song[] {
   return songs;
 }
 
-/** Advance: your queue first, then the context; wraps (reshuffled) with repeat all. Null `current` means the end. */
 export function next(queue: Queue, random: Random = Math.random): Queue {
   const history = pushHistory(queue.history, queue.current);
   const [user, ...rest] = queue.upNext;
@@ -244,7 +219,6 @@ export function next(queue: Queue, random: Random = Math.random): Queue {
   return { ...queue, history, current: null };
 }
 
-/** Step back to the last played song; the current one returns to where it came from. */
 export function previous(queue: Queue): Queue {
   const last = queue.history.at(-1);
   if (!last) return queue;
@@ -267,7 +241,6 @@ export function addToQueue(queue: Queue, songs: Song[]): Queue {
   return { ...queue, upNext: [...queue.upNext, ...songs.map(userEntry)] };
 }
 
-/** Upcoming context entries in play order (what "next from …" shows). */
 export function contextUpcoming(queue: Queue): Entry[] {
   const entries: Entry[] = [];
   for (let index = queue.context.cursor + 1; index < queue.context.order.length; index += 1) {
@@ -278,7 +251,6 @@ export function contextUpcoming(queue: Queue): Entry[] {
   return entries;
 }
 
-/** Play an upcoming entry now: everything before it is skipped (into history for context songs). */
 export function jumpTo(queue: Queue, target: Entry): Queue {
   if (target.from === "user") {
     const at = queue.upNext.findIndex((entry) => entry.uid === target.uid);
@@ -303,10 +275,6 @@ export function remove(queue: Queue, target: Entry): Queue {
   return { ...queue, context: { ...queue.context, order: queue.context.order.filter((_, index) => index !== orderIndex) } };
 }
 
-/**
- * Move an upcoming entry one step up or down within its part of the queue (your queue, or what's left of the context).
- * Returns the queue unchanged at the edges.
- */
 export function move(queue: Queue, target: Entry, delta: -1 | 1): Queue {
   if (target.from === "user") {
     const at = queue.upNext.findIndex((entry) => entry.uid === target.uid);
@@ -324,10 +292,6 @@ export function move(queue: Queue, target: Entry, delta: -1 | 1): Queue {
   return { ...queue, context: { ...queue.context, order } };
 }
 
-/**
- * Move an upcoming entry to where another one is (drag and drop): it takes `to`'s place and the rest shift. Only within
- * the same part of the queue (your queue, or what's left of the context); anything else returns the queue unchanged.
- */
 export function moveTo(queue: Queue, target: Entry, to: Entry): Queue {
   if (target.uid === to.uid || target.from !== to.from) return queue;
   if (target.from === "user") {
@@ -350,7 +314,6 @@ export function moveTo(queue: Queue, target: Entry, to: Entry): Queue {
 
 export const clearUpNext = (queue: Queue): Queue => ({ ...queue, upNext: [] });
 
-/** Drop the rest of the context; the current song keeps playing. */
 export const clearContext = (queue: Queue): Queue => ({
   ...queue,
   context: { ...queue.context, order: queue.context.order.slice(0, queue.context.cursor + 1) },
@@ -366,7 +329,6 @@ export function setShuffle(queue: Queue, shuffle: boolean, random: Random = Math
     return { ...queue, shuffle, context: { ...queue.context, order: reordered, album: false } };
   }
   const natural = songs.map((_, index) => index);
-  // In natural order a song's position is its index: continue right after the last context song played.
   const at = order[cursor] ?? -1;
   const current = queue.current?.from === "context" ? { ...queue.current, orderIndex: at } : queue.current;
   return { ...queue, shuffle, current, context: { ...queue.context, order: natural, cursor: at } };

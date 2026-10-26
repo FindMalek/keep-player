@@ -1,10 +1,5 @@
 import { normalize } from "./normalize";
 
-/*
- * The library doctor (#64): checks over the search index's songs and albums. Pure, so the server runs it on whatever
- * the index holds and the tests run it on a handful of objects. Lyrics are not here: the lyrics page already has them.
- */
-
 export interface DoctorSong {
   id: string;
   title: string;
@@ -31,11 +26,8 @@ export interface DoctorAlbum {
 export type CheckId = "no-cover" | "no-replaygain" | "no-musicbrainz" | "split-albums" | "duplicates" | "unusual-formats";
 
 export interface Finding {
-  /** What to show: "Artist – Title" or an album name. */
   label: string;
-  /** Extra context (the other copy, the format…). */
   detail?: string;
-  /** Where the item opens: a song id, album id. */
   songId?: string;
   albumId?: string;
 }
@@ -43,12 +35,9 @@ export interface Finding {
 export interface Check {
   id: CheckId;
   title: string;
-  /** What it means and how to fix it, with the command when there is one. */
   hint: string;
   count: number;
-  /** How many items the check looked at, for the health score. */
   of: number;
-  /** The first `LIST_LIMIT` findings. */
   findings: Finding[];
 }
 
@@ -69,7 +58,7 @@ function make(id: CheckId, title: string, hint: string, of: number, all: Finding
   return { id, title, hint, count: all.length, of, findings: all.slice(0, LIST_LIMIT) };
 }
 
-/** Songs with the same normalized artist and title whose lengths are within 2 s: probably the same file twice. */
+/** Lengths within 2 s: probably the same file twice. */
 export function duplicates(songs: DoctorSong[]): Finding[] {
   const groups = new Map<string, DoctorSong[]>();
   for (const song of songs) {
@@ -102,7 +91,6 @@ export function duplicates(songs: DoctorSong[]): Finding[] {
   return found.sort((a, b) => a.label.localeCompare(b.label));
 }
 
-/** The same album name and year filed under different artists: a split album (a feat. credit, a typo, a tag mismatch). */
 export function splitAlbums(albums: DoctorAlbum[]): Finding[] {
   const groups = new Map<string, DoctorAlbum[]>();
   for (const album of albums) {

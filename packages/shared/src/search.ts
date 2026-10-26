@@ -1,6 +1,5 @@
 import type { Chip } from "./search-query";
 
-/** The server's search index for one Navidrome, as `/api/index` reports it. */
 export interface IndexStatus {
   songs: number;
   albums: number;
@@ -10,7 +9,6 @@ export interface IndexStatus {
   building: boolean;
 }
 
-/** A song found by its lyrics: the matching line, one line either side, and where to start playing. */
 export interface LyricsHit {
   song: Record<string, unknown>;
   line: number;
@@ -25,12 +23,10 @@ export interface LyricsHit {
 
 export interface LyricsSearch {
   hits: LyricsHit[];
-  /** Songs whose lyrics were looked up so far, out of the whole library. */
   checked: number;
   total: number;
 }
 
-/** `/api/search`: ranked groups plus the operators it understood. Items are Subsonic objects (song, album, artist). */
 export interface SearchResults {
   top: { kind: "song" | "album" | "artist"; item: Record<string, unknown> } | null;
   songs: Record<string, unknown>[];

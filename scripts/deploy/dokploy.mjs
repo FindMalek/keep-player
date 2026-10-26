@@ -1,6 +1,5 @@
 #!/usr/bin/env node
-// PR previews on Dokploy through its API, see docs/previews.md. One app per PR plus one shared demo Navidrome. The site
-// (apps/web) isn't here: Vercel previews it.
+// PR previews on Dokploy through its API (docs/previews.md): one app per PR plus one shared demo Navidrome.
 import { createHash, randomBytes } from "node:crypto";
 
 const MODE = process.argv[2];
@@ -50,7 +49,6 @@ async function ensureEnvironment() {
   }
   const environment = project?.environments?.[0];
   if (!environment) throw new Error(`no environment in project ${PROJECT}`);
-  // The environment row has no projectId of its own, and the dashboard links need it.
   return { ...environment, projectId: environment.projectId ?? project.projectId };
 }
 
@@ -141,13 +139,11 @@ function formatUpdated(date) {
     .replace(" PM", "pm");
 }
 
-/** This workflow run's page: the image build and every step's log. */
 function buildLogUrl() {
   const { GITHUB_SERVER_URL = "https://github.com", GITHUB_REPOSITORY, GITHUB_RUN_ID } = process.env;
   return GITHUB_REPOSITORY && GITHUB_RUN_ID ? `${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}` : null;
 }
 
-// Vercel's layout: one row per project, the latest status, the logs, and the Preview link once it's up.
 function renderRow(row, links) {
   const logs = [buildLogUrl() && `[Build logs](${buildLogUrl()})`, row.applicationId && `[Deploy logs](${inspectUrl(row)})`].filter(
     Boolean,
@@ -157,7 +153,6 @@ function renderRow(row, links) {
   return `| ${name} | ${STATUS[row.status]}${inspect} | ${row.status === "ready" ? links : ""} | ${formatUpdated(new Date())} |`;
 }
 
-/** `rows.player`: `{ name, status, host?, applicationId?, projectId? }`. */
 function renderComment({ player }) {
   return [
     COMMENT_MARKER,
@@ -166,7 +161,6 @@ function renderComment({ player }) {
     "| Project | Deployment | Actions | Updated (UTC) |",
     "| :--- | :----- | :------ | :------ |",
     renderRow(player, `[Visit Preview](https://${player.host})`),
-    // The api runs in the player's container, so it shares the deployment and only links somewhere else.
     `| api | ${STATUS[player.status]} | ${player.status === "ready" ? `[API reference](https://${player.host}/api)` : ""} | ${formatUpdated(new Date())} |`,
     ...(player.status === "ready"
       ? [
@@ -203,7 +197,6 @@ async function upsertComment(rows) {
   await github(`/repos/${repo}/issues/${pr}/comments`, { method: "POST", body: JSON.stringify({ body }) });
 }
 
-/** The PR's app: the player (with the api in it), against the shared demo Navidrome. */
 function previewRows(pr, status) {
   return { player: { name: `keep-player-pr-${pr}`, status, host: previewHost(pr) } };
 }
@@ -229,7 +222,6 @@ async function previewUp() {
       LRCLIB_URL: "",
       LYRICS_BACKFILL: "off",
       SESSION_SECRET: randomBytes(24).toString("hex"),
-      // The demo account also runs the background jobs, and gets months of generated listening to show.
       INDEX_USER: DEMO_USER,
       INDEX_PASSWORD: DEMO_PASSWORD,
       DEMO_SEED: "on",
@@ -244,7 +236,6 @@ async function previewDown() {
   const pr = requireEnv("PR_NUMBER");
   const rows = previewRows(pr, "deleted");
   const environment = (await findProject())?.environments?.[0];
-  // keep-web-pr-<n>: the site had previews here for a while before moving to Vercel; any left over go too.
   for (const name of [rows.player.name, `keep-web-pr-${pr}`]) {
     const app = environment?.applications?.find((a) => a.name === name);
     if (app) await dokploy("application.delete", { applicationId: app.applicationId });
@@ -257,7 +248,6 @@ function previewHost(pr) {
   return `player-pr-${pr}.${requireEnv("PREVIEW_DOMAIN")}`;
 }
 
-/** First thing in the job, before the image builds: the PR shows "Building" with the build log right away. */
 async function commentBuilding() {
   await upsertComment(previewRows(requireEnv("PR_NUMBER"), "building"));
 }
@@ -277,7 +267,6 @@ async function rescan(host) {
   console.info(`demo rescan: ${res?.status ?? "unreachable"}`);
 }
 
-// The shared demo Navidrome: image with the generated library, and the `demo` account created on its first start.
 async function demoUp() {
   const environment = await ensureEnvironment();
   const host = requireEnv("DEMO_HOST");
@@ -290,7 +279,6 @@ async function demoUp() {
   });
   const row = { ...app, status: "building" };
   if (!(await waitForApp(row, async () => {}))) throw new Error("the demo Navidrome didn't come up");
-  // Navidrome's first-run endpoint creates the admin once; a later call just answers that one exists.
   for (let attempt = 0; attempt < 30; attempt += 1) {
     const res = await fetch(`https://${host}/auth/createAdmin`, {
       method: "POST",

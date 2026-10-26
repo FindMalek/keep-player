@@ -10,12 +10,8 @@ import type { Song } from "./types";
 
 export type { Station };
 
-/*
- * Radio (#55): an endless station from a song, album, artist, playlist, genre or your queue. It keeps 10 songs ahead,
- * refilled from Navidrome (similar songs of the station's artists, their top songs, and the genre and era around
- * them), and learns while it plays: 👍 pulls in more like the song, 👎 or a skip under 30 s pushes its artist away,
- * banned songs never come back on any station.
- */
+// Radio keeps 10 songs ahead, refilled from Navidrome (similar songs, top songs, genre and era), and learns: 👍 pulls
+// in more like the song, 👎 or a skip under 30 s pushes its artist away, banned songs never come back.
 
 export type RadioSeed = MenuTarget | { kind: "genre"; genre: string } | { kind: "queue" };
 
@@ -73,7 +69,6 @@ async function seedSongs(seed: RadioSeed): Promise<{ songs: Song[]; name: string
   return { songs, name };
 }
 
-/** Candidates around the station's anchors: similar songs, top songs and the genre/era neighbourhood. Tagged by source. */
 async function candidates(current: Station): Promise<{ song: Song; weight: number }[]> {
   const anchors = sample(current.anchors, 4);
   const artists = [...new Map(anchors.filter((song) => song.artistId).map((song) => [song.artistId as string, song])).values()];
@@ -171,7 +166,6 @@ function strike(songId: string): void {
   update({ disliked, artistStrikes });
 }
 
-/** Start a station; the first song is the seed itself for a song, otherwise the station's best pick. */
 export async function startRadio(seed: RadioSeed): Promise<void> {
   try {
     const [{ songs, name }] = await Promise.all([seedSongs(seed), loadBans()]);
@@ -217,14 +211,12 @@ export function stopRadio(): void {
   emit();
 }
 
-/** 👍: more like this song. */
 export function moreLikeThis(song: Song): void {
   if (!station) return;
   update({ anchors: [...station.anchors, song], liked: new Set(station.liked).add(song.id) });
   notify({ message: `more like ${song.title}` });
 }
 
-/** 👎: not for this station; skips it if it's playing and keeps its artist away after two. */
 export function notForThisStation(song: Song): void {
   if (!station) return;
   watching = null;
@@ -240,7 +232,6 @@ export function notForThisStation(song: Song): void {
   else void refill();
 }
 
-/** Never on any station, in any browser. */
 export async function banFromRadio(song: Song): Promise<void> {
   bans.add(song.id);
   await fetch("/api/radio/bans", {
@@ -256,19 +247,16 @@ export function setVariety(variety: number): void {
   update({ variety: Math.max(0, Math.min(1, variety)) });
 }
 
-/** Lock to this song's era (±5 years), or unlock. */
 export function toggleEraLock(song: Song | undefined): void {
   if (!station) return;
   update({ eraLock: station.eraLock || !song?.year ? null : [song.year - 5, song.year + 5] });
 }
 
-/** Lock to this song's artist, or unlock. */
 export function toggleArtistLock(song: Song | undefined): void {
   if (!station) return;
   update({ artistLock: station.artistLock || !song ? null : { id: song.artistId ?? "", name: song.artist ?? "" } });
 }
 
-/** Everything played and queued on this station, saved as a playlist. */
 export async function saveStation(): Promise<void> {
   if (!station) return;
   const { queue } = player.getState();

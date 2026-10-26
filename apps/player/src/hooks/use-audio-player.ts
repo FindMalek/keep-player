@@ -42,14 +42,12 @@ export interface UseAudioPlayerOptions {
 }
 
 export interface AudioPlayerController {
-  /** The media element. Pass it to `useAudioAnalyser` or `useWebAudioMixer`. */
   element: HTMLAudioElement | null;
   status: AudioPlayerStatus;
   playing: boolean;
   /** Updates about four times a second. Use `time` for a smooth playhead. */
   currentTime: number;
   duration: number;
-  /** End of the buffered range, in seconds. */
   buffered: number;
   volume: number;
   muted: boolean;
@@ -98,7 +96,6 @@ const createElementStore = () => {
       return element;
     },
     subscribe: () => () => {
-      // The element never changes.
     },
   };
 };
@@ -110,7 +107,6 @@ type Callbacks = Pick<
   "onEnded" | "onError" | "onPause" | "onPlay"
 >;
 
-/** Mirrors the element's events into React state. */
 const usePlaybackState = (
   element: HTMLAudioElement | null,
   callbacks: Callbacks,
@@ -207,11 +203,9 @@ const tryPlay = async (audio: HTMLAudioElement) => {
   try {
     await audio.play();
   } catch {
-    // Playback was refused, for example before any user gesture.
   }
 };
 
-/** Playback state for an audio element the hook owns. */
 const useAudioPlayer = ({
   src,
   autoPlay = false,

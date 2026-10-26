@@ -6,17 +6,12 @@ export const VERSION: string = pkg.version;
 export interface UpstreamHealth {
   id: string;
   reachable: boolean;
-  /** Time to Navidrome's answer, in ms. */
   latencyMs: number | null;
-  /** "navidrome 0.64.2", when the server says. */
   server: string | null;
   openSubsonic: boolean;
 }
 
-/**
- * `/api/health`: is each configured server reachable, how fast, and what is it. Public (the sign-in screen uses it to
- * explain a broken setup), so it never shows a URL, and answers are cached for 10 s.
- */
+/** Public (the sign-in screen uses it), so it never shows a URL; answers are cached for 10 s. */
 export class HealthCheck {
   private cached: { at: number; result: Promise<UpstreamHealth[]> } | null = null;
 
@@ -58,7 +53,6 @@ async function probe(upstream: Upstream): Promise<UpstreamHealth> {
   };
 }
 
-/** Newer release on GitHub, checked at most once a day, only when `UPDATE_CHECK=on`. */
 export class UpdateCheck {
   private latest: { at: number; version: string | null } | null = null;
 
@@ -82,7 +76,6 @@ export class UpdateCheck {
   }
 }
 
-/** Semver-ish comparison of "1.2.3" strings: is `a` newer than `b`? */
 export function newer(a: string, b: string): boolean {
   const parts = (version: string) =>
     version

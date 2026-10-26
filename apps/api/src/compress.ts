@@ -10,7 +10,6 @@ const MIN_BYTES = 1024;
 // Quality 5: about gzip's speed with most of brotli's gain; 11 costs ~100 ms on a 1 MB song list.
 const BROTLI_OPTIONS = { params: { [constants.BROTLI_PARAM_QUALITY]: 5 } };
 
-/** JSON and XML (API, rpc, the Subsonic proxy) compressed for the browser: brotli when it takes it, else gzip. */
 export async function compress(request: Request, response: Response | undefined): Promise<Response | undefined> {
   if (!response?.body || response.headers.has("content-encoding") || response.status === 206) return response;
   if (!COMPRESSIBLE.test(response.headers.get("content-type") ?? "")) return response;
@@ -34,7 +33,6 @@ const isMethods = (route: object) => {
 
 type Handler = (request: Request, server: Bun.Server<unknown>) => Response | undefined | Promise<Response | undefined>;
 
-/** Every function route (and per-method handler) goes through `compress`; static responses and bundles stay as they are. */
 export function compressed<T extends Record<string, unknown>>(routes: T): T {
   const wrap =
     (handler: Handler): Handler =>

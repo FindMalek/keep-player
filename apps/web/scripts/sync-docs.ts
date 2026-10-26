@@ -1,9 +1,5 @@
-/**
- * The site's docs come from the repo's own `docs/` (which stay readable on GitHub, and two of which are generated from
- * the code): each `.md` is copied into `content/docs` with its first heading as the title, its first paragraph as the
- * description (moved out of the body), links between docs pointing at `/docs/...`, and everything else (images, compose files) at GitHub.
- * Runs before dev and build; `content/docs` is generated, never edited.
- */
+// Copies the repo's `docs/*.md` into `content/docs` (generated, never edited) before dev and build: first heading
+// becomes the title, first paragraph the description, doc links `/docs/...`, everything else GitHub.
 
 import { execFileSync } from "node:child_process";
 import { mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
@@ -14,12 +10,9 @@ const SOURCE = join(ROOT, "docs");
 const OUT = join(import.meta.dir, "../content/docs");
 const BLOB = "https://github.com/FindMalek/keep-player/blob/main/docs";
 const RAW = "https://raw.githubusercontent.com/FindMalek/keep-player/main/docs";
-// The roadmap lives at /roadmap, read live from GitHub.
 const SKIP = new Set(["ROADMAP.md"]);
-// The start-to-finish guide is the docs' front page.
 const RENAME: Record<string, string> = { "start-to-finish.md": "index.md" };
 
-/** Per page: a shorter title where the heading is long (the page shows it too), and its sidebar icon (lib/source.ts). */
 const PAGES: Record<string, { title?: string; icon: string }> = {
   "start-to-finish.md": { icon: "Map" },
   "getting-started.md": { icon: "Rocket" },
@@ -46,7 +39,6 @@ const PAGES: Record<string, { title?: string; icon: string }> = {
   "ci/runner-performance.md": { title: "Runner performance", icon: "Gauge" },
 };
 
-/** The sidebar, by section. A folder's README becomes its index. */
 const META: Record<string, { title: string; description?: string; icon?: string; pages: string[] }> = {
   "": {
     title: "keep music docs",
@@ -91,7 +83,6 @@ function files(dir: string): string[] {
   });
 }
 
-/** `docs/deploy/README.md` → `/docs/deploy`, `docs/start-to-finish.md` → `/docs`. */
 function route(fromDocs: string): string {
   const renamed = RENAME[fromDocs] ?? fromDocs;
   const bare = renamed.replace(/(^|\/)(README|index)\.md$/, "").replace(/\.md$/, "");
@@ -112,13 +103,11 @@ function rewrite(markdown: string, fromDocs: string): string {
   });
 }
 
-/** The first real paragraph: it becomes the page's description (shown under the title), so the body drops it. */
 function intro(body: string): { text: string; block: string } | undefined {
   const block = body
     .split(/\n\s*\n/)
     .map((part) => part.trim())
     .find((part) => part && !/^(#|>|\||```|-|\*|\d+\.|<)/.test(part));
-  // A paragraph that links somewhere stays in the body: the description is plain text and would lose the link.
   if (!block || /\]\(/.test(block)) return undefined;
   const text = block
     .replace(/!?\[([^\]]*)\]\([^)]*\)/g, "$1")
@@ -141,7 +130,6 @@ const SHALLOW = (() => {
   }
 })();
 
-/** When the source file last changed in git (ISO date); undefined outside a full git checkout or for a new file. */
 function updated(file: string): string | undefined {
   if (SHALLOW) return undefined;
   try {
@@ -150,7 +138,6 @@ function updated(file: string): string | undefined {
     return undefined;
   }
 }
-// Fence languages the site's highlighter doesn't know, shown as plain text.
 const plainFences = (markdown: string) => markdown.replace(/^(\s*```)caddy\b/gm, "$1text");
 
 rmSync(OUT, { recursive: true, force: true });

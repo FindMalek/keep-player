@@ -4,15 +4,11 @@ import { markUnreachable, noteResponse } from "./reachability";
 import { getSetting } from "./settings";
 import { FALLBACK, type StreamQuality, streamParams } from "./stream-quality";
 
-/*
- * The browser never holds credentials: the server keeps them in a session behind an httpOnly cookie and adds them to
- * every upstream call. Only the username is remembered here, to render the app shell before the first request.
- */
+// The browser never holds credentials: the server keeps them behind an httpOnly cookie. Only the username is
+// remembered here, to render the app shell before the first request.
 const USER_KEY = "keep-player:user";
-/** "server/user" of the last session, so cached data from another account is never shown. */
 const ACCOUNT_KEY = "keep-player:account";
 /** Must match the server's CSRF check (apps/api/src/api.ts). */
-/** A stable id for this browser: its Subsonic client name is `keep-player@<id>` (see queue-sync). */
 const CLIENT_ID = (() => {
   try {
     let id = localStorage.getItem("keep-player:client");
@@ -40,7 +36,6 @@ class ApiError extends Error {
 
 function readUser(): string | null {
   try {
-    // Older versions kept the Subsonic token here; drop it.
     localStorage.removeItem("keep-player:auth");
     return localStorage.getItem(USER_KEY);
   } catch {
@@ -49,7 +44,6 @@ function readUser(): string | null {
 }
 
 let user = readUser();
-/** No username remembered (new device, cleared storage): the cookie may still hold a session, so ask once. */
 let checking = user === null;
 const listeners = new Set<() => void>();
 
@@ -67,9 +61,7 @@ function setUser(next: string | null): void {
   try {
     if (next) localStorage.setItem(USER_KEY, next);
     else localStorage.removeItem(USER_KEY);
-  } catch {
-    // Private windows can refuse storage; the session cookie still works.
-  }
+  } catch {}
   for (const listener of listeners) listener();
 }
 
@@ -78,24 +70,20 @@ function subscribe(listener: () => void): () => void {
   return () => listeners.delete(listener);
 }
 
-/** The signed-in username outside React. */
 export function getUser(): string | null {
   return user;
 }
 
-/** The signed-in username, or null; re-renders when the session ends (logout, expiry, revoked elsewhere). */
 export function useUser(): string | null {
   return useSyncExternalStore(subscribe, () => user);
 }
 
-/** True while the first session check runs, so the app can wait instead of flashing the login form. */
 export function useCheckingSession(): boolean {
   return useSyncExternalStore(subscribe, () => checking);
 }
 
 const accountListeners = new Set<() => unknown>();
 
-/** Called when the signed-in account changes or signs out, so caches holding its data can be dropped. */
 export function onAccountChange(listener: () => unknown): void {
   accountListeners.add(listener);
 }
@@ -108,19 +96,15 @@ function currentAccount(): string {
   }
 }
 
-/** Resolves once every listener is done (e.g. the on-disk cache is deleted), so logout can wait for it. */
 async function setAccount(next: string | null): Promise<void> {
   const changed = currentAccount() !== (next ?? "");
   try {
     if (next) localStorage.setItem(ACCOUNT_KEY, next);
     else localStorage.removeItem(ACCOUNT_KEY);
-  } catch {
-    // Without storage there is no persisted cache to protect either.
-  }
+  } catch {}
   if (changed) await Promise.all([...accountListeners].map((listener) => listener()));
 }
 
-/** Signs in to `server` (an id from NAVIDROME_SERVERS; the first one when omitted). */
 export async function login(name: string, password: string, server?: string): Promise<void> {
   const response = await fetch("/auth/login", {
     method: "POST",
@@ -137,11 +121,8 @@ export async function login(name: string, password: string, server?: string): Pr
 export async function logout(): Promise<void> {
   await fetch("/auth/logout", { method: "POST", headers: HEADERS }).catch(() => undefined);
   try {
-    // The queue and position belong to this account.
     localStorage.removeItem("keep-player:state");
-  } catch {
-    // Nothing to clear.
-  }
+  } catch {}
   await setAccount(null);
   setUser(null);
   window.location.assign("/");
@@ -149,7 +130,6 @@ export async function logout(): Promise<void> {
 
 type Params = Record<string, string | number | boolean | undefined | (string | number)[]>;
 
-/** Arrays become repeated keys (`songId=1&songId=2`), as Subsonic expects. */
 function query(params: Params): string {
   const search = new URLSearchParams({ f: "json" });
   for (const [key, value] of Object.entries(params)) {
@@ -159,7 +139,6 @@ function query(params: Params): string {
   return search.toString();
 }
 
-/** One Subsonic call through the server's session proxy; throws ApiError, and signs out when the session is gone. */
 export async function api<T>(endpoint: string, params: Params = {}): Promise<T> {
   const response = noteResponse(
     await fetch(`/rest/${endpoint}?${query(params)}`, { headers: HEADERS }).catch((error: unknown) => {
@@ -182,25 +161,21 @@ export function coverUrl(id: string | undefined, size = 256): string | null {
   return id ? `/cover/${encodeURIComponent(id)}/${snapCoverSize(size)}` : null;
 }
 
-/** 1x and 2x sources for a cover drawn at `cssSize` CSS pixels. */
 export function coverSrcSet(id: string, cssSize: number): string {
   return `${coverUrl(id, cssSize)} 1x, ${coverUrl(id, cssSize * 2)} 2x`;
 }
 
-/** Fetch a cover ahead of time (next tracks, hovered albums) so it's in the browser cache when it's drawn. */
 export function preloadCover(id: string | undefined, cssSize: number): void {
   const url = coverUrl(id, cssSize * Math.min(window.devicePixelRatio || 1, 2));
   if (url) new Image().src = url;
 }
 
-/** Songs this browser couldn't play as they are: they stream as a transcode from then on. */
 const transcoded = new Set<string>();
 
 export function fallBackToTranscode(id: string): void {
   transcoded.add(id);
 }
 
-/** The quality a song streams at: the setting, or the fallback for a song the browser can't decode. */
 export function qualityOf(id: string): StreamQuality {
   return transcoded.has(id) ? FALLBACK : getSetting("streamQuality");
 }

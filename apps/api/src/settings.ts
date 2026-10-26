@@ -1,9 +1,6 @@
-/**
- * Every environment variable the server reads, in one table: parsed and checked at boot (a bad value stops the server
- * with a message naming it), and the source of `docs/configuration.md` (`bun scripts/config-docs.ts`).
- */
+// Parsed and checked at boot; also the source of `docs/configuration.md` (`bun scripts/config-docs.ts`).
 
-/** A Navidrome (or any OpenSubsonic) server this instance may talk to. Only ever from config, never from a request. */
+/** Only ever from config, never from a request. */
 export interface Upstream {
   id: string;
   url: string;
@@ -145,15 +142,10 @@ export interface Config {
   lrclibUrl: string;
   lyricsBackfill: boolean;
   oneSession: boolean;
-  /** Null unless both `FEEDBACK_GITHUB_TOKEN` and `FEEDBACK_REPO` are set. */
   feedback: { token: string; repo: string } | null;
-  /** Null unless `GROQ_API_KEY` is set. */
   groq: { key: string; model: string; url: string } | null;
-  /** Null unless `LYRICS_WRITE_LRC=on`: the music folder .lrc files are written into. */
   lrcDir: string | null;
-  /** Null when uploads are off. */
   uploadDir: string | null;
-  /** Null unless both `LYTERION_URL` and `LYTERION_TOKEN` are set. */
   lyterion: { url: string; token: string } | null;
   indexUser: string | undefined;
   indexPassword: string | undefined;
@@ -166,7 +158,6 @@ export interface Config {
 const fallback = (name: (typeof SETTINGS)[number]["name"]) => SETTINGS.find((setting) => setting.name === name)?.fallback ?? "";
 const isUrl = (value: string) => /^https?:\/\/[^\s/]+/.test(value);
 
-/** Reads and checks the environment. Every problem is reported at once, each naming its variable. */
 export function readConfig(env: Env): { config: Config; errors: string[] } {
   const errors: string[] = [];
   const get = (name: (typeof SETTINGS)[number]["name"]) => (env[name] ?? fallback(name)).trim();
@@ -253,7 +244,6 @@ export function readConfig(env: Env): { config: Config; errors: string[] } {
   return { config, errors };
 }
 
-/** The configuration reference, as Markdown. */
 export function configDocs(): string {
   const cell = (text: string) => text.replaceAll("|", "\\|");
   const rows = SETTINGS.map(

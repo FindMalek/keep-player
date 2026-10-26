@@ -1,9 +1,6 @@
 import { useSyncExternalStore } from "react";
 
-/*
- * Tooltips (Base UI tooltip + floating-ui, ~20 KB gzip) stay off the first screen: they load when the browser is
- * idle, or on the first hover or focus of something that has one. Until then triggers render as plain markup.
- */
+// Tooltips (~20 KB gzip) load when idle or on the first hover or focus; until then triggers render as plain markup.
 
 type TooltipModule = typeof import("@keep/ui/components/tooltip");
 
@@ -20,7 +17,6 @@ export function loadTooltips(): void {
   });
 }
 
-/** The tooltip components once loaded, else null (render the trigger as is, and call `loadTooltips` on hover). */
 export function useTooltips(): TooltipModule | null {
   return useSyncExternalStore(
     (listener) => {
@@ -31,10 +27,8 @@ export function useTooltips(): TooltipModule | null {
   );
 }
 
-/*
- * Moving from one control to the next opens the next tooltip at once: for 400 ms after a tooltip closes, triggers
- * use no delay (what Base UI's provider does, without pulling floating-ui onto the first screen).
- */
+// For 400 ms after a tooltip closes, triggers open with no delay (what Base UI's provider does, without pulling
+// floating-ui onto the first screen).
 const OPEN_DELAY_MS = 400;
 let warm = false;
 let cool: ReturnType<typeof setTimeout> | undefined;
@@ -46,7 +40,6 @@ function setWarm(next: boolean): void {
   for (const listener of warmListeners) listener();
 }
 
-/** Call when a tooltip closes. */
 export function tooltipClosed(): void {
   setWarm(true);
   clearTimeout(cool);

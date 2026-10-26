@@ -25,7 +25,6 @@ test("b saves a moment: a tick on the seek bar, a note on the moments page, sear
   await page.locator("body").press("5");
   await page.locator("body").press("b");
   await expect(page.getByText(/^saved a moment at \d+:\d\d in /)).toBeVisible();
-  // The playing song's menu can copy a link at this point too.
   await page.locator("[aria-label=tracks] tbody tr").first().click({ button: "right" });
   await expect(page.getByRole("menu").getByRole("menuitem", { name: /^copy link at \d+:\d\d/ })).toBeVisible();
   await page.keyboard.press("Escape");
@@ -41,14 +40,12 @@ test("b saves a moment: a tick on the seek bar, a note on the moments page, sear
   await page.keyboard.press("Enter");
   await expect(ticks.getByRole("button", { name: /: the drop$/ })).toHaveCount(1);
 
-  // Search by the note.
   await page.keyboard.press("ControlOrMeta+k");
   const dialog = page.getByRole("dialog", { name: "search" });
   await dialog.getByRole("combobox").fill('moment:"the drop"');
   await expect(dialog.getByRole("group", { name: "songs" }).getByRole("option")).toHaveCount(1);
   await page.keyboard.press("Escape");
 
-  // The link opens the album and plays from that point.
   const row = page.getByRole("listitem").filter({ has: page.getByRole("button", { name: /: the drop, click to edit$/ }) });
   await row.hover();
   await row.getByRole("button", { name: "copy link" }).click();

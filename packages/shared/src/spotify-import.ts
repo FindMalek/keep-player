@@ -1,13 +1,7 @@
-/*
- * Reading a Spotify export (#48): the files Spotify's "download your data" gives (`Playlist1.json`, `YourLibrary.json`),
- * and a plain shape of our own. Everything is turned into the same lists of tracks to match against the library.
- */
-
 export interface ImportTrack {
   title: string;
   artist: string;
   album?: string;
-  /** Milliseconds, when the export knows it. */
   durationMs?: number;
   isrc?: string;
 }
@@ -24,7 +18,6 @@ export interface ImportSet {
 
 const text = (value: unknown): string => (typeof value === "string" ? value.trim() : "");
 
-/** A track from any of the shapes we read; null when it has no title or no artist (podcasts, local files). */
 export function readTrack(raw: unknown): ImportTrack | null {
   if (!raw || typeof raw !== "object") return null;
   const item = raw as Record<string, unknown>;
@@ -42,7 +35,6 @@ export function readTrack(raw: unknown): ImportTrack | null {
 
 const list = (value: unknown): unknown[] => (Array.isArray(value) ? value : []);
 
-/** Merge the parsed files of an export (any mix of playlist files, library files and our own shape) into one set. */
 export function parseExport(files: unknown[]): ImportSet {
   const set: ImportSet = { playlists: [], liked: [] };
   for (const file of files) {
@@ -68,7 +60,6 @@ export function parseExport(files: unknown[]): ImportSet {
   return set;
 }
 
-/** The same song listed twice (a playlist that repeats it) once. */
 export function dedupe(tracks: ImportTrack[]): ImportTrack[] {
   const seen = new Set<string>();
   return tracks.filter((track) => {
@@ -86,7 +77,6 @@ const csvCell = (value: string | number | undefined): string => {
   return /[",\r\n]/.test(cell) ? `"${cell.replace(/"/g, '""')}"` : cell;
 };
 
-/** The tracks nothing matched, as CSV for whatever fetches music (beets, Lidarr, a person with a list). */
 export function missingCsv(tracks: ImportTrack[]): string {
   const rows = tracks.map((track) => [track.artist, track.title, track.album, track.isrc].map(csvCell).join(","));
   return `${["artist", "title", "album", "isrc"].join(",")}\n${rows.join("\n")}\n`;
