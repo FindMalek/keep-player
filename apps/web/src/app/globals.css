@@ -1,0 +1,14 @@
+@import "tailwindcss" source("../../");
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "../../../../packages/ui/src/styles/theme.css";
+@source "../../../../packages/ui/src";
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply bg-background font-sans text-foreground antialiased;
+  }
+}
