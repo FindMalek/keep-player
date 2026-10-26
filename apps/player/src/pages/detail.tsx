@@ -2,11 +2,12 @@ import { Badge } from "@keep/ui/components/badge";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@keep/ui/components/breadcrumb";
 import { Button } from "@keep/ui/components/button";
 import { Label } from "@keep/ui/components/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@keep/ui/components/select";
 import { Switch } from "@keep/ui/components/switch";
 import { ToggleGroup, ToggleGroupItem } from "@keep/ui/components/toggle-group";
 import { useQuery } from "@tanstack/react-query";
-import { ExternalLinkIcon, PlayIcon, RadioIcon, Trash2Icon } from "lucide-react";
-import { Fragment, type ReactNode, useMemo, useState } from "react";
+import { ExternalLinkIcon, PlayIcon, RadioIcon, SearchIcon, Trash2Icon } from "lucide-react";
+import { Fragment, type ReactNode, useEffect, useMemo, useState } from "react";
 import { ArtistCard } from "@/components/artist-card";
 import { Aura } from "@/components/aura";
 import { Cover } from "@/components/cover";
@@ -23,6 +24,7 @@ import { auraParams, vibe } from "@/lib/aura";
 import { cachedSummary } from "@/lib/cached";
 import { length, plural, quality } from "@/lib/format";
 import type { LikeKind } from "@/lib/likes";
+import { openListFilter } from "@/lib/list-filter";
 import { player } from "@/lib/player";
 import {
   canEdit,
@@ -41,6 +43,7 @@ import { queries, queryClient } from "@/lib/queries";
 import { usePath } from "@/lib/router";
 import { rpc } from "@/lib/rpc";
 import type { Album, Artist, Playlist, Song } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 function Hero({
   cover,
@@ -54,6 +57,8 @@ function Hero({
   extra,
   like,
   backdrop,
+  filterable,
+  bar,
 }: {
   cover?: string;
   kind: ReactNode;
@@ -71,32 +76,111 @@ function Hero({
   /** Take over the clicked card's cover in the page transition. */
   /** A picture behind the header (a playlist's aura). */
   backdrop?: ReactNode;
+  /** The list below can be filtered (⌘F): the sticky bar gets a search button. */
+  filterable?: boolean;
+  /** More controls for the sticky bar (a playlist's sort). */
+  bar?: ReactNode;
+}) {
+  const [header, setHeader] = useState<HTMLElement | null>(null);
+  const stuck = useScrolledPast(header);
+  return (
+    <>
+      <StickyBar shown={stuck} cover={cover} title={title} onPlay={onPlay} filterable={filterable}>
+        {bar}
+      </StickyBar>
+      <header
+        ref={setHeader}
+        className="relative isolate flex flex-wrap items-start gap-x-5 gap-y-3 border-b px-5 pt-[18px] pb-4 sm:items-end short:py-3"
+      >
+        {backdrop && <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden opacity-20">{backdrop}</div>}
+        <div className="shrink-0">
+          <Cover id={cover} size={160} className="w-[104px] sm:w-[152px] short:w-[88px]" priority />
+        </div>
+        <div className="flex min-w-0 flex-1 basis-56 flex-col gap-1.5">
+          <div className="self-start short:hidden">{kind}</div>
+          <h1 className="font-medium text-[26px] leading-[1.1] tracking-tight [overflow-wrap:anywhere] short:text-xl">
+            {titleSlot ?? title}
+          </h1>
+          <div className="flex flex-col gap-0.5">{children}</div>
+          <div className="mt-1 flex flex-wrap gap-1.5">
+            <Button onClick={onPlay}>play</Button>
+            <Button variant="outline" onClick={onShuffle}>
+              shuffle
+            </Button>
+            <Button variant="outline" onClick={onQueue}>
+              add to queue
+            </Button>
+            {extra}
+            {like && <LikeButton kind={like.kind} id={like.id} label={title} className="size-8" />}
+          </div>
+        </div>
+      </header>
+    </>
+  );
+}
+
+/** Height of the sticky bar; the virtual lists already leave this much room when they jump to a row. */
+const BAR = 44;
+
+/** True once `element` has scrolled up under the sticky bar. */
+function useScrolledPast(element: HTMLElement | null): boolean {
+  const [past, setPast] = useState(false);
+  useEffect(() => {
+    if (!element) return;
+    const root = element.closest<HTMLElement>("[data-page-scroll]");
+    const observer = new IntersectionObserver(
+      ([entry]) => setPast(Boolean(entry && !entry.isIntersecting && entry.boundingClientRect.top < (entry.rootBounds?.top ?? 0) + BAR)),
+      { root, rootMargin: `-${BAR}px 0px 0px 0px` },
+    );
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [element]);
+  return past;
+}
+
+/**
+ * A long album or playlist keeps its name, play and the list's search at hand: once the header scrolls away, this bar
+ * sticks to the top. It takes no room in the page (negative margin) and is hidden until then.
+ */
+function StickyBar({
+  shown,
+  cover,
+  title,
+  onPlay,
+  filterable,
+  children,
+}: {
+  shown: boolean;
+  cover?: string;
+  title: string;
+  onPlay: () => void;
+  filterable?: boolean;
+  children?: ReactNode;
 }) {
   return (
-    <header className="relative isolate flex flex-wrap items-start gap-x-5 gap-y-3 border-b px-5 pt-[18px] pb-4 sm:items-end short:py-3">
-      {backdrop && <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden opacity-20">{backdrop}</div>}
-      <div className="shrink-0">
-        <Cover id={cover} size={160} className="w-[104px] sm:w-[152px] short:w-[88px]" priority />
-      </div>
-      <div className="flex min-w-0 flex-1 basis-56 flex-col gap-1.5">
-        <div className="self-start short:hidden">{kind}</div>
-        <h1 className="font-medium text-[26px] leading-[1.1] tracking-tight [overflow-wrap:anywhere] short:text-xl">
-          {titleSlot ?? title}
-        </h1>
-        <div className="flex flex-col gap-0.5">{children}</div>
-        <div className="mt-1 flex flex-wrap gap-1.5">
-          <Button onClick={onPlay}>play</Button>
-          <Button variant="outline" onClick={onShuffle}>
-            shuffle
+    <div
+      aria-hidden={!shown}
+      inert={!shown}
+      data-sticky-bar
+      className={cn(
+        "sticky top-0 z-20 -mb-11 flex h-11 items-center gap-3 border-b bg-background/95 px-5 backdrop-blur transition-opacity duration-150",
+        shown ? "opacity-100" : "pointer-events-none opacity-0",
+      )}
+    >
+      <Cover id={cover} size={40} className="w-7 shrink-0" />
+      <span className="min-w-0 flex-1 truncate font-medium">{title}</span>
+      {children}
+      {filterable && (
+        <Hint label="search this list (⌘F)">
+          <Button variant="ghost" size="icon-sm" aria-label="search this list" onClick={() => openListFilter()}>
+            <SearchIcon />
           </Button>
-          <Button variant="outline" onClick={onQueue}>
-            add to queue
-          </Button>
-          {extra}
-          {like && <LikeButton kind={like.kind} id={like.id} label={title} className="size-8" />}
-        </div>
-      </div>
-    </header>
+        </Hint>
+      )}
+      <Button size="sm" onClick={onPlay}>
+        <PlayIcon /> play
+      </Button>
+    </div>
   );
 }
 
@@ -152,6 +236,7 @@ export function AlbumPage({ id }: { id: string }) {
         onQueue={() => player.addToQueue(songs)}
         extra={<KeepOffline group={`album:${album.id}`} songs={songs} />}
         like={{ kind: "album", id: album.id }}
+        filterable
       >
         {album.artistId && (
           <ArtistCard id={album.artistId} name={album.artist}>
@@ -478,6 +563,21 @@ export function PlaylistPage({ id }: { id: string }) {
         onPlay={() => player.play(playable, 0, { shuffle: false, source })}
         onShuffle={() => player.play(playable, -1, { shuffle: true, source })}
         onQueue={() => player.addToQueue(playable)}
+        filterable
+        bar={
+          <Select value={sort} onValueChange={(value) => setSort(value as PlaylistSort)}>
+            <SelectTrigger size="sm" aria-label="sort" className="w-36 font-mono max-sm:hidden">
+              <SelectValue>{PLAYLIST_SORTS.find(([value]) => value === sort)?.[1]}</SelectValue>
+            </SelectTrigger>
+            <SelectContent align="end" alignItemWithTrigger={false}>
+              {PLAYLIST_SORTS.map(([value, label]) => (
+                <SelectItem key={value} value={value} className="font-mono">
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        }
         extra={
           <>
             <KeepOffline group={`playlist:${playlist.id}`} songs={playable} />
