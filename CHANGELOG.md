@@ -1,5 +1,35 @@
 # Changelog
 
+## [1.6.0](https://github.com/FindMalek/keep-player/compare/v1.5.0...v1.6.0) (2026-10-26)
+
+
+### Features
+
+* **api:** reference at /api, bearer tokens ([#294](https://github.com/FindMalek/keep-player/issues/294)) ([0d40840](https://github.com/FindMalek/keep-player/commit/0d40840fec0e67c5ff27a9c532cf015b8bc4a2a0))
+* **macos:** open pr previews ([#301](https://github.com/FindMalek/keep-player/issues/301)) ([da9b787](https://github.com/FindMalek/keep-player/commit/da9b7876bbf9917201cdd503b8ce7d1222ec79e7))
+* **previews:** api row in comment ([#296](https://github.com/FindMalek/keep-player/issues/296)) ([d147ec2](https://github.com/FindMalek/keep-player/commit/d147ec2734f93c0ada281d6c9cf1abef882ff287))
+* **web:** ai-friendly, better docs ([#332](https://github.com/FindMalek/keep-player/issues/332)) ([5901b6c](https://github.com/FindMalek/keep-player/commit/5901b6cab9b2768e7b6032dd5c7866d56cd2938d))
+* **web:** docs at /docs ([#324](https://github.com/FindMalek/keep-player/issues/324)) ([e81fb92](https://github.com/FindMalek/keep-player/commit/e81fb92b15bbe034f6fcbd72e8fe668e7a8b50c4))
+* **web:** landing page ([#305](https://github.com/FindMalek/keep-player/issues/305)) ([6acc3df](https://github.com/FindMalek/keep-player/commit/6acc3df151ebdc491a1a9a386a6fd7f7cfaf7c5d))
+* **web:** live demos and roadmap ([#323](https://github.com/FindMalek/keep-player/issues/323)) ([9ce3da2](https://github.com/FindMalek/keep-player/commit/9ce3da2b02eac53d43464c7b6181b3d222011bbd))
+* **web:** seo, share images, vercel ([#327](https://github.com/FindMalek/keep-player/issues/327)) ([032d897](https://github.com/FindMalek/keep-player/commit/032d8973565ed91c4937d9c901d5e524caed0882))
+
+
+### Bug Fixes
+
+* **api:** scope terminal tokens ([#303](https://github.com/FindMalek/keep-player/issues/303)) ([7c2322a](https://github.com/FindMalek/keep-player/commit/7c2322ab7c616ddecb9387e93431897945250386))
+* **player:** dialogs fit short windows ([#307](https://github.com/FindMalek/keep-player/issues/307)) ([d27de9f](https://github.com/FindMalek/keep-player/commit/d27de9f498bc293b51f24155bd26ba6236934e74))
+* **player:** fit every window size ([#310](https://github.com/FindMalek/keep-player/issues/310)) ([5ef64a0](https://github.com/FindMalek/keep-player/commit/5ef64a0c2b4ecc0eb1eea70005567a0cd58c5b65))
+* **web:** light mode looks light ([#329](https://github.com/FindMalek/keep-player/issues/329)) ([de2dab9](https://github.com/FindMalek/keep-player/commit/de2dab9f1d18ac6f1e2960f7d7580db47cf88a25))
+
+
+### Performance Improvements
+
+* **api:** cache made for you ([#300](https://github.com/FindMalek/keep-player/issues/300)) ([b7391f8](https://github.com/FindMalek/keep-player/commit/b7391f81c84bba384de12339384886451f385ee7))
+* **api:** compress json responses ([#297](https://github.com/FindMalek/keep-player/issues/297)) ([901ce09](https://github.com/FindMalek/keep-player/commit/901ce0931e33685eb729a447c71cfb46edea3462))
+* **macos:** 120 fps, lyrics ahead ([#322](https://github.com/FindMalek/keep-player/issues/322)) ([73646c8](https://github.com/FindMalek/keep-player/commit/73646c8103c55b3a62f99450fe219f0b73ea71bc))
+* **player:** fewer refetches on focus ([#299](https://github.com/FindMalek/keep-player/issues/299)) ([b533fa4](https://github.com/FindMalek/keep-player/commit/b533fa48ee3de7c2da0525176a712bf624cf0f62))
+
 ## [1.5.0](https://github.com/FindMalek/keep-player/compare/v1.4.0...v1.5.0) (2026-10-26)
 
 
