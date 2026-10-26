@@ -26,13 +26,13 @@ export interface AudioConfig {
 
 const AudioConfigContext = createContext<AudioConfig>({});
 
-export interface AudioConfigProviderProps {
+interface AudioConfigProviderProps {
   value: AudioConfig;
   children: ReactNode;
 }
 
 /** Merges `value` over any config from a parent provider. */
-export const AudioConfigProvider = ({
+const AudioConfigProvider = ({
   value,
   children,
 }: AudioConfigProviderProps) => {

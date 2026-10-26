@@ -30,7 +30,7 @@ export function memoryCache(now: () => number = Date.now): Cache {
 }
 
 /** Redis down means a miss, never an error: the answer is computed again. */
-export function redisCache(url: string): Cache {
+function redisCache(url: string): Cache {
   // Fail fast while disconnected instead of queueing until it reconnects: a miss costs ~30 ms, a wait seconds.
   const client = new RedisClient(url, { enableOfflineQueue: false });
   return {

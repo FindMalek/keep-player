@@ -61,9 +61,9 @@ export const subscribeFrame = (
 };
 
 /** One frame of a task. Return true while the task needs another frame. */
-export type FrameTaskStep = (nowMs: number) => boolean;
+type FrameTaskStep = (nowMs: number) => boolean;
 
-export interface FrameTask {
+interface FrameTask {
   /** Runs the step again from the next frame, if the task is asleep. */
   wake: () => void;
   /** Stops the task for good. A stopped task ignores `wake`. */
@@ -75,7 +75,7 @@ export interface FrameTask {
  * returns false the task sleeps and requests no frames until `wake()`, so a
  * settled, silent or hidden painter costs nothing. The task starts awake.
  */
-export const createFrameTask = (step: FrameTaskStep): FrameTask => {
+const createFrameTask = (step: FrameTaskStep): FrameTask => {
   let stopped = false;
   let unsubscribe: (() => void) | null = null;
 
@@ -108,14 +108,14 @@ export const createFrameTask = (step: FrameTaskStep): FrameTask => {
 };
 
 /** The longest step a painter clock takes, so waking never jumps. */
-export const MAX_FRAME_GAP_MS = 100;
+const MAX_FRAME_GAP_MS = 100;
 
 /**
  * A clock that follows the frames but never advances more than
  * `MAX_FRAME_GAP_MS` at once. A painter that slept, or ran in a hidden tab,
  * resumes its ballistics where they were instead of jumping to the end.
  */
-export const createPainterClock = (): ((nowMs: number) => number) => {
+const createPainterClock = (): ((nowMs: number) => number) => {
   let lastMs: number | null = null;
   let clockMs = 0;
   return (nowMs) => {

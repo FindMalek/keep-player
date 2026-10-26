@@ -40,7 +40,7 @@ export const SERVER_TYPE: Partial<Record<AlbumSort, string>> = {
   plays: "frequent",
 };
 
-export function genresOf(album: Album): string[] {
+function genresOf(album: Album): string[] {
   return album.genres?.map((genre) => genre.name) ?? (album.genre ? [album.genre] : []);
 }
 
@@ -77,7 +77,7 @@ export function sortAlbums(albums: Album[], sort: AlbumSort, random: () => numbe
 
 export type ReleaseKind = "album" | "ep" | "single" | "compilation" | "live" | "other";
 
-export const RELEASE_ORDER: [ReleaseKind, string][] = [
+const RELEASE_ORDER: [ReleaseKind, string][] = [
   ["album", "albums"],
   ["ep", "EPs"],
   ["single", "singles"],

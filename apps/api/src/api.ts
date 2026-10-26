@@ -35,7 +35,7 @@ const FOLDERS_TTL_MS = 10 * 60_000;
 const REMOTE_AGENT = "terminal · now playing";
 const API_AGENT = "api token";
 /** Requests that change or read data must carry this header. Cross-site pages can't set it without a CORS preflight. */
-export const CSRF_HEADER = "x-keep-player";
+const CSRF_HEADER = "x-keep-player";
 const CLIENT_HEADER = "x-keep-client";
 
 /** Subsonic endpoints the app uses. Anything else is refused, so the proxy can't be used as a general API gateway. */
@@ -162,7 +162,7 @@ export interface ApiOptions {
 }
 
 /** What a listen socket carries from the upgrade to its handlers. */
-export interface ListenSocketData {
+interface ListenSocketData {
   kind: "listen";
   code: string;
   session: string;
@@ -172,7 +172,7 @@ export interface ListenSocketData {
 }
 
 /** A device socket (#192): the account it belongs to and this player's id and name. */
-export interface DeviceSocketData {
+interface DeviceSocketData {
   kind: "devices";
   account: string;
   session: string;

@@ -14,7 +14,7 @@ export type ShortcutGroup = "playback" | "navigation" | "panels" | "lists";
  * Where a shortcut works. Global ones never fire while typing or inside a dialog, menu or the command palette; the
  * component that owns a narrower scope (a focused list, a dialog) registers its own and they win.
  */
-export type Scope = "global" | "list" | "modal";
+type Scope = "global" | "list" | "modal";
 
 export interface Shortcut {
   id: string;
@@ -33,7 +33,7 @@ export interface Shortcut {
 const CHORD_MS = 1000;
 const OVERRIDES_KEY = "keep-player:shortcuts";
 
-export const IS_MAC = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
+const IS_MAC = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
 
 /** "shift+mod+k" → "mod+shift+k": one spelling per combination. */
 export function normalize(binding: string): string {
@@ -168,7 +168,7 @@ export function bindingsOf(shortcut: Pick<Shortcut, "id" | "keys">): string[] {
   return overrides[shortcut.id] ?? shortcut.keys;
 }
 
-export function register(shortcut: Shortcut): () => void {
+function register(shortcut: Shortcut): () => void {
   registry.set(shortcut.id, shortcut);
   emit();
   return () => {
@@ -292,7 +292,7 @@ function scopeAllowed(scope: Scope, target: EventTarget | null): boolean {
   return true;
 }
 
-export function handleKey(event: KeyboardEvent): void {
+function handleKey(event: KeyboardEvent): void {
   if (event.defaultPrevented || event.isComposing) return;
   const binding = eventBinding(event);
   if (!binding) return;

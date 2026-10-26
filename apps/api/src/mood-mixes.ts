@@ -7,7 +7,7 @@ import { blend, type Listening, type Mix, seeded } from "./mixes";
  * per account per week, cached in `meta`); every day each mood is a fresh blend of those artists' songs you own.
  */
 
-export const MOODS = ["focus", "late night", "energy"] as const;
+const MOODS = ["focus", "late night", "energy"] as const;
 type Mood = (typeof MOODS)[number];
 
 const MOOD_SIZE = 30;

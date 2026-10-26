@@ -26,7 +26,7 @@ interface Room {
   endTimer?: ReturnType<typeof setTimeout>;
 }
 
-export const HOST_GRACE_MS = 60_000;
+const HOST_GRACE_MS = 60_000;
 const MAX_ROOMS = 50;
 const ALPHABET = "abcdefghjkmnpqrstuvwxyz23456789";
 

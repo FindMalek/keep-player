@@ -38,7 +38,7 @@ export function markUnreachable(): void {
   }
 }
 
-export function markReachable(): void {
+function markReachable(): void {
   if (!state.unreachable) return;
   clearTimeout(timer);
   attempt = 0;

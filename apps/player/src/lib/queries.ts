@@ -36,7 +36,7 @@ export const shouldPersist = (query: Query) =>
   );
 
 /** Long lists load this many items at a time, the next page fetched when the reader is 80% down. */
-export const PAGE_SIZE = 200;
+const PAGE_SIZE = 200;
 const ALL_SONGS_PAGE = 500;
 
 export interface IndexEntry {

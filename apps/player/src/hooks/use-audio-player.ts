@@ -212,7 +212,7 @@ const tryPlay = async (audio: HTMLAudioElement) => {
 };
 
 /** Playback state for an audio element the hook owns. */
-export const useAudioPlayer = ({
+const useAudioPlayer = ({
   src,
   autoPlay = false,
   loop = false,

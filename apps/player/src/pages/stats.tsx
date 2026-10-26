@@ -16,7 +16,7 @@ import { player } from "@/lib/player";
 import { createPlaylist } from "@/lib/playlists";
 import { go } from "@/lib/router";
 import { rpc } from "@/lib/rpc";
-import { api, getUser, HEADERS } from "@/lib/subsonic";
+import { api, getUser } from "@/lib/subsonic";
 import type { Song } from "@/lib/types";
 
 const Recap = lazy(() => import("@/components/recap").then((module) => ({ default: module.Recap })));

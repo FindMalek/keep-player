@@ -14,7 +14,7 @@ import { api, coverUrl, fallBackToTranscode, onAccountChange, preloadCover, qual
 import type { Song } from "./types";
 import { done, record } from "./undo";
 
-export type { Entry, QueueSource, Repeat } from "./queue";
+export type { Entry, QueueSource } from "./queue";
 
 export interface PlayerState {
   queue: Q.Queue;

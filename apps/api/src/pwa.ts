@@ -76,7 +76,7 @@ export function iconPng(size: number, maskable = false): Uint8Array<ArrayBuffer>
   return png;
 }
 
-export const ICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><rect width="16" height="16" fill="#101010"/><path d="M5 3.5v9l7-4.5z" fill="#ebebeb"/></svg>`;
+const ICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><rect width="16" height="16" fill="#101010"/><path d="M5 3.5v9l7-4.5z" fill="#ebebeb"/></svg>`;
 
 export const MANIFEST = {
   name: "keep music",
