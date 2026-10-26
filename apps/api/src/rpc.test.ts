@@ -61,3 +61,15 @@ test("the terminal's token only reaches what's playing; an api token made in set
   expect((await stats(await mint(api.remoteToken))).status).toBe(401);
   expect((await stats(await mint(api.apiToken))).status).toBe(200);
 });
+
+test("neither token counts as the browser cookie", async () => {
+  const mint = async (make: (request: Request) => Response) => {
+    const request = new Request("http://app/token", { method: "POST", headers: { "x-keep-player": "1", cookie: `kp_session=${cookie}` } });
+    return ((await make(request).json()) as { token: string }).token;
+  };
+  for (const token of [await mint(api.remoteToken), await mint(api.apiToken)]) {
+    const headers = { "x-keep-player": "1", cookie: `kp_session=${token}` };
+    await expect(client(headers).stats.forgotten({ days: 30 })).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+    expect(api.apiToken(new Request("http://app/token", { method: "POST", headers })).status).toBe(401);
+  }
+});
