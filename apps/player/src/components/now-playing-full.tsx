@@ -76,7 +76,7 @@ export function NowPlayingFull({ open, onOpenChange }: { open: boolean; onOpenCh
                 </div>
                 {next.length > 0 && (
                   <section aria-label="up next" className="flex flex-col gap-1">
-                    <h2 className="font-mono text-[11px] text-faint">up next</h2>
+                    <h2 className="font-mono text-meta text-faint">up next</h2>
                     <ol className="flex flex-col gap-0.5 text-muted-foreground text-sm">
                       {next.map((upcoming, index) => (
                         // biome-ignore lint/suspicious/noArrayIndexKey: the same song can come up twice (repeat)

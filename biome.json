@@ -15,7 +15,8 @@
       "!apps/player/src/components/ui",
       "!packages/ui/src/components",
       "!apps/player/src/hooks",
-      "!apps/player/src/lib/audio"
+      "!apps/player/src/lib/audio",
+      "!packages/ui/src/lib/cn-tables.ts"
     ]
   },
   "formatter": {

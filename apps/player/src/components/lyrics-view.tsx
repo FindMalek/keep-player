@@ -281,7 +281,7 @@ export function LyricsView({ song, size }: { song: Song; size: Size }) {
           className={cn(
             "z-10",
             panelFades && "sticky bottom-0 bg-background",
-            "flex flex-wrap items-center gap-x-3 gap-y-1 border-t px-2 py-1.5 font-mono text-[11px] text-muted-foreground",
+            "flex flex-wrap items-center gap-x-3 gap-y-1 border-t px-2 py-1.5 font-mono text-meta text-muted-foreground",
           )}
         >
           <span className="flex items-center gap-1">

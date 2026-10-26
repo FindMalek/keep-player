@@ -21,7 +21,7 @@ export function EqualizerSheet({ open, onOpenChange }: { open: boolean; onOpenCh
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-[420px] max-w-full gap-0 sm:max-w-[420px]">
+      <SheetContent side="right" className="w-105 max-w-full gap-0 sm:max-w-105">
         <SheetHeader>
           <SheetTitle>equalizer</SheetTitle>
           <SheetDescription>ten bands, ±{MAX_DB} dB. Boosts lower the overall level a little so they don't clip.</SheetDescription>
@@ -50,7 +50,7 @@ export function EqualizerSheet({ open, onOpenChange }: { open: boolean; onOpenCh
           <div className={on ? "flex justify-between gap-1" : "flex justify-between gap-1 opacity-50"}>
             {BANDS.map((frequency, index) => (
               <div key={frequency} className="flex flex-1 flex-col items-center gap-2">
-                <span className="font-mono text-[10.5px] text-muted-foreground tabular-nums">{gains[index]?.toFixed(0)}</span>
+                <span className="font-mono text-label text-muted-foreground tabular-nums">{gains[index]?.toFixed(0)}</span>
                 <div className="h-40">
                   <Slider
                     orientation="vertical"
@@ -66,7 +66,7 @@ export function EqualizerSheet({ open, onOpenChange }: { open: boolean; onOpenCh
                     }}
                   />
                 </div>
-                <span className="font-mono text-[10.5px] text-muted-foreground">{label(frequency)}</span>
+                <span className="font-mono text-label text-muted-foreground">{label(frequency)}</span>
               </div>
             ))}
           </div>

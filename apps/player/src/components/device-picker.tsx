@@ -33,7 +33,7 @@ export function DevicePicker() {
       </DropdownMenuTrigger>
       <DropdownMenuContent side="top" align="end" className="min-w-56">
         <DropdownMenuGroup>
-          <DropdownMenuLabel className="font-mono text-[10.5px] text-faint">play on</DropdownMenuLabel>
+          <DropdownMenuLabel className="font-mono text-label text-faint">play on</DropdownMenuLabel>
           <DropdownMenuRadioGroup value={active?.id ?? ""} onValueChange={(id: string) => session.transfer(id)}>
             {devices.map((device) => (
               <DropdownMenuRadioItem key={device.id} value={device.id}>

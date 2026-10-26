@@ -62,7 +62,7 @@ const LIBRARY = [
   ["/folders", "folders", FolderIcon],
 ] as const;
 
-const LABEL = "font-mono text-[10.5px] text-faint";
+const LABEL = "font-mono text-label text-faint";
 
 interface FolderNode {
   name: string;

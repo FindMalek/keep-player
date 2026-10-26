@@ -220,7 +220,7 @@ export default async function Home() {
                   <div key={mix.name} className="group">
                     <div className="relative overflow-hidden">
                       <Art seed={mix.art} className="w-full transition-transform duration-500 group-hover:scale-105" />
-                      <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2 pt-8 font-medium font-mono text-[11px] text-white">
+                      <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2 pt-8 font-medium font-mono text-meta text-white">
                         {mix.name}
                       </span>
                     </div>
@@ -254,7 +254,7 @@ export default async function Home() {
               title="gapless, replaygain"
               text="two decks for albums that run into each other, album gain when you play one in order, crossfade if you like it."
             >
-              <div aria-hidden className="flex h-16 items-end gap-[3px] border bg-card p-3">
+              <div aria-hidden className="flex h-16 items-end gap-0.75 border bg-card p-3">
                 {Array.from({ length: 36 }, (_, index) => (
                   <span
                     // biome-ignore lint/suspicious/noArrayIndexKey: a fixed waveform
@@ -299,7 +299,7 @@ export default async function Home() {
                 minutes, your top artist, the album on repeat, your longest streak. a card to share at the end.
               </p>
               <div aria-hidden className="mt-auto flex aspect-[9/12] flex-col justify-between bg-foreground p-5 text-background">
-                <span className="font-mono text-[11px] opacity-70">your 2026</span>
+                <span className="font-mono text-meta opacity-70">your 2026</span>
                 <div>
                   <p className="font-medium text-5xl tracking-tight">41,208</p>
                   <p className="mt-1 text-sm opacity-70">minutes listened</p>
@@ -326,7 +326,7 @@ export default async function Home() {
                   </p>
                 </div>
               </div>
-              <pre className="overflow-x-auto border bg-card px-4 py-3 font-mono text-[11px] leading-relaxed">
+              <pre className="overflow-x-auto border bg-card px-4 py-3 font-mono text-meta leading-relaxed">
                 <span className="text-muted-foreground">♪ </span>Teardrop · Massive Attack{"  "}
                 <span className="text-muted-foreground">1:34 / 5:30 · ⏮ ⏸ ⏭</span>
               </pre>

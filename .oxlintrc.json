@@ -26,7 +26,34 @@
     "shadcn/no-raw-colors": "error",
     "shadcn/no-unknown-classes": "error",
     "shadcn/require-static-classes": "error",
-    "keep/comment-budget": "error"
+    "keep/comment-budget": "error",
+    "shadcn/no-arbitrary-values": [
+      "error",
+      {
+        "allow": [
+          "w-*",
+          "h-*",
+          "size-*",
+          "min-w-*",
+          "min-h-*",
+          "max-w-*",
+          "max-h-*",
+          "grid-cols-*",
+          "leading-*",
+          "scale-*",
+          "transition-*",
+          "pb-*",
+          "shadow-[inset*",
+          "[overflow-wrap:anywhere]",
+          "align-*",
+          "bottom-*",
+          "aspect-*",
+          "[mask-image:*",
+          "[scrollbar-width:*",
+          "[animation-delay:*"
+        ]
+      }
+    ]
   },
   "ignorePatterns": [
     "**/dist/**",
@@ -36,7 +63,8 @@
     "apps/macos/**",
     "**/*.d.ts",
     "**/components/ui/**",
-    "packages/ui/src/components/**"
+    "packages/ui/src/components/**",
+    "packages/ui/src/lib/cn-tables.ts"
   ],
   "overrides": [
     {

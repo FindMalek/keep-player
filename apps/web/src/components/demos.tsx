@@ -39,7 +39,7 @@ export function LyricsDemo() {
             // biome-ignore lint/suspicious/noArrayIndexKey: fixed lines
             key={index}
             className={cn(
-              "h-[22px] text-[15px] transition-colors duration-300",
+              "h-5.5 text-lead transition-colors duration-300",
               index === active ? "font-semibold text-foreground" : "text-muted-foreground/60",
             )}
           >
@@ -65,7 +65,7 @@ export function PaletteDemo() {
   const done = typed.length === QUERY.length;
   return (
     <div className="border bg-card" aria-hidden>
-      <div className="flex items-center gap-2 border-b px-3 py-2.5 font-mono text-[13px]">
+      <div className="flex items-center gap-2 border-b px-3 py-2.5 font-mono text-body">
         <SearchIcon className="size-4 text-muted-foreground" />
         <span>
           {typed}
@@ -84,7 +84,7 @@ export function PaletteDemo() {
           >
             <Art seed={result.art} className="size-8" />
             <div className="flex min-w-0 flex-col">
-              <span className="truncate text-[13px]">{result.title}</span>
+              <span className="truncate text-body">{result.title}</span>
               <span className="truncate text-muted-foreground text-xs">{result.sub}</span>
             </div>
           </div>
@@ -111,7 +111,7 @@ export function DevicesDemo() {
           className={cn("flex items-center gap-3 px-2 py-2 transition-colors duration-300", index === playing && "bg-muted")}
         >
           <device.icon className="size-4 text-muted-foreground" strokeWidth={1.5} />
-          <span className={cn("flex-1 text-[13px]", index === playing ? "font-medium" : "text-muted-foreground")}>{device.name}</span>
+          <span className={cn("flex-1 text-body", index === playing ? "font-medium" : "text-muted-foreground")}>{device.name}</span>
           {index === playing && <Volume2Icon className="size-4" strokeWidth={1.5} />}
         </div>
       ))}

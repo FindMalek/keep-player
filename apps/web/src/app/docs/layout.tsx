@@ -10,7 +10,7 @@ export default function Layout({ children }: { children: ReactNode }) {
       nav={{
         url: "/",
         title: (
-          <span className="flex items-center gap-2.5 font-medium font-mono text-[13px]">
+          <span className="flex items-center gap-2.5 font-medium font-mono text-body">
             <span aria-hidden className="size-2.5 bg-foreground" />
             keep music
           </span>

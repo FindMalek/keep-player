@@ -48,7 +48,7 @@ function Row({ cover, title, sub }: { cover?: string; title: string; sub: string
     <>
       <Cover id={cover} size={32} className="size-8 shrink-0" />
       <span className="flex min-w-0 flex-col">
-        <span className="truncate text-[13px]">{title}</span>
+        <span className="truncate text-body">{title}</span>
         <span className="truncate text-muted-foreground text-xs">{sub}</span>
       </span>
     </>
@@ -309,7 +309,7 @@ export function SearchPalette({ open, onOpenChange }: { open: boolean; onOpenCha
                       <CommandItem key={song.id} value={`ly-${song.id}`} onSelect={run(() => playLyricsHit(hit, lyricsWords))}>
                         <Cover id={song.coverArt} size={32} className="size-8 shrink-0 self-start" />
                         <span className="flex min-w-0 flex-col gap-0.5">
-                          <span className="truncate text-[13px]">
+                          <span className="truncate text-body">
                             {song.title}
                             <span className="text-muted-foreground"> · {song.artist}</span>
                           </span>
@@ -345,13 +345,13 @@ export function SearchPalette({ open, onOpenChange }: { open: boolean; onOpenCha
             </CommandList>
           </ListContextMenu>
           {needle && (
-            <div className="flex items-center justify-between gap-3 border-t px-3 py-1.5 font-mono text-[11px] text-faint">
+            <div className="flex items-center justify-between gap-3 border-t px-3 py-1.5 font-mono text-meta text-faint">
               <span>
                 {lyrics && lyricsWanted && lyrics.checked < lyrics.total
                   ? `lyrics checked for ${lyrics.checked.toLocaleString()} / ${lyrics.total.toLocaleString()} songs so far`
                   : ""}
               </span>
-              <Button variant="link" size="xs" className="h-auto gap-1.5 px-0 font-mono text-[11px] text-muted-foreground" onClick={seeAll}>
+              <Button variant="link" size="xs" className="h-auto gap-1.5 px-0 font-mono text-meta text-muted-foreground" onClick={seeAll}>
                 see all results <KeyCombo binding="mod+enter" />
               </Button>
             </div>

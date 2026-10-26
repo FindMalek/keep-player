@@ -7,7 +7,7 @@ export function SiteHeader() {
   return (
     <header className="sticky top-0 z-20 border-b bg-background/85 backdrop-blur">
       <nav className="mx-auto flex h-14 max-w-6xl items-center gap-6 px-4 sm:px-6">
-        <Link href="/" className="flex items-center gap-2.5 font-medium font-mono text-[13px]">
+        <Link href="/" className="flex items-center gap-2.5 font-medium font-mono text-body">
           <span aria-hidden className="size-2.5 bg-foreground" />
           keep music
         </Link>
