@@ -13,7 +13,9 @@ test("a pasted link is previewed, added, followed step by step and lands in the 
   await dialog.getByRole("button", { name: /add to library/ }).click();
   const steps = dialog.getByRole("list", { name: "progress" });
   await expect(steps).toBeVisible();
-  await expect(dialog.getByText("in your library", { exact: false }).first()).toBeVisible({ timeout: 15_000 });
+  // The step list gives way to the placed block (the song itself isn't in the mock library, so no play yet).
+  await expect(steps).toBeHidden({ timeout: 15_000 });
+  await expect(dialog.getByRole("button", { name: /scanning|not found yet|play now/ })).toBeVisible();
 });
 
 test("a typed name goes the same way, and a refusal from lyterion is shown", async ({ signedIn: page }) => {

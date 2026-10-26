@@ -76,7 +76,8 @@ export function AddTrack({ initial, onBack, onClose }: { initial: string; onBack
     queryKey: ["wishlist-status", added?.recordingId],
     queryFn: () => wishlist.status(added?.recordingId ?? ""),
     enabled: !!added,
-    refetchInterval: (query) => (query.state.data?.status === "working" || !query.state.data ? 2000 : false),
+    refetchInterval: (query) =>
+      query.state.status !== "error" && (query.state.data?.status === "working" || !query.state.data) ? 2000 : false,
   });
   const status = state.data?.status;
   const placed = status === "placed";
@@ -157,7 +158,15 @@ export function AddTrack({ initial, onBack, onClose }: { initial: string; onBack
         </p>
       )}
       {added && state.data && status === "working" && <Steps stage={state.data.stage} />}
-      {added && !state.data && <Steps stage="queued" />}
+      {added && !state.data && !state.isError && <Steps stage="queued" />}
+      {added && state.isError && (
+        <div className="flex items-center justify-between gap-3 border p-3">
+          <span className="text-muted-foreground text-sm">{state.error.message}</span>
+          <Button size="sm" variant="outline" onClick={() => state.refetch()}>
+            try again
+          </Button>
+        </div>
+      )}
       {placed && (
         <div className="flex items-center justify-between gap-3 border p-3">
           <span className="flex items-center gap-2 text-sm">
@@ -173,7 +182,15 @@ export function AddTrack({ initial, onBack, onClose }: { initial: string; onBack
             }}
           >
             {song.isPending ? <Loader2Icon className="animate-spin" /> : <PlayIcon />}
-            {song.data ? "play now" : "scanning…"}
+            {song.data ? "play now" : song.isPending ? "scanning…" : "not found yet"}
+          </Button>
+        </div>
+      )}
+      {placed && song.isSuccess && !song.data && (
+        <div className="flex items-center justify-between gap-3 border p-3">
+          <span className="text-muted-foreground text-sm">it's placed, but navidrome hasn't shown it yet.</span>
+          <Button size="sm" variant="outline" onClick={() => song.refetch()}>
+            check again
           </Button>
         </div>
       )}
@@ -182,7 +199,7 @@ export function AddTrack({ initial, onBack, onClose }: { initial: string; onBack
           found something, but not sure it's the right one. it's waiting in lyterion's review queue.
         </p>
       )}
-      {status === "missing" && (
+      {(status === "missing" || status === "gone") && (
         <div className="flex items-center justify-between gap-3 border p-3">
           <span className="text-muted-foreground text-sm">no good copy found on any source.</span>
           <Button

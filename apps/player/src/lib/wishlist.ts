@@ -1,3 +1,4 @@
+import { normalize } from "@keep/shared/normalize";
 import { notify } from "./notify";
 import { player } from "./player";
 import { HEADERS } from "./subsonic";
@@ -64,8 +65,11 @@ export async function findAdded(meta: Pick<WishPreview, "title" | "artists">): P
   const response = await fetch(`/api/search?${new URLSearchParams({ q: query, limit: "5" })}`, { headers: HEADERS });
   if (!response.ok) return null;
   const { songs } = (await response.json()) as { songs: Song[] };
-  const wanted = meta.title.toLowerCase();
-  return songs.find((song) => song.title.toLowerCase() === wanted) ?? null;
+  // Both must match: a same-titled song already in the library is not the one just added.
+  const artist = normalize(meta.artists[0] ?? "");
+  if (!artist) return null;
+  const title = normalize(meta.title);
+  return songs.find((song) => normalize(song.title) === title && normalize(song.artist ?? "") === artist) ?? null;
 }
 
 const POLL_MS = 3000;
