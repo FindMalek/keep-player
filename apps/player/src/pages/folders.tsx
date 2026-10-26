@@ -22,12 +22,12 @@ function FolderList({ folders }: { folders: { id: string; name: string }[] }) {
       virtualizeFrom={200}
       actions={{ open: (folder) => go(`/folders/${folder.id}`) }}
       renderItem={(folder) => (
-        <Item size="xs" className="h-[26px] px-1.5 py-0 text-[13px] hover:bg-card" render={<Link href={`/folders/${folder.id}`} />}>
+        <Item size="xs" className="h-6.5 px-1.5 py-0 text-body hover:bg-card" render={<Link href={`/folders/${folder.id}`} />}>
           <ItemMedia variant="icon" className="text-muted-foreground">
             <FolderIcon />
           </ItemMedia>
           <ItemContent>
-            <ItemTitle className="truncate font-normal text-[13px]">{folder.name}</ItemTitle>
+            <ItemTitle className="truncate font-normal text-body">{folder.name}</ItemTitle>
           </ItemContent>
         </Item>
       )}

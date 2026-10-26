@@ -44,7 +44,7 @@ function PanelFrame({
   return (
     <aside className="flex h-full min-h-0 flex-col" aria-label={title}>
       <header className="flex h-11 shrink-0 items-center gap-2.5 border-b pr-2 pl-3.5">
-        <h2 className="font-medium font-mono text-[13px]">{title}</h2>
+        <h2 className="font-medium font-mono text-body">{title}</h2>
         <span className="flex-1 font-mono text-muted-foreground text-xs">{meta}</span>
         {actions}
         <Hint label={`close ${title}`} shortcut="close">
@@ -332,12 +332,12 @@ export function QueuePanel({ onClose }: { onClose: () => void }) {
                 >
                   {item.kind === "header" ? (
                     <div className="flex h-9 items-end justify-between px-1.5 pb-1.5">
-                      <h3 className="truncate font-mono text-[10.5px] text-faint">{item.label}</h3>
+                      <h3 className="truncate font-mono text-label text-faint">{item.label}</h3>
                       {item.action && (
                         <Button
                           variant="link"
                           size="xs"
-                          className="h-auto p-0 font-mono text-[10.5px] text-muted-foreground"
+                          className="h-auto p-0 font-mono text-label text-muted-foreground"
                           onClick={item.action.run}
                         >
                           {item.action.label}
@@ -365,7 +365,7 @@ function NothingNext() {
     <Empty className="p-6">
       <EmptyHeader>
         <EmptyTitle className="font-mono text-xs">nothing up next</EmptyTitle>
-        <EmptyDescription className="font-mono text-[11px]">music stops after this song</EmptyDescription>
+        <EmptyDescription className="font-mono text-meta">music stops after this song</EmptyDescription>
       </EmptyHeader>
       <EmptyContent>
         <Button
@@ -421,8 +421,8 @@ function Facts({ title, rows }: { title: string; rows: [string, ReactNode][] }) 
   if (!shown.length) return null;
   return (
     <section className="flex flex-col gap-1.5">
-      <h3 className="font-mono text-[10.5px] text-faint">{title}</h3>
-      <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1 text-[12.5px]">
+      <h3 className="font-mono text-label text-faint">{title}</h3>
+      <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1 text-small">
         {shown.map(([label, value]) => (
           <Fragment key={label}>
             <dt className="text-muted-foreground">{label}</dt>
@@ -474,7 +474,7 @@ export function InfoPanel({ onClose }: { onClose: () => void }) {
             ["sample rate", details.samplingRate ? `${(details.samplingRate / 1000).toFixed(1)} kHz` : undefined],
             ["channels", details.channelCount],
             ["size", megabytes(song.size)],
-            ["path", details.path && <span className="font-mono text-[11px]">{details.path}</span>],
+            ["path", details.path && <span className="font-mono text-meta">{details.path}</span>],
           ]}
         />
         <Facts
@@ -495,7 +495,7 @@ export function InfoPanel({ onClose }: { onClose: () => void }) {
             ["track peak", rg?.trackPeak?.toFixed(3)],
           ]}
         />
-        <div className="flex flex-wrap gap-x-3 gap-y-1 font-mono text-[11px]">
+        <div className="flex flex-wrap gap-x-3 gap-y-1 font-mono text-meta">
           {details.parent && (
             <Link href={`/folders/${encodeURIComponent(details.parent)}`} className="underline-offset-3 hover:underline">
               open folder

@@ -7,6 +7,14 @@
   --font-sans: "IBM Plex Sans Variable", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono Variable", ui-monospace, "SF Mono", Menlo, monospace;
   --font-heading: var(--font-sans);
+  --text-label: 10.5px;
+  --text-meta: 11px;
+  --text-small: 12.5px;
+  --text-body: 13px;
+  --text-lead: 15px;
+  --text-title: 26px;
+  --shadow-float: 0 8px 30px rgb(0 0 0 / 0.5);
+  --ease-spring: cubic-bezier(0.3, 1.3, 0.5, 1);
   /* One step quieter than muted text for hints and labels; still ≥ 4.5:1 on the background (WCAG AA). */
   --color-faint: color-mix(in oklch, var(--muted-foreground) 90%, var(--background));
   --color-sidebar-ring: var(--sidebar-ring);

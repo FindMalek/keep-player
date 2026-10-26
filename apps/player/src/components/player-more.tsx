@@ -105,7 +105,7 @@ export function PlayerMore({ mode, panel, onPanel }: { mode: BarMode; panel: Pan
           </DropdownMenuSubTrigger>
           <DropdownMenuSubContent className="min-w-48">
             <DropdownMenuGroup>
-              <DropdownMenuLabel className="font-mono text-[10.5px] text-faint">stop playing</DropdownMenuLabel>
+              <DropdownMenuLabel className="font-mono text-label text-faint">stop playing</DropdownMenuLabel>
               <DropdownMenuRadioGroup value={sleepValue(sleep)} onValueChange={chooseSleep}>
                 {SLEEP_OPTIONS.map(([option, label]) => (
                   <DropdownMenuRadioItem key={option} value={option}>

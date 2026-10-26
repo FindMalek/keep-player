@@ -99,7 +99,7 @@ export function RadioControls() {
           </Hint>
         </div>
       )}
-      <div className="flex items-center gap-2 font-mono text-[11px] text-muted-foreground">
+      <div className="flex items-center gap-2 font-mono text-meta text-muted-foreground">
         familiar
         <Slider
           thumbLabel="variety"

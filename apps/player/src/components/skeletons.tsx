@@ -18,11 +18,11 @@ export function Delayed({ ms = SHOW_AFTER_MS, children }: { ms?: number; childre
 /** Track rows: the column header plus `count` rows of 34 px, like TrackList. `immediate` when content follows below. */
 export function TrackListSkeleton({ count, immediate = false }: { count: number; immediate?: boolean }) {
   const rows = (
-    <div aria-hidden className="text-[13px]">
+    <div aria-hidden className="text-body">
       <div className="h-6 border-b" />
       {Array.from({ length: count }, (_, index) => (
         // biome-ignore lint/suspicious/noArrayIndexKey: placeholders have no identity
-        <div key={index} className="flex h-[34px] items-center gap-3 border-muted border-b px-2">
+        <div key={index} className="flex h-8.5 items-center gap-3 border-muted border-b px-2">
           <Skeleton className="h-3 w-5" />
           <Skeleton className="h-3" style={{ width: `${30 + ((index * 37) % 35)}%` }} />
           <Skeleton className="ml-auto h-3 w-9" />
@@ -36,10 +36,10 @@ export function TrackListSkeleton({ count, immediate = false }: { count: number;
 export function HeroSkeleton() {
   return (
     <Delayed>
-      <header aria-hidden className="flex items-end gap-5 border-b px-5 pt-[18px] pb-4">
-        <Skeleton className="aspect-square w-[152px] shrink-0 short:w-[88px]" />
+      <header aria-hidden className="flex items-end gap-5 border-b px-5 pt-4.5 pb-4">
+        <Skeleton className="aspect-square w-38 shrink-0 short:w-22" />
         <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-          <Skeleton className="h-[18px] w-14" />
+          <Skeleton className="h-4.5 w-14" />
           <Skeleton className="h-7 w-2/5" />
           <Skeleton className="h-4 w-1/4" />
           <div className="mt-1 flex gap-1.5">
@@ -59,7 +59,7 @@ export function ArtistRowsSkeleton({ count }: { count: number }) {
       <div aria-hidden className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-x-6 pl-12">
         {Array.from({ length: count }, (_, index) => (
           // biome-ignore lint/suspicious/noArrayIndexKey: placeholders have no identity
-          <div key={index} className="flex h-[26px] items-center justify-between px-1.5">
+          <div key={index} className="flex h-6.5 items-center justify-between px-1.5">
             <Skeleton className="h-3" style={{ width: `${40 + ((index * 29) % 40)}%` }} />
             <Skeleton className="h-3 w-4" />
           </div>

@@ -35,7 +35,7 @@ const THEMES = [
   ["light", SunIcon],
 ] as const;
 
-const LABEL = "font-mono text-[10.5px] text-faint";
+const LABEL = "font-mono text-label text-faint";
 
 const FeedbackDialog = lazy(() => import("./feedback-dialog").then((module) => ({ default: module.FeedbackDialog })));
 
@@ -55,7 +55,7 @@ export function UserMenu({ defaultOpen, onShortcuts }: { defaultOpen: boolean; o
       )}
       <DropdownMenu defaultOpen={defaultOpen}>
         <DropdownMenuTrigger render={<Button variant="ghost" size="sm" className="font-mono" aria-label={user} title={user} />}>
-          <span aria-hidden className="grid size-4 place-items-center bg-foreground text-[10px] text-background uppercase">
+          <span aria-hidden className="grid size-4 place-items-center bg-foreground text-label text-background uppercase">
             {user.slice(0, 1)}
           </span>
           <span className="hidden max-w-32 truncate md:inline">{user}</span>

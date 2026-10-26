@@ -213,11 +213,11 @@ export function AddTrack({ initial, onBack, onClose }: { initial: string; onBack
           </Button>
         </div>
       )}
-      <div className="flex items-center justify-between gap-3 font-mono text-[11px] text-faint">
+      <div className="flex items-center justify-between gap-3 font-mono text-meta text-faint">
         <Button
           variant="link"
           size="xs"
-          className="h-auto px-0 font-mono text-[11px] text-muted-foreground"
+          className="h-auto px-0 font-mono text-meta text-muted-foreground"
           onClick={added ? onClose : onBack}
         >
           {added ? "close, it keeps going" : "esc  back to search"}

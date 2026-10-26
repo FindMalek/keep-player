@@ -55,7 +55,7 @@ const ICON_BUTTON = "size-8 rounded-none text-muted-foreground hover:bg-transpar
 /** audiocn's time readout reads the live position; this re-renders it once a second instead of every frame. */
 function Elapsed() {
   usePosition(Math.floor);
-  return <AudioPlayerTime className="w-11 text-[11px]" />;
+  return <AudioPlayerTime className="w-11 text-meta" />;
 }
 
 const MomentTicks = lazy(() => import("./moment-ticks").then((module) => ({ default: module.MomentTicks })));
@@ -69,7 +69,7 @@ function NowPlaying({ song, panel, onPanel }: { song: Song; panel: Panel; onPane
   return (
     <div className="flex min-w-0 items-center gap-3">
       <div className="group/cover relative shrink-0">
-        <Suspense fallback={<Cover id={song.coverArt} size={42} className="size-[42px] shrink-0" priority />}>
+        <Suspense fallback={<Cover id={song.coverArt} size={42} className="size-10.5 shrink-0" priority />}>
           <CoverDetails song={song} />
         </Suspense>
         <button
@@ -131,7 +131,7 @@ function UpNextPeek() {
     >
       <Cover id={next.song.coverArt} size={32} className="size-7 shrink-0" />
       <span className="flex min-w-0 flex-col">
-        <span className="font-mono text-[10.5px] text-faint">up next</span>
+        <span className="font-mono text-label text-faint">up next</span>
         <span className="truncate text-xs">
           {next.song.title}
           {next.song.artist && <span className="text-muted-foreground"> · {next.song.artist}</span>}
@@ -159,7 +159,7 @@ function PlayingOn() {
   const { devices, you } = useSession();
   const active = devices.find((device) => device.active);
   if (!active || active.id === you) return null;
-  return <span className="truncate font-mono text-[10.5px] text-muted-foreground">playing on {active.name}</span>;
+  return <span className="truncate font-mono text-label text-muted-foreground">playing on {active.name}</span>;
 }
 
 /** The picker loads with the menu library once there is a second device to pick. */
@@ -277,7 +277,7 @@ export function PlayerBar({ panel, onPanel }: { panel: Panel; onPanel: (panel: P
           <MomentTicks songId={song?.id} duration={duration} />
         </Suspense>
       </div>
-      <AudioPlayerTime type="duration" className="w-11 text-left text-[11px]" />
+      <AudioPlayerTime type="duration" className="w-11 text-left text-meta" />
     </div>
   );
 
@@ -296,16 +296,16 @@ export function PlayerBar({ panel, onPanel }: { panel: Panel; onPanel: (panel: P
   );
 
   const status = error ? (
-    <span className="mr-2 flex min-w-0 items-center gap-1.5 font-mono text-[11px] text-destructive">
+    <span className="mr-2 flex min-w-0 items-center gap-1.5 font-mono text-meta text-destructive">
       <span className="truncate" title={error}>
         {error}
       </span>
-      <Button variant="link" size="xs" className="h-auto p-0 font-mono text-[11px]" onClick={player.retry}>
+      <Button variant="link" size="xs" className="h-auto p-0 font-mono text-meta" onClick={player.retry}>
         retry
       </Button>
     </span>
   ) : roomy ? (
-    <span className="mr-2 truncate font-mono text-[11px] text-muted-foreground">
+    <span className="mr-2 truncate font-mono text-meta text-muted-foreground">
       {offline && offlineInBar && !buffering && <OfflineMark />}
       {buffering ? "loading…" : quality(song.suffix, song.bitRate)}
     </span>

@@ -14,7 +14,7 @@ export function AccountMenu({ onShortcuts }: { onShortcuts: () => void }) {
     <Suspense
       fallback={
         <Button variant="ghost" size="sm" className="font-mono" aria-label={user} title={user} onClick={() => setWanted(true)}>
-          <span aria-hidden className="grid size-4 place-items-center bg-foreground text-[10px] text-background uppercase">
+          <span aria-hidden className="grid size-4 place-items-center bg-foreground text-label text-background uppercase">
             {user.slice(0, 1)}
           </span>
           <span className="hidden max-w-32 truncate md:inline">{user}</span>
