@@ -38,3 +38,12 @@ test("escape goes back to the search with the box intact", async ({ signedIn: pa
   await page.keyboard.press("Escape");
   await expect(dialog.getByRole("combobox")).toBeVisible();
 });
+
+test("a name lyterion can't place yet is previewed without an artist or length", async ({ signedIn: page }) => {
+  await page.keyboard.press("ControlOrMeta+k");
+  const dialog = page.getByRole("dialog", { name: "search" });
+  await dialog.getByRole("combobox").fill("some unreleased demo");
+  await dialog.getByRole("option", { name: /add “some unreleased demo”/ }).click();
+  await expect(dialog.getByText("artist found when it starts")).toBeVisible();
+  await expect(dialog.getByText("best match on youtube, picked when it starts")).toBeVisible();
+});

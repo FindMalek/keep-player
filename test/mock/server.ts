@@ -528,7 +528,7 @@ const server = Bun.serve({
       const body = (await request.json()) as { input?: string; recordingId?: string };
       const step = url.pathname.replace(/.*player\/wishlist\/?/, "");
       if (step === "status") {
-        const stages = ["searching", "fetching", "verifying", "placed"];
+        const stages = ["resolving", "searching", "fetching", "verifying", "placed"];
         const seen = wishPolls.get(body.recordingId ?? "") ?? 0;
         wishPolls.set(body.recordingId ?? "", seen + 1);
         const stage = stages[Math.min(seen, stages.length - 1)] ?? "placed";
@@ -536,6 +536,8 @@ const server = Bun.serve({
       }
       if (body.input?.includes("album"))
         return Response.json({ message: "paste a deezer track link, not an album or playlist" }, { status: 400 });
+      if (body.input?.includes("unreleased") && step === "preview")
+        return Response.json({ title: body.input, artists: [], durationMs: 0, source: "search" });
       const meta = {
         title: "Widows Weep",
         artists: ["SHYLER"],

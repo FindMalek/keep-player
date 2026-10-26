@@ -19,6 +19,7 @@ export interface WishState {
 
 /** Where the work is, in the order lyterion goes through it. */
 export const WISH_STEPS = [
+  { stages: ["resolving"], label: "looking it up" },
   { stages: ["queued", "searching"], label: "finding a good copy" },
   { stages: ["fetching"], label: "downloading" },
   { stages: ["verifying"], label: "checking it" },
@@ -34,7 +35,7 @@ export const SOURCE_LABEL: Record<WishPreview["source"], string> = {
   youtube: "youtube link",
   soundcloud: "soundcloud link",
   deezer: "deezer link",
-  search: "best match on youtube",
+  search: "best match on youtube, picked when it starts",
 };
 
 /** A pasted address rather than a song name. */
