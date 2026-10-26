@@ -17,6 +17,7 @@ import { MixRow } from "@/components/mix-row";
 import { ArtistRowsSkeleton, Delayed, TrackListSkeleton } from "@/components/skeletons";
 import { plural } from "@/lib/format";
 import { closeListFilter, songMatches, useListFilter } from "@/lib/list-filter";
+import { usePageView } from "@/lib/page-view";
 import { player } from "@/lib/player";
 import { queries, queryClient } from "@/lib/queries";
 import type { Album, Artist, Song } from "@/lib/types";
@@ -266,10 +267,30 @@ function artistTarget(element: Element): MenuTarget | null {
 }
 
 const SONGS_SOURCE = { kind: "songs", name: "songs", href: "/songs" };
+const SONG_SORTS = [
+  ["library", "library"],
+  ["title", "title"],
+  ["artist", "artist"],
+  ["album", "album"],
+  ["added", "recently added"],
+  ["plays", "most played"],
+  ["year", "year"],
+  ["duration", "duration"],
+] as const;
+type SongSort = (typeof SONG_SORTS)[number][0];
+const DEFAULT_SONGS_VIEW = { sort: "library" as SongSort };
 
+/** Songs (`g s`): library order pages in; other sorts stay per browser. */
 export function SongsPage() {
-  const pages = useInfiniteQuery(queries.songPages());
-  const { items: songs, loadMore } = useAllPages(pages);
+  const [{ sort }, change] = usePageView("songs", DEFAULT_SONGS_VIEW);
+  const setSort = (next: SongSort) => change({ sort: next });
+  // Library order pages in from the server; any other sort needs every song, loaded once and sorted here.
+  const pages = useInfiniteQuery({ ...queries.songPages(), enabled: sort === "library" });
+  const all = useQuery({ ...queries.allSongs(), enabled: sort !== "library" });
+  const paged = useAllPages(pages);
+  const sorted = useMemo(() => (sort === "library" ? [] : sortSongs(all.data ?? [], sort, "created")), [all.data, sort]);
+  const songs = sort === "library" ? paged.items : sorted;
+  const pending = sort === "library" ? pages.isPending : all.isPending;
   const totals = useQuery(queries.totals());
 
   return (
@@ -287,9 +308,14 @@ export function SongsPage() {
         >
           shuffle all
         </Button>
+        <SortBar sorts={SONG_SORTS} value={sort} onChange={setSort} />
       </PageHeader>
       <Content>
-        {pages.isPending ? <TrackListSkeleton count={24} /> : <TrackList songs={songs} onNearEnd={loadMore} source={SONGS_SOURCE} />}
+        {pending ? (
+          <TrackListSkeleton count={24} />
+        ) : (
+          <TrackList songs={songs} onNearEnd={sort === "library" ? paged.loadMore : undefined} source={SONGS_SOURCE} />
+        )}
       </Content>
     </>
   );
@@ -343,13 +369,48 @@ const LIKED_SORTS = [
 type LikedSort = (typeof LIKED_SORTS)[number][0];
 const LIKED_SOURCE = { kind: "liked", name: "liked songs", href: "/liked" };
 
-function sortLiked(songs: Song[], sort: LikedSort): Song[] {
+/** `added` sorts newest first by `addedField` (when it was liked, or when the file arrived); numbers sort highest first. */
+function sortSongs(songs: Song[], sort: Exclude<SongSort, "library">, addedField: "starred" | "created"): Song[] {
   const text = (value?: string) => value ?? "";
   const sorted = [...songs];
-  if (sort === "added") sorted.sort((a, b) => text(b.starred).localeCompare(text(a.starred)));
+  if (sort === "added") sorted.sort((a, b) => text(b[addedField]).localeCompare(text(a[addedField])));
   else if (sort === "plays") sorted.sort((a, b) => (b.playCount ?? 0) - (a.playCount ?? 0));
+  else if (sort === "year" || sort === "duration") sorted.sort((a, b) => (b[sort] ?? 0) - (a[sort] ?? 0));
   else sorted.sort((a, b) => text(a[sort]).localeCompare(text(b[sort]), undefined, { sensitivity: "base" }));
   return sorted;
+}
+
+function SortBar<T extends string>({
+  sorts,
+  value,
+  onChange,
+  disabled,
+}: {
+  sorts: readonly (readonly [T, string])[];
+  value: T;
+  onChange: (sort: T) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <ToggleGroup
+      variant="outline"
+      size="sm"
+      aria-label="sort"
+      // Wraps on narrow windows instead of running off the edge.
+      className="flex-wrap"
+      value={[value]}
+      disabled={disabled}
+      onValueChange={(next: string[]) => {
+        if (next[0]) onChange(next[0] as T);
+      }}
+    >
+      {sorts.map(([sort, label]) => (
+        <ToggleGroupItem key={sort} value={sort} className="font-mono font-normal">
+          {label}
+        </ToggleGroupItem>
+      ))}
+    </ToggleGroup>
+  );
 }
 
 /** Liked Songs (`g l`): your stars from every client, sortable, filterable with ⌘F, optionally grouped by artist. */
@@ -357,7 +418,7 @@ export function LikedPage() {
   const { data } = useQuery(queries.starred());
   const [sort, setSort] = useState<LikedSort>("added");
   const [grouped, setGrouped] = useState(false);
-  const songs = useMemo(() => sortLiked(data?.song ?? [], grouped ? "artist" : sort), [data, sort, grouped]);
+  const songs = useMemo(() => sortSongs(data?.song ?? [], grouped ? "artist" : sort, "starred"), [data, sort, grouped]);
   const filter = useListFilter("page");
   useEffect(() => () => closeListFilter("page"), []);
   const shown = useMemo(() => (filter ? songs.filter((song) => songMatches(song, filter)) : songs), [songs, filter]);
@@ -382,25 +443,7 @@ export function LikedPage() {
         >
           <ShuffleIcon /> shuffle
         </Button>
-        <ToggleGroup
-          variant="outline"
-          size="sm"
-          aria-label="sort"
-          // Wraps on narrow windows instead of running off the edge.
-          className="flex-wrap"
-          value={[sort]}
-          disabled={grouped}
-          onValueChange={(value: string[]) => {
-            const next = value[0] as LikedSort | undefined;
-            if (next) setSort(next);
-          }}
-        >
-          {LIKED_SORTS.map(([value, label]) => (
-            <ToggleGroupItem key={value} value={value} className="font-mono font-normal">
-              {label}
-            </ToggleGroupItem>
-          ))}
-        </ToggleGroup>
+        <SortBar sorts={LIKED_SORTS} value={sort} onChange={setSort} disabled={grouped} />
         <Toggle variant="outline" size="sm" pressed={grouped} onPressedChange={setGrouped} className="font-mono font-normal">
           group by artist
         </Toggle>

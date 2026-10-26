@@ -29,6 +29,8 @@ export interface Song {
   suffix?: string;
   size?: number;
   starred?: string;
+  /** When the file was added to the library. */
+  created?: string;
   userRating?: number;
   playCount?: number;
   replayGain?: ReplayGain;

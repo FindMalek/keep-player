@@ -119,6 +119,7 @@ export function createLibrary(trackCount = 10_000, seed = 7): Library {
           suffix: "mp3",
           size: 8_000_000,
           playCount: Math.floor(next() * 20),
+          created: album.created,
           replayGain: { trackGain: -6 - next() * 4, albumGain: -7, trackPeak: 0.98, albumPeak: 0.99 },
         };
         songs.push(song);
