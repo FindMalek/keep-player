@@ -53,3 +53,22 @@ test("home shelves fill their rows, from a narrow window to a big screen", async
     expect(uneven).toBe(false);
   }
 });
+
+test("⌘K sits in the middle of every window, inside it", async ({ page, signedIn }) => {
+  await expect(signedIn.locator('a[href^="/album/"]').first()).toBeVisible();
+  for (const [width, height] of [...SIZES, [1000, 1280] as const]) {
+    await page.setViewportSize({ width, height });
+    await page.keyboard.press("ControlOrMeta+k");
+    const dialog = page.getByRole("dialog", { name: "search" });
+    await expect(dialog).toBeVisible();
+    await page.waitForTimeout(250);
+    const box = await dialog.boundingBox();
+    if (!box) throw new Error("no palette");
+    const above = box.y;
+    const below = height - box.y - box.height;
+    expect(above, `${width}×${height}`).toBeGreaterThanOrEqual(8);
+    expect(Math.abs(above - below), `${width}×${height}`).toBeLessThanOrEqual(2);
+    await page.keyboard.press("Escape");
+    await expect(dialog).toBeHidden();
+  }
+});
