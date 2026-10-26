@@ -29,7 +29,11 @@ const calls: [string, string, RequestInit?][] = [
     "/api/rpc/stats/range",
     { method: "POST", body: JSON.stringify({ json: { from: now - 365 * 86_400_000, to: now, tz: 0 } }) },
   ],
-  ["made for you (rpc)", "/api/rpc/mixes", { method: "POST", body: JSON.stringify({ json: { day: Math.floor(now / 86_400_000), hour: 9, tz: 0 } }) }],
+  [
+    "made for you (rpc)",
+    "/api/rpc/mixes",
+    { method: "POST", body: JSON.stringify({ json: { day: Math.floor(now / 86_400_000), hour: 9, tz: 0 } }) },
+  ],
 ];
 
 console.log(`| call | median ms | bytes on the wire | encoding |\n|---|---|---|---|`);
