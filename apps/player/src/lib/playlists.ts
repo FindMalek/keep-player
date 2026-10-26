@@ -270,7 +270,3 @@ export async function setHidden(playlistId: string, songId: string, hidden: bool
     body: JSON.stringify({ songId, hidden }),
   }).catch(() => undefined);
 }
-
-// Edits made on the phone show up when you come back to the tab.
-if (typeof window !== "undefined")
-  window.addEventListener("focus", () => void queryClient.invalidateQueries({ queryKey: queries.playlists().queryKey }));
