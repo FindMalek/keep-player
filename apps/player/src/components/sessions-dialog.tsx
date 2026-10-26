@@ -1,7 +1,7 @@
+import { Button } from "@keep/ui/components/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@keep/ui/components/dialog";
+import { Item, ItemActions, ItemContent, ItemDescription, ItemGroup, ItemTitle } from "@keep/ui/components/item";
 import { useCallback, useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Item, ItemActions, ItemContent, ItemDescription, ItemGroup, ItemTitle } from "@/components/ui/item";
 import { EmptyState } from "./library";
 
 interface SessionRow {

@@ -1,5 +1,5 @@
+import { Button } from "@keep/ui/components/button";
 import type { ComponentProps } from "react";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export /** Ghost icon button; `on` adds the small square under it that marks an active mode. */

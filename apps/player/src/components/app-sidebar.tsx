@@ -1,3 +1,4 @@
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@keep/ui/components/collapsible";
 import { useQuery } from "@tanstack/react-query";
 import {
   BookmarkIcon,
@@ -16,7 +17,6 @@ import {
   UsersIcon,
 } from "lucide-react";
 import { lazy, Suspense, useEffect, useState } from "react";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   Sidebar,
   SidebarContent,

@@ -1,5 +1,5 @@
+import { Button } from "@keep/ui/components/button";
 import { CheckIcon, DownloadIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { keepOffline, useCachedIds, useOfflineStatus } from "@/lib/offline";
 import type { Song } from "@/lib/types";
 import { Hint } from "./hint";

@@ -8,13 +8,13 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "bun --hot apps/server/src/server.ts",
-    "start": "bun apps/server/src/server.ts",
+    "dev": "bun --hot apps/api/src/server.ts",
+    "start": "bun apps/api/src/server.ts",
     "mock": "bun test/mock/server.ts",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "turbo run typecheck && tsc --noEmit -p .",
     "lint": "biome check .",
     "format": "biome check --write .",
-    "test": "bun test apps packages scripts",
+    "test": "turbo run test && bun test scripts",
     "e2e": "playwright test",
     "size": "bun scripts/bundle-size.ts",
     "check": "bun run typecheck && bun run lint && bun run colors && bun run test && bun run size && bun scripts/config-docs.ts --check && bun scripts/shortcuts-docs.ts --check",
@@ -35,6 +35,8 @@
     "bun-plugin-tailwind": "0.1.2",
     "lighthouse": "13.5.0",
     "shadcn": "4.21.4",
+    "turbo": "2.10.12",
     "typescript": "7.0.2"
-  }
+  },
+  "packageManager": "bun@1.4.2"
 }

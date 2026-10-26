@@ -1,5 +1,5 @@
 {
-  "name": "@keep/server",
+  "name": "@keep/api",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -7,5 +7,12 @@
     "@keep/shared": "workspace:*",
     "@fontsource-variable/ibm-plex-sans": "5.3.0",
     "@fontsource-variable/jetbrains-mono": "5.3.0"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p .",
+    "test": "bun test src"
+  },
+  "devDependencies": {
+    "@keep/config": "workspace:*"
   }
 }

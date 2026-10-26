@@ -1,5 +1,5 @@
+import { Button } from "@keep/ui/components/button";
 import { SearchIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { BrandMark } from "./brand";
 import { AccountMenu } from "./top-bar";

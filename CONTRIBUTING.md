@@ -20,7 +20,7 @@ CI runs the same steps on every PR, and `main` only takes green PRs.
 | `bun run test` | unit tests (`*.test.ts` next to the code) |
 | `bun run e2e` | Playwright against the mock server (`e2e/*.e2e.ts`) |
 | `bun run size` | production bundle vs the gzip budget in `scripts/bundle-size.ts` |
-| `bun run config-docs` | regenerate `docs/configuration.md` after changing `apps/server/src/settings.ts` |
+| `bun run config-docs` | regenerate `docs/configuration.md` after changing `apps/api/src/settings.ts` |
 | `bun run shortcuts-docs` | regenerate `docs/shortcuts.md` after changing `apps/player/src/app-shortcuts.ts` |
 | `bun run screenshots` | refresh the README screenshots from a running instance (`SCREENSHOT_URL`, `_USER`, `_PASSWORD`) |
 | `bun run check` | everything except e2e |
@@ -77,4 +77,4 @@ merging it builds `ghcr.io/findmalek/keep-player` (amd64, with SBOM and provenan
 webhook and waits for `$PLAYER_URL/api/health`. Every PR gets its own Dokploy preview and a sticky comment with its status, logs and link.
 Setup: [docs/deploy/dokploy.md](docs/deploy/dokploy.md).
 
-New settings go in `apps/server/src/settings.ts` (parsed and checked at boot), then `bun run config-docs`.
+New settings go in `apps/api/src/settings.ts` (parsed and checked at boot), then `bun run config-docs`.

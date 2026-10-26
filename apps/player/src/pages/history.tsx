@@ -1,10 +1,10 @@
 import type { Play } from "@keep/shared/history";
+import { Button } from "@keep/ui/components/button";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { PlayIcon } from "lucide-react";
 import { useEffect, useMemo, useRef } from "react";
 import { AlbumGrid, Content, EmptyState, PageHeader, Section, TrackList } from "@/components/library";
 import { TrackListSkeleton } from "@/components/skeletons";
-import { Button } from "@/components/ui/button";
 import { length, plural } from "@/lib/format";
 import { player } from "@/lib/player";
 import { queries } from "@/lib/queries";

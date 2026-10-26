@@ -16,7 +16,7 @@
                                          sessions.db · library.db · covers/ · session.secret
 ```
 
-## Server (`apps/server/src`)
+## Server (`apps/api/src`)
 
 - **One origin.** The app, the API and the audio come from the same host: no CORS, cookies just work, and Web
   Audio can process the stream (ReplayGain, gapless handover, fades).

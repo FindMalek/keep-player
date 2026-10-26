@@ -1,4 +1,5 @@
 import type { Moment } from "@keep/shared/moments";
+import { Button } from "@keep/ui/components/button";
 import { useQuery } from "@tanstack/react-query";
 import { LinkIcon, PlayIcon, Trash2Icon } from "lucide-react";
 import { useEffect, useMemo } from "react";
@@ -8,7 +9,6 @@ import { Hint } from "@/components/hint";
 import { Content, EmptyState, PageHeader, Section } from "@/components/library";
 import { Link } from "@/components/link";
 import { TrackListSkeleton } from "@/components/skeletons";
-import { Button } from "@/components/ui/button";
 import { clock, plural } from "@/lib/format";
 import { deleteMoment, momentLink, momentsQuery, playReel, setMomentNote } from "@/lib/moments";
 import { notify } from "@/lib/notify";

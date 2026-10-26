@@ -1,5 +1,5 @@
+import { Skeleton } from "@keep/ui/components/skeleton";
 import { type ReactNode, useEffect, useState } from "react";
-import { Skeleton } from "@/components/ui/skeleton";
 
 /*
  * Loading placeholders with the exact geometry of what replaces them, so nothing moves when data arrives (CLS 0,

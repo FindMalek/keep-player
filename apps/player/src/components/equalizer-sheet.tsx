@@ -1,8 +1,8 @@
+import { Button } from "@keep/ui/components/button";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@keep/ui/components/sheet";
+import { Slider } from "@keep/ui/components/slider";
+import { Switch } from "@keep/ui/components/switch";
 import { RotateCcwIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Slider } from "@/components/ui/slider";
-import { Switch } from "@/components/ui/switch";
 import { BANDS, clampGains, FLAT, MAX_DB, PRESETS, presetOf } from "@/lib/eq";
 import { setSetting, useSetting } from "@/lib/settings";
 

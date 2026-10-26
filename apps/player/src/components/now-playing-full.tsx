@@ -1,7 +1,7 @@
+import { Button } from "@keep/ui/components/button";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@keep/ui/components/dialog";
 import { PauseIcon, PlayIcon, SkipBackIcon, SkipForwardIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { currentSong, player, usePlayer } from "@/lib/player";
 import { peekUpcoming } from "@/lib/queue";
 import type { Song } from "@/lib/types";

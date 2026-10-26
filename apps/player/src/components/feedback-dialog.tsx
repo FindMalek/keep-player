@@ -1,9 +1,9 @@
+import { Button } from "@keep/ui/components/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@keep/ui/components/dialog";
+import { Textarea } from "@keep/ui/components/textarea";
+import { ToggleGroup, ToggleGroupItem } from "@keep/ui/components/toggle-group";
 import { ImageIcon, XIcon } from "lucide-react";
 import { type ClipboardEvent, useRef, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { notify } from "@/lib/notify";
 import { HEADERS } from "@/lib/subsonic";
 

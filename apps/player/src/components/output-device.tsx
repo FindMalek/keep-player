@@ -1,10 +1,10 @@
-import { SpeakerIcon } from "lucide-react";
 import {
   AudioDeviceSelect,
   AudioDeviceSelectContent,
   AudioDeviceSelectPermission,
   AudioDeviceSelectTrigger,
-} from "@/components/ui/audio-device-select";
+} from "@keep/ui/components/audio-device-select";
+import { SpeakerIcon } from "lucide-react";
 import { player, usePlayer } from "@/lib/player";
 import { useOutputDevices } from "@/lib/use-output-devices";
 import { Hint } from "./hint";

@@ -1,10 +1,10 @@
+import { Button } from "@keep/ui/components/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@keep/ui/components/dialog";
+import { Field, FieldDescription, FieldGroup, FieldLabel } from "@keep/ui/components/field";
+import { Switch } from "@keep/ui/components/switch";
+import { ToggleGroup, ToggleGroupItem } from "@keep/ui/components/toggle-group";
 import { MonitorIcon, MoonIcon, SunIcon } from "lucide-react";
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
-import { Switch } from "@/components/ui/switch";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { setCacheCap } from "@/lib/offline";
 import { setSetting, useSetting } from "@/lib/settings";
 import { bindingsOf, useShortcutList } from "@/lib/shortcuts";

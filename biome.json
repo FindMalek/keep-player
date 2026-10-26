@@ -13,6 +13,7 @@
       "!.release-please-manifest.json",
       "!CHANGELOG.md",
       "!apps/player/src/components/ui",
+      "!packages/ui/src/components",
       "!apps/player/src/hooks",
       "!apps/player/src/lib/audio"
     ]

@@ -1,3 +1,16 @@
+import { Button } from "@keep/ui/components/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuShortcut,
+  DropdownMenuTrigger,
+} from "@keep/ui/components/dropdown-menu";
 import { useQuery } from "@tanstack/react-query";
 import {
   ArrowUpCircleIcon,
@@ -11,19 +24,6 @@ import {
   UsersIcon,
 } from "lucide-react";
 import { lazy, Suspense, useState } from "react";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuSeparator,
-  DropdownMenuShortcut,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { apiQueries } from "@/lib/api-queries";
 import { go } from "@/lib/router";
 import { logout, useUser } from "@/lib/subsonic";

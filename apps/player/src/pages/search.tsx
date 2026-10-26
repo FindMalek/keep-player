@@ -1,4 +1,6 @@
 import { parseQuery } from "@keep/shared/search-query";
+import { Button } from "@keep/ui/components/button";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@keep/ui/components/input-group";
 import { useQuery } from "@tanstack/react-query";
 import { PlayIcon, SearchIcon } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -8,8 +10,6 @@ import { AlbumGrid, Content, EmptyState, Section, TrackList } from "@/components
 import { Link } from "@/components/link";
 import { LyricsSnippet } from "@/components/lyrics-snippet";
 import { TrackListSkeleton } from "@/components/skeletons";
-import { Button } from "@/components/ui/button";
-import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { apiQueries } from "@/lib/api-queries";
 import { useSearchParam } from "@/lib/router";
 import { openResult, playLyricsHit, playResult, rememberSearch, resultSubtitle, resultTarget, resultTitle } from "@/lib/search-actions";

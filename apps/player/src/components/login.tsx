@@ -1,11 +1,11 @@
+import { Button } from "@keep/ui/components/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@keep/ui/components/card";
+import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@keep/ui/components/field";
+import { Input } from "@keep/ui/components/input";
+import { Skeleton } from "@keep/ui/components/skeleton";
+import { ToggleGroup, ToggleGroupItem } from "@keep/ui/components/toggle-group";
 import { CheckIcon, RefreshCwIcon, XIcon } from "lucide-react";
 import { type FormEvent, useCallback, useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { login } from "@/lib/subsonic";
 import { BrandMark } from "./brand";
 

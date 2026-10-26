@@ -1,10 +1,10 @@
+import { Button } from "@keep/ui/components/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@keep/ui/components/dialog";
+import { Input } from "@keep/ui/components/input";
+import { Label } from "@keep/ui/components/label";
+import { Switch } from "@keep/ui/components/switch";
 import { PencilIcon, RotateCcwIcon } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { notify } from "@/lib/notify";
 import {
   bindingsOf,

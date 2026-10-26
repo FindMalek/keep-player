@@ -1,7 +1,7 @@
+import { Badge } from "@keep/ui/components/badge";
+import { Button } from "@keep/ui/components/button";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@keep/ui/components/hover-card";
 import { SmartphoneIcon } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import type { Elsewhere } from "@/lib/elsewhere";
 import { Cover } from "./cover";
 

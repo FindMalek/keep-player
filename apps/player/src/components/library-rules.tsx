@@ -1,6 +1,6 @@
+import { Button } from "@keep/ui/components/button";
 import { BanIcon, EyeOffIcon, ScissorsIcon } from "lucide-react";
 import type { ReactNode } from "react";
-import { Button } from "@/components/ui/button";
 import { clock } from "@/lib/format";
 import { allPrefs, usePrefsVersion } from "@/lib/prefs";
 import { changeAlbum, changeSong } from "@/lib/prefs-edit";

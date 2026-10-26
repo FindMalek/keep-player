@@ -18,6 +18,11 @@ jobs:
   check:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # The shared Turbo cache on the-keep (turbo.findmalek.engineer): unchanged packages skip typecheck and tests.
+    env:
+      TURBO_API: ${{ vars.TURBO_API }}
+      TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
     steps:
       - uses: actions/checkout@v5
       - uses: oven-sh/setup-bun@v2
