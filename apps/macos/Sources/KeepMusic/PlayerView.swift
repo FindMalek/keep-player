@@ -7,6 +7,8 @@ import WebKit
     let webView: WKWebView
     private let server: URL
     private let nowPlaying: NowPlaying
+    /// Four taps on the signed-out page's background: the app's preview menu.
+    var onPreview: (() -> Void)?
     /// Set by the page's first message after each load: the bridge exists from then on.
     private var pageReady = false
     #if DEBUG
@@ -44,6 +46,7 @@ import WebKit
             if let debug = body["debug"] as? String { print("page:", debug); return }
             if body["levels"] == nil { print("now playing:", body["title"] ?? "nil", "playing:", body["playing"] ?? "nil") }
             #endif
+            if body["preview"] != nil { onPreview?(); return }
             if !pageReady {
                 pageReady = true
                 #if DEBUG

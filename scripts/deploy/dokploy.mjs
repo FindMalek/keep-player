@@ -169,6 +169,8 @@ function renderComment(row) {
       ? [
           "",
           `Sign in with \`${DEMO_USER}\` / \`${DEMO_PASSWORD}\`. The preview is isolated: its own empty data, a generated demo library, no production data.`,
+          "",
+          `In the macOS app: sign out, tap the background 4 times, enter \`pr-${process.env.PR_NUMBER}\`.`,
         ]
       : []),
   ].join("\n");
