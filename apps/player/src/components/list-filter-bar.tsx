@@ -6,7 +6,8 @@ import { Hint } from "./hint";
 /** The ⌘F box over a list: filters as you type, esc or × closes it and shows everything again. */
 export function ListFilterBar({ scope, query, shown, total }: { scope: FilterScope; query: string; shown: number; total: number }) {
   return (
-    <InputGroup className="mb-2 h-8">
+    // Clear of a detail page's sticky bar when focusing it scrolls it into view.
+    <InputGroup className="mb-2 h-8 scroll-mt-14">
       <InputGroupAddon>
         <SearchIcon />
       </InputGroupAddon>
