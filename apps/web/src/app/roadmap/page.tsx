@@ -7,8 +7,9 @@ import { REPO } from "@/lib/site";
 export const revalidate = 3600;
 
 export const metadata: Metadata = {
-  title: "roadmap · keep music",
+  title: "roadmap",
   description: "What shipped, what's being built, what's next and what's parked, straight from GitHub.",
+  alternates: { canonical: "/roadmap" },
 };
 
 function Column({ title, hint, children }: { title: string; hint: string; children: ReactNode }) {

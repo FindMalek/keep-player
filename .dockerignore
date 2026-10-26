@@ -2,8 +2,6 @@ node_modules
 dist
 .git
 docs
-# The site's docs are built from these (apps/web/scripts/sync-docs.ts); the screenshots stay out.
-!docs/**/*.md
 test-results
 playwright-report
 .deploy.env

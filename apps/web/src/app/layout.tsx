@@ -6,12 +6,19 @@ import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { SITE_URL } from "@/lib/site";
 
+const DESCRIPTION =
+  "A self-hosted music player for Navidrome: made-for-you mixes, synced lyrics, one session across your devices and the song in your Mac's notch. Open source.";
+
+// Share images come from each route's opengraph-image; Twitter reads the same ones.
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: "keep music: a real music app for the music you own",
-  description:
-    "A web player for Navidrome: made-for-you mixes, synced lyrics, one session across your devices and a notch island on the Mac. Self-hosted, open source.",
-  openGraph: { images: ["/shots/album-lyrics.png"] },
+  title: { default: "keep music: a real music app for the music you own", template: "%s · keep music" },
+  description: DESCRIPTION,
+  applicationName: "keep music",
+  keywords: ["navidrome", "subsonic", "music player", "self-hosted", "spotify alternative", "synced lyrics", "open source", "macos"],
+  alternates: { canonical: "/" },
+  openGraph: { type: "website", siteName: "keep music", locale: "en", url: "/", description: DESCRIPTION },
+  twitter: { card: "summary_large_image" },
 };
 
 export const viewport: Viewport = {
