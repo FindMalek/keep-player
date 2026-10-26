@@ -157,8 +157,8 @@ export function SearchPalette({ open, onOpenChange }: { open: boolean; onOpenCha
       onOpenChange={onOpenChange}
       title="search"
       description="search artists, albums, songs, playlists and lyrics"
-      // Fits any window: a third down at most, never past the bottom; only the list scrolls.
-      className="top-(--palette-top) flex max-h-[min(calc(100dvh-var(--palette-top)-0.75rem),44rem)] flex-col [--palette-top:clamp(0.75rem,15dvh,8rem)] sm:max-w-[680px]"
+      // In the middle of any window, one height whatever the results (so the input never moves); only the list scrolls.
+      className="top-1/2 flex h-[min(calc(100dvh-2rem),32rem)] -translate-y-1/2 flex-col sm:max-w-[680px]"
     >
       {adding !== null ? (
         <AddTrack initial={adding} onBack={() => setAdding(null)} onClose={() => onOpenChange(false)} />
