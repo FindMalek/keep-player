@@ -41,21 +41,24 @@ jobs:
   e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    # Browsers and their system packages come with the image (same version as @playwright/test): installing them with
+    # apt on the runner sometimes crawled for 15+ minutes and timed the job out.
+    container:
+      image: mcr.microsoft.com/playwright:v1.64.0-noble
+      options: --ipc=host
     strategy:
       fail-fast: false
       matrix:
         shard: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@v5
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: 1.4.2
+      # From npm: the image has node but not unzip, which setup-bun needs.
+      - run: npm install --global bun@1.4.2
       - run: bun install --frozen-lockfile
-      - run: bunx playwright install --with-deps chromium
       - run: bun run e2e --project=chromium --shard=${{ matrix.shard }}/4
       # Safari's engine on one shard: the app must render there too.
       - if: matrix.shard == 1
-        run: bunx playwright install --with-deps webkit && bun run e2e --project=webkit
+        run: bun run e2e --project=webkit
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
