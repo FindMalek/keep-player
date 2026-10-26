@@ -18,7 +18,9 @@ function Card({ meta }: { meta: WishPreview }) {
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <span className="truncate font-medium text-base">{meta.title}</span>
         <span className="truncate text-muted-foreground text-xs">
-          {meta.artists.join(", ") || "unknown artist"} · {clock(meta.durationMs / 1000)}
+          {[meta.artists.join(", ") || "artist found when it starts", meta.durationMs > 0 ? clock(meta.durationMs / 1000) : ""]
+            .filter(Boolean)
+            .join(" · ")}
         </span>
         <Badge variant="outline" className="w-fit font-mono font-normal">
           {SOURCE_LABEL[meta.source]}
