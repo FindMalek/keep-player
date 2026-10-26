@@ -154,13 +154,17 @@ function renderComment(row) {
   const inspect = logs.length && row.status !== "deleted" ? ` (${logs.join(" · ")})` : "";
   const name = row.applicationId ? `[${row.name}](${inspectUrl(row)})` : row.name;
   const preview = row.status === "ready" ? `[Visit Preview](https://${row.host})` : "";
+  // The api runs in the player's container, so it shares the deployment and only links somewhere else.
+  const reference = row.status === "ready" ? `[API reference](https://${row.host}/api)` : "";
+  const updated = formatUpdated(new Date());
   return [
     COMMENT_MARKER,
     "**The latest updates on your projects**. Learn more about [keep-player previews](../blob/main/docs/previews.md).",
     "",
     "| Project | Deployment | Actions | Updated (UTC) |",
     "| :--- | :----- | :------ | :------ |",
-    `| ${name} | ${STATUS[row.status]}${inspect} | ${preview} | ${formatUpdated(new Date())} |`,
+    `| ${name} | ${STATUS[row.status]}${inspect} | ${preview} | ${updated} |`,
+    `| api | ${STATUS[row.status]} | ${reference} | ${updated} |`,
     ...(row.status === "ready"
       ? [
           "",
