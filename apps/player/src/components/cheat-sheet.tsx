@@ -79,7 +79,7 @@ export function CheatSheet({ open, onOpenChange }: { open: boolean; onOpenChange
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[85vh] overflow-hidden sm:max-w-2xl">
+      <DialogContent className="flex max-h-[85dvh] flex-col overflow-hidden sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle className="font-mono">keyboard shortcuts</DialogTitle>
           <DialogDescription>
