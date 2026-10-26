@@ -34,6 +34,9 @@ import { MAX_UPLOAD_BYTES, saveUpload, uploadPath } from "./upload";
 
 const COOKIE = "kp_session";
 const FOLDERS_TTL_MS = 10 * 60_000;
+/** Token sign-ins, by what they're for (shown under sessions). */
+const REMOTE_AGENT = "terminal · now playing";
+const API_AGENT = "api token";
 /** Requests that change or read data must carry this header. Cross-site pages can't set it without a CORS preflight. */
 export const CSRF_HEADER = "x-keep-player";
 const CLIENT_HEADER = "x-keep-client";
@@ -241,7 +244,8 @@ export function createApi({
   async function http(request: Request): Promise<Response> {
     const bearer = request.headers.get("authorization")?.match(/^Bearer (\S+)$/)?.[1];
     const session = bearer ? sessions.get(bearer) : request.headers.get(CSRF_HEADER) === "1" ? sessions.get(cookieValue(request)) : null;
-    return secured(await rpcHandler.http(request, session));
+    // The terminal's token may only see and control what's playing (`/api/remote/*`), never the rest of your data.
+    return secured(await rpcHandler.http(request, session?.agent === REMOTE_AGENT ? null : session));
   }
 
   // Each session's liked ids (songs, albums, artists) for search; dropped whenever it stars or unstars something.
@@ -535,19 +539,19 @@ export function createApi({
   }
 
   /** `POST /api/remote/token`: a sign-in for a terminal's now-playing mod. Listed (and signed out) with the sessions. */
-  function remoteToken(request: Request): Response {
+  /** A sign-in of its own, made by a signed-in browser: listed under sessions as `agent`, signed out there. */
+  function mintToken(request: Request, agent: string): Response {
     if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
     const session = sessions.get(cookieValue(request));
     if (!session) return json({ error: "signed out" }, 401);
-    const token = sessions.create({
-      server: session.server,
-      user: session.user,
-      token: session.token,
-      salt: session.salt,
-      agent: "terminal · now playing",
-    });
+    const token = sessions.create({ server: session.server, user: session.user, token: session.token, salt: session.salt, agent });
     return json({ token });
   }
+
+  /** `POST /api/remote/token`: for the now-playing mod; it only reaches `/api/remote/*`. */
+  const remoteToken = (request: Request) => mintToken(request, REMOTE_AGENT);
+  /** `POST /auth/api-token`: for your own scripts and apps; it reaches everything under `/api`. */
+  const apiToken = (request: Request) => mintToken(request, API_AGENT);
 
   /** The remote signs in with `Authorization: Bearer <token>`, never a cookie, so a page can't ride on it. */
   const remoteSession = (request: Request) => sessions.get(request.headers.get("authorization")?.match(/^Bearer (\S+)$/)?.[1]);
@@ -1019,6 +1023,7 @@ export function createApi({
     aiPlaylist,
     sendFeedback,
     remoteToken,
+    apiToken,
     remoteNow,
     remoteAction,
     lyricsRefetch,
