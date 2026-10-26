@@ -1,5 +1,26 @@
 # Changelog
 
+## [1.7.0](https://github.com/FindMalek/keep-player/compare/v1.6.1...v1.7.0) (2026-10-26)
+
+
+### Features
+
+* **detail:** sticky header bar ([935b935](https://github.com/FindMalek/keep-player/commit/935b935f2a79a3be85e17e337777401bf312c3f1))
+* **lyrics:** clearer, softer lyrics view ([ea45eb3](https://github.com/FindMalek/keep-player/commit/ea45eb3355abf5a7deb6d57a985099f213e4f31d))
+* **mini:** like button, any size ([c4d08b1](https://github.com/FindMalek/keep-player/commit/c4d08b1db5e06fb183052df4508ef67c9a467b04))
+* **songs:** sort the songs page ([59c3bbf](https://github.com/FindMalek/keep-player/commit/59c3bbf1c296e4eec09909aafd7588e4adc181c9))
+
+
+### Bug Fixes
+
+* **api:** review fixes for orpc, cache ([e3509b7](https://github.com/FindMalek/keep-player/commit/e3509b7d303b2773a0245a22637a6eadf19656ba))
+* **api:** tokens never count as cookie ([59b0041](https://github.com/FindMalek/keep-player/commit/59b0041a344e46cf19139aae7895584380bfcecb))
+* **ci:** knip ignores fumadocs alias ([f565a62](https://github.com/FindMalek/keep-player/commit/f565a62d6b509b2f848476ad2c3459da2aa0f97e))
+* **macos:** safer fps, preview address ([dbc1a98](https://github.com/FindMalek/keep-player/commit/dbc1a98add86314733463078fb1e4dc09fd14cdc))
+* **player:** focus refetch, chunk retry ([ca27106](https://github.com/FindMalek/keep-player/commit/ca271064bfe5a227ed5c2838548513382e5e4cf5))
+* **search:** center the palette ([df68177](https://github.com/FindMalek/keep-player/commit/df681774ad9675a599ff4d7e06e6df70ef5abade))
+* **web:** review fixes for site ([a20c301](https://github.com/FindMalek/keep-player/commit/a20c3015a9249a02b1c323c3460371e36a23b0c3))
+
 ## [1.6.1](https://github.com/FindMalek/keep-player/compare/v1.6.0...v1.6.1) (2026-10-26)
 
 
