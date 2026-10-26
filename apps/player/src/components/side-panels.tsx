@@ -6,8 +6,9 @@ import { ScrollArea } from "@keep/ui/components/scroll-area";
 import { queryOptions, useQuery } from "@tanstack/react-query";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { ListPlusIcon, XIcon } from "lucide-react";
-import { type FormEvent, Fragment, lazy, memo, type ReactNode, Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { type FormEvent, Fragment, memo, type ReactNode, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { current as currentDrag, dropFailed, dropSongs, endDrag, leftTarget, startDrag } from "@/lib/drag";
+import { eager } from "@/lib/eager";
 import { clock, quality } from "@/lib/format";
 import { closeListFilter, songMatches, useListFilter } from "@/lib/list-filter";
 import { focusWhenRendered, type ListCommand, useListNav } from "@/lib/list-nav";
@@ -26,7 +27,7 @@ import { ListFilterBar } from "./list-filter-bar";
 import { LyricsView } from "./lyrics-view";
 import { Truncated } from "./truncated";
 
-const RadioControls = lazy(() => import("./radio-controls").then((module) => ({ default: module.RadioControls })));
+export const RadioControls = eager(() => import("./radio-controls").then((module) => module.RadioControls));
 
 function PanelFrame({
   title,
