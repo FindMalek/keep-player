@@ -9,7 +9,11 @@ function blocksOf(sourceCode) {
   const blocks = [];
   for (const comment of sourceCode.getAllComments()) {
     if (DIRECTIVE.test(comment.value.replace(/^\*+/, ""))) continue;
-    const lines = comment.value.trim().split("\n").filter((line) => line.replace(/^\s*\*?/, "").trim()).length || 1;
+    const lines =
+      comment.value
+        .trim()
+        .split("\n")
+        .filter((line) => line.replace(/^\s*\*?/, "").trim()).length || 1;
     const last = blocks.at(-1);
     if (comment.type === "Line" && last?.line && last.end === comment.loc.start.line - 1) {
       last.lines += 1;
