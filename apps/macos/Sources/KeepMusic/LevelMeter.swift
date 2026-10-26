@@ -20,14 +20,17 @@ import AppKit
     #if DEBUG
     private var count = 0
     private var since = Date()
+    private var loudest = [0.0, 0.0, 0.0, 0.0]
     #endif
 
     func push(_ levels: [Double]) {
         #if DEBUG
         count += 1
+        loudest = zip(loudest, levels).map { max($0, $1) }
         if Date().timeIntervalSince(since) > 5 {
-            print("levels: \(count) in 5 s, last \(levels)")
+            print("levels: \(count) in 5 s, loudest \(loudest)")
             count = 0
+            loudest = [0, 0, 0, 0]
             since = Date()
         }
         #endif

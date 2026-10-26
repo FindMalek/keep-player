@@ -32,7 +32,8 @@ final class BarsView: NSView {
     private var bars: [CALayer] = []
     private var playing = false
     private var live = false
-    private var fallback: DispatchWorkItem?
+    private var lastLevels: CFTimeInterval = 0
+    private var watching = false
     private let durations: [CFTimeInterval] = [0.42, 0.55, 0.37, 0.49]
     private static let rest: CGFloat = 0.22
 
@@ -96,15 +97,26 @@ final class BarsView: NSView {
             bar.transform = CATransform3DMakeScale(1, scale, 1)
         }
         CATransaction.commit()
-        // Levels stopped (the page went quiet or can't measure): back to the loop.
-        fallback?.cancel()
-        let item = DispatchWorkItem { [weak self] in
-            guard let self, self.playing else { return }
-            self.live = false
-            self.apply()
+        lastLevels = CACurrentMediaTime()
+        watch()
+    }
+
+    /// Levels stopped (the page went quiet or can't measure): back to the loop. One check every 0.6 s while levels
+    /// flow, instead of a timer per message.
+    private func watch() {
+        guard !watching else { return }
+        watching = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
+            guard let self else { return }
+            self.watching = false
+            guard self.live else { return }
+            if CACurrentMediaTime() - self.lastLevels > 0.5 {
+                self.live = false
+                self.apply()
+            } else {
+                self.watch()
+            }
         }
-        fallback = item
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6, execute: item)
     }
 
     private func apply() {

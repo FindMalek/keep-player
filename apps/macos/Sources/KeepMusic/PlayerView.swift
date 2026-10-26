@@ -9,6 +9,9 @@ import WebKit
     private let nowPlaying: NowPlaying
     /// Set by the page's first message after each load: the bridge exists from then on.
     private var pageReady = false
+    #if DEBUG
+    static let startUptime = ProcessInfo.processInfo.systemUptime
+    #endif
 
     init(server: URL, nowPlaying: NowPlaying) {
         self.server = server
@@ -43,6 +46,9 @@ import WebKit
             #endif
             if !pageReady {
                 pageReady = true
+                #if DEBUG
+                print("ready: \(Int((ProcessInfo.processInfo.systemUptime - Self.startUptime) * 1000)) ms after launch")
+                #endif
                 LevelMeter.shared.resync()
             }
             if let levels = body["levels"] as? [Double] {

@@ -2,6 +2,7 @@ import AppKit
 
 #if DEBUG
 setvbuf(stdout, nil, _IONBF, 0)
+_ = PlayerView.startUptime
 #endif
 
 MainActor.assumeIsolated {
