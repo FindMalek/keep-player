@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// PR previews on Dokploy through its API, see docs/previews.md. One app per PR plus one shared demo Navidrome.
+// PR previews on Dokploy through its API, see docs/previews.md. Two apps per PR (player, site) plus one shared demo Navidrome.
 import { createHash, randomBytes } from "node:crypto";
 
 const MODE = process.argv[2];
@@ -147,25 +147,28 @@ function buildLogUrl() {
 }
 
 // Vercel's layout: one row per project, the latest status, the logs, and the Preview link once it's up.
-function renderComment(row) {
+function renderRow(row, links) {
   const logs = [buildLogUrl() && `[Build logs](${buildLogUrl()})`, row.applicationId && `[Deploy logs](${inspectUrl(row)})`].filter(
     Boolean,
   );
   const inspect = logs.length && row.status !== "deleted" ? ` (${logs.join(" · ")})` : "";
   const name = row.applicationId ? `[${row.name}](${inspectUrl(row)})` : row.name;
-  const preview = row.status === "ready" ? `[Visit Preview](https://${row.host})` : "";
-  // The api runs in the player's container, so it shares the deployment and only links somewhere else.
-  const reference = row.status === "ready" ? `[API reference](https://${row.host}/api)` : "";
-  const updated = formatUpdated(new Date());
+  return `| ${name} | ${STATUS[row.status]}${inspect} | ${row.status === "ready" ? links : ""} | ${formatUpdated(new Date())} |`;
+}
+
+/** `rows`: the player and the site, each `{ name, status, host?, applicationId?, projectId? }`. */
+function renderComment({ player, web }) {
   return [
     COMMENT_MARKER,
     "**The latest updates on your projects**. Learn more about [keep-player previews](../blob/main/docs/previews.md).",
     "",
     "| Project | Deployment | Actions | Updated (UTC) |",
     "| :--- | :----- | :------ | :------ |",
-    `| ${name} | ${STATUS[row.status]}${inspect} | ${preview} | ${updated} |`,
-    `| api | ${STATUS[row.status]} | ${reference} | ${updated} |`,
-    ...(row.status === "ready"
+    renderRow(player, `[Visit Preview](https://${player.host})`),
+    // The api runs in the player's container, so it shares the deployment and only links somewhere else.
+    `| api | ${STATUS[player.status]} | ${player.status === "ready" ? `[API reference](https://${player.host}/api)` : ""} | ${formatUpdated(new Date())} |`,
+    renderRow(web, `[Visit Preview](https://${web.host})`),
+    ...(player.status === "ready"
       ? [
           "",
           `Sign in with \`${DEMO_USER}\` / \`${DEMO_PASSWORD}\`. The preview is isolated: its own empty data, a generated demo library, no production data.`,
@@ -189,10 +192,10 @@ async function github(path, init = {}) {
   return res.status === 204 ? null : res.json();
 }
 
-async function upsertComment(row) {
+async function upsertComment(rows) {
   const repo = requireEnv("GITHUB_REPOSITORY");
   const pr = requireEnv("PR_NUMBER");
-  const body = renderComment(row);
+  const body = renderComment(rows);
   const comments = await github(`/repos/${repo}/issues/${pr}/comments?per_page=100`);
   const existing = comments.find((c) => c.body?.startsWith(COMMENT_MARKER));
   if (existing)
@@ -200,20 +203,27 @@ async function upsertComment(row) {
   await github(`/repos/${repo}/issues/${pr}/comments`, { method: "POST", body: JSON.stringify({ body }) });
 }
 
+/** The PR's two apps: the player (with the api in it), against the shared demo Navidrome, and the site. */
+function previewRows(pr, status) {
+  return {
+    player: { name: `keep-player-pr-${pr}`, status, host: previewHost("player", pr) },
+    web: { name: `keep-web-pr-${pr}`, status, host: previewHost("web", pr) },
+  };
+}
+
 async function previewUp() {
   const pr = requireEnv("PR_NUMBER");
   const tag = `pr-${pr}`;
-  const host = previewHost(pr);
   const environment = await ensureEnvironment();
   const demo = environment.applications?.find((a) => a.name === DEMO_APP);
   if (!demo) throw new Error(`${DEMO_APP} isn't deployed yet: run the Demo workflow first (docs/previews.md)`);
   const { appName: demoName } = await query("application.one", { applicationId: demo.applicationId });
-  const row = { name: `keep-player-${tag}`, status: "building", host };
-  await upsertComment(row);
-  const deployed = await deployApp(environment, {
-    name: row.name,
+  const rows = previewRows(pr, "building");
+  await upsertComment(rows);
+  const player = await deployApp(environment, {
+    name: rows.player.name,
     image: `ghcr.io/findmalek/keep-player:${tag}`,
-    host,
+    host: rows.player.host,
     port: 8080,
     // A fresh data dir per preview (no volume), so sessions, history and the search index never come from production.
     env: {
@@ -228,34 +238,44 @@ async function previewUp() {
       DEMO_SEED: "on",
     },
   });
-  Object.assign(row, deployed, { status: "deploying" });
-  await upsertComment(row);
-  if (!(await waitForApp(row, () => upsertComment(row)))) process.exitCode = 1;
+  Object.assign(rows.player, player, { status: "deploying" });
+  const web = await deployApp(environment, {
+    name: rows.web.name,
+    image: `ghcr.io/findmalek/keep-web:${tag}`,
+    host: rows.web.host,
+    port: 3000,
+    env: { SITE_URL: `https://${rows.web.host}` },
+  });
+  Object.assign(rows.web, web, { status: "deploying" });
+  await upsertComment(rows);
+  const playerUp = await waitForApp(rows.player, () => upsertComment(rows));
+  const webUp = await waitForApp(rows.web, () => upsertComment(rows));
+  if (!playerUp || !webUp) process.exitCode = 1;
 }
 
 async function previewDown() {
   const pr = requireEnv("PR_NUMBER");
-  const name = `keep-player-pr-${pr}`;
+  const rows = previewRows(pr, "deleted");
   const environment = (await findProject())?.environments?.[0];
-  const app = environment?.applications?.find((a) => a.name === name);
-  if (!app) return;
-  await dokploy("application.delete", { applicationId: app.applicationId });
-  await upsertComment({ name, status: "deleted" });
+  for (const row of Object.values(rows)) {
+    const app = environment?.applications?.find((a) => a.name === row.name);
+    if (app) await dokploy("application.delete", { applicationId: app.applicationId });
+  }
+  await upsertComment(rows);
 }
 
-// `player-pr-<n>`: other repos' previews share the domain and already use `pr-<n>`.
-function previewHost(pr) {
-  return `player-pr-${pr}.${requireEnv("PREVIEW_DOMAIN")}`;
+// `player-pr-<n>`, `web-pr-<n>`: other repos' previews share the domain and already use `pr-<n>`.
+function previewHost(app, pr) {
+  return `${app}-pr-${pr}.${requireEnv("PREVIEW_DOMAIN")}`;
 }
 
 /** First thing in the job, before the image builds: the PR shows "Building" with the build log right away. */
 async function commentBuilding() {
-  const pr = requireEnv("PR_NUMBER");
-  await upsertComment({ name: `keep-player-pr-${pr}`, status: "building", host: previewHost(pr) });
+  await upsertComment(previewRows(requireEnv("PR_NUMBER"), "building"));
 }
 
 async function commentFailed() {
-  await upsertComment({ name: `keep-player-pr-${requireEnv("PR_NUMBER")}`, status: "failed" });
+  await upsertComment(previewRows(requireEnv("PR_NUMBER"), "failed"));
 }
 
 // Navidrome imports playlists only once an admin exists, and the first scan ran before the demo account did: scan again.

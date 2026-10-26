@@ -1,4 +1,5 @@
-# Vercel-style previews on Dokploy, built on GitHub runners: one image per PR, one Dokploy app, one sticky comment.
+# Vercel-style previews on Dokploy, built on GitHub runners: per PR the player and the site (two images, two Dokploy
+# apps) and one sticky comment.
 # Skipped until the repo var DEPLOY_ENABLED is "true", see docs/previews.md. Every PR gets one: merges don't deploy,
 # so this is where a change is seen running before a release.
 name: Preview
@@ -51,6 +52,15 @@ jobs:
           tags: ghcr.io/findmalek/keep-player:pr-${{ env.PR_NUMBER }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+      - name: Build the site's preview image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/web/Dockerfile
+          push: true
+          tags: ghcr.io/findmalek/keep-web:pr-${{ env.PR_NUMBER }}
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,mode=max,scope=web
       - name: Mark failed
         if: failure()
         run: node scripts/deploy/dokploy.mjs comment-failed

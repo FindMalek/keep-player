@@ -92,6 +92,12 @@ test("a preview is deployed, tied to the demo navidrome, and one sticky comment 
   expect(comments[0]?.body).toContain("[Visit Preview](https://player-pr-7.preview.example.test)");
   expect(comments[0]?.body).toContain("[API reference](https://player-pr-7.preview.example.test/api)");
   expect(comments[0]?.body).toContain("enter `pr-7`");
+  // The site gets its own app and row.
+  const images = calls
+    .filter((c) => c.path === "/api/application.saveDockerProvider")
+    .map((c) => (c.body as { dockerImage: string }).dockerImage);
+  expect(images).toContain("ghcr.io/findmalek/keep-web:pr-7");
+  expect(comments[0]?.body).toContain("[Visit Preview](https://web-pr-7.preview.example.test)");
 });
 
 test("a second push edits the same comment instead of adding one", async () => {
@@ -99,8 +105,8 @@ test("a second push edits the same comment instead of adding one", async () => {
   expect(comments).toHaveLength(1);
 });
 
-test("closing the PR deletes the app and marks the comment deleted", async () => {
+test("closing the PR deletes both apps and marks the comment deleted", async () => {
   expect(await run("preview-down")).toBe(0);
-  expect(applications.some((a) => a.name === "keep-player-pr-7")).toBe(false);
+  expect(applications.some((a) => a.name === "keep-player-pr-7" || a.name === "keep-web-pr-7")).toBe(false);
   expect(comments[0]?.body).toContain("🗑 Deleted");
 });
