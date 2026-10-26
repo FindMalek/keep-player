@@ -24,6 +24,10 @@ export interface Roadmap {
   later: Item[];
 }
 
+/**
+ * A failed call throws after the build, so ISR keeps serving the last good page instead of caching an empty one. At
+ * build there is no last page yet, so the build renders what it got rather than failing the deploy over GitHub.
+ */
 async function get<T>(url: string): Promise<T | null> {
   const headers: Record<string, string> = { accept: "application/vnd.github+json" };
   // Without a token GitHub allows 60 requests an hour per address: plenty at one refresh an hour, a token just helps.
@@ -31,7 +35,9 @@ async function get<T>(url: string): Promise<T | null> {
   const response = await fetch(url.startsWith("https://") ? url : `${API}${url}`, { headers, next: { revalidate: HOUR } }).catch(
     () => null,
   );
-  return response?.ok ? ((await response.json()) as T) : null;
+  if (response?.ok) return (await response.json()) as T;
+  if (process.env.NEXT_PHASE === "phase-production-build") return null;
+  throw new Error(`github ${response?.status ?? "unreachable"}: ${url}`);
 }
 
 interface Issue {
@@ -89,7 +95,8 @@ export async function roadmap(): Promise<Roadmap> {
         changes: changes(release.body ?? ""),
       })),
     now: milestone ? { milestone: milestone.title, done: milestone.closed_issues, open: items(open) } : null,
-    next: items(epics?.items ?? null),
+    // The search ignores the brackets in "[Epic]", so an epic in the milestone also matches: it shows once, under now.
+    next: items(epics?.items ?? null).filter((item) => !open?.some((issue) => issue.number === item.number)),
     later: items(later),
   };
 }

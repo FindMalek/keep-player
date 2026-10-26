@@ -10,6 +10,14 @@ export const metadata: Metadata = {
   title: "roadmap",
   description: "What shipped, what's being built, what's next and what's parked, straight from GitHub.",
   alternates: { canonical: "/roadmap" },
+  // Its own og:url, or shares inherit the layout's "/" and land on the home page.
+  openGraph: {
+    type: "website",
+    siteName: "keep music",
+    url: "/roadmap",
+    title: "roadmap · keep music",
+    description: "What shipped, what's being built, what's next and what's parked, straight from GitHub.",
+  },
 };
 
 function Column({ title, hint, children }: { title: string; hint: string; children: ReactNode }) {

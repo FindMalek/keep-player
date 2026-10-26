@@ -77,6 +77,8 @@ export function Island() {
           setTouched(true);
           setOpen(true);
         }}
+        // Keyboard too: the show-off toggle would close the island under a focused button.
+        onFocusCapture={() => setTouched(true)}
         onMouseLeave={() => setOpen(false)}
         className="absolute top-0 left-1/2 -translate-x-1/2 overflow-hidden bg-black text-white shadow-[0_8px_30px_rgba(0,0,0,0.5)] transition-[width,height] duration-300 ease-[cubic-bezier(0.3,1.3,0.5,1)]"
         style={{ width: open ? 340 : 236, height: open ? 150 : 32, borderRadius: open ? 26 : "0 0 14px 14px" }}

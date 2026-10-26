@@ -32,4 +32,4 @@ boot with a message naming the variable.
 | `DEMO_SEED` | `off` | `on`: fill `INDEX_USER`'s history with months of generated listening, once (for demos and previews, see docs/previews.md). Needs `INDEX_USER`. |
 | `REDIS_URL` | — | `redis://…`: keep computed answers (made for you) in Redis, shared by several instances. Unset: in memory, which is all one instance needs. |
 | `TRUST_PROXY` | `false` | `true` behind a reverse proxy: client IPs come from `X-Real-IP` / `X-Forwarded-For` (login rate limits). |
-| `UPDATE_CHECK` | `off` | `on`: admins see when a newer release is out (one request to GitHub a day). Nothing else is ever sent anywhere. |
+| `UPDATE_CHECK` | `off` | `on`: admins see when a newer release is out (one request to GitHub a day). The other outside calls are lyrics lookups (`LRCLIB_URL`) and Groq when `GROQ_API_KEY` is set. |

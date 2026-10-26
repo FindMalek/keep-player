@@ -118,7 +118,8 @@ function intro(body: string): { text: string; block: string } | undefined {
     .split(/\n\s*\n/)
     .map((part) => part.trim())
     .find((part) => part && !/^(#|>|\||```|-|\*|\d+\.|<)/.test(part));
-  if (!block) return undefined;
+  // A paragraph that links somewhere stays in the body: the description is plain text and would lose the link.
+  if (!block || /\]\(/.test(block)) return undefined;
   const text = block
     .replace(/!?\[([^\]]*)\]\([^)]*\)/g, "$1")
     // Emphasis and code marks only: underscores belong to names like NAVIDROME_URL.
@@ -130,10 +131,21 @@ function intro(body: string): { text: string; block: string } | undefined {
 
 const yaml = (value: string) => JSON.stringify(value);
 
-/** When the source file last changed in git (ISO date); undefined outside a git checkout or for a new file. */
-function updated(file: string): string | undefined {
+const git = (args: string[]) => execFileSync("git", args, { cwd: ROOT, encoding: "utf8" }).trim();
+// In a shallow clone every file older than the cut "changed" in the boundary commit, so no date beats a wrong one.
+const SHALLOW = (() => {
   try {
-    return execFileSync("git", ["log", "-1", "--format=%cs", "--", file], { cwd: ROOT, encoding: "utf8" }).trim() || undefined;
+    return git(["rev-parse", "--is-shallow-repository"]) === "true";
+  } catch {
+    return true;
+  }
+})();
+
+/** When the source file last changed in git (ISO date); undefined outside a full git checkout or for a new file. */
+function updated(file: string): string | undefined {
+  if (SHALLOW) return undefined;
+  try {
+    return git(["log", "-1", "--format=%cs", "--", file]) || undefined;
   } catch {
     return undefined;
   }
