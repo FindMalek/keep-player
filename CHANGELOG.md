@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.5.0](https://github.com/FindMalek/keep-player/compare/v1.4.0...v1.5.0) (2026-10-26)
+
+
+### Features
+
+* **macos:** updates over the air, icon, island polish ([#276](https://github.com/FindMalek/keep-player/issues/276)) ([f691d71](https://github.com/FindMalek/keep-player/commit/f691d71562d1a758324b2fcc6e51ec45931f9193))
+
+
+### Performance Improvements
+
+* **macos:** bars follow the music, faster pages ([#283](https://github.com/FindMalek/keep-player/issues/283)) ([c64d705](https://github.com/FindMalek/keep-player/commit/c64d705ba4085adde6279a9afeb177a55a801ef3))
+
 ## [1.4.0](https://github.com/FindMalek/keep-player/compare/v1.3.0...v1.4.0) (2026-10-25)
 
 
