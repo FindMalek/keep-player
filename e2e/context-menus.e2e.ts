@@ -84,14 +84,14 @@ test("drag songs onto a sidebar playlist, onto the player bar to play next, and 
     .dragTo(page.getByRole("contentinfo"));
   await expect(page.getByText(`${titles[4]} plays next`)).toBeVisible();
 
-  // In the queue: the third upcoming song dropped onto the first takes its place.
+  // In the queue, within the album's songs (a song can't jump into your own up-next list): the later one takes the earlier's place.
   await page.keyboard.press("q");
   const queue = page.getByRole("list", { name: "queue" });
-  const upcoming = async () => (await queue.locator("li[data-queue-index]").allTextContents()).slice(1);
-  const before = await upcoming();
   const rows = queue.locator("li[data-queue-index]");
-  await rows.nth(3).locator("[draggable=true]").dragTo(rows.nth(1));
-  await expect.poll(upcoming).not.toEqual(before);
+  await expect(rows.nth(3)).toBeVisible();
+  const [first, second] = [await rows.nth(2).textContent(), await rows.nth(3).textContent()];
+  await rows.nth(3).locator("[draggable=true]").dragTo(rows.nth(2));
+  await expect.poll(async () => [await rows.nth(2).textContent(), await rows.nth(3).textContent()]).toEqual([second, first]);
 });
 
 test("on your own playlist, a row dropped onto another takes its place", async ({ page, signedIn }) => {

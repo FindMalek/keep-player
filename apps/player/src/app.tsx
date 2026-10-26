@@ -11,6 +11,7 @@ import { RouteBoundary } from "@/components/route-boundary";
 import { TopBar } from "@/components/top-bar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { eager } from "@/lib/eager";
 import { startElsewhere } from "@/lib/elsewhere";
 import { loadLikes, toggleLiked } from "@/lib/likes";
 import { openListFilter } from "@/lib/list-filter";
@@ -61,10 +62,12 @@ import { appShortcuts } from "./app-shortcuts";
 
 // Signed-out visitors and the side panels are rare enough to load on demand.
 const Login = lazy(() => import("@/components/login").then((module) => ({ default: module.Login })));
-const SplitView = lazy(() => import("@/components/split-view").then((module) => ({ default: module.SplitView })));
-const QueuePanel = lazy(() => import("@/components/side-panels").then((module) => ({ default: module.QueuePanel })));
-const InfoPanel = lazy(() => import("@/components/side-panels").then((module) => ({ default: module.InfoPanel })));
-const LyricsPanel = lazy(() => import("@/components/side-panels").then((module) => ({ default: module.LyricsPanel })));
+const SplitView = eager(() => import("@/components/split-view").then((module) => module.SplitView));
+const QueuePanel = eager(() =>
+  import("@/components/side-panels").then((module) => module.RadioControls.preload().then(() => module.QueuePanel)),
+);
+const InfoPanel = eager(() => import("@/components/side-panels").then((module) => module.InfoPanel));
+const LyricsPanel = eager(() => import("@/components/side-panels").then((module) => module.LyricsPanel));
 
 const NowPlayingFull = lazy(() => import("@/components/now-playing-full").then((module) => ({ default: module.NowPlayingFull })));
 const FirstRun = lazy(() => import("@/components/first-run").then((module) => ({ default: module.FirstRun })));
@@ -259,8 +262,10 @@ export function App() {
   useEffect(() => {
     if (user)
       preloadAllRoutes([
-        () => import("@/components/split-view"),
-        () => import("@/components/side-panels"),
+        SplitView.preload,
+        QueuePanel.preload,
+        InfoPanel.preload,
+        LyricsPanel.preload,
         () => import("@/components/user-menu"),
         () => import("@/components/now-playing-details"),
         () => import("@/components/artist-card"),
