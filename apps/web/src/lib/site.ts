@@ -1,5 +1,12 @@
-/** Where this site lives; the domain is still a placeholder until the project's name settles. */
-export const SITE_URL = process.env.SITE_URL ?? "https://keepmusic.findmalek.engineer";
+/**
+ * Where this site lives: `SITE_URL` when set, else Vercel's production domain for the project, else the placeholder
+ * (the domain waits for the project's name to settle).
+ */
+export const SITE_URL =
+  process.env.SITE_URL ??
+  (process.env.VERCEL_PROJECT_PRODUCTION_URL
+    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+    : "https://keepmusic.findmalek.engineer");
 export const REPO = "https://github.com/FindMalek/keep-player";
 export const DOCS = "/docs";
 export const SELF_HOSTING = "/docs/self-hosting";

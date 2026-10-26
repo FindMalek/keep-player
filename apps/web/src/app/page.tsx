@@ -26,9 +26,24 @@ import { Art } from "@/components/art";
 import { DevicesDemo, LyricsDemo, PaletteDemo } from "@/components/demos";
 import { Island } from "@/components/island";
 import { SiteFooter, SiteHeader } from "@/components/site";
-import { DOCS, MAC_APP, REPO, SELF_HOSTING, stars } from "@/lib/site";
+import { DOCS, MAC_APP, REPO, SELF_HOSTING, SITE_URL, stars } from "@/lib/site";
 
 export const revalidate = 86_400;
+
+// What search engines read about the app (schema.org).
+const JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "keep music",
+  applicationCategory: "MultimediaApplication",
+  operatingSystem: "Web, macOS",
+  description:
+    "A self-hosted music player for Navidrome: made-for-you mixes, synced lyrics, one session across your devices and the song in your Mac's notch.",
+  offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+  license: "https://opensource.org/licenses/MIT",
+  codeRepository: REPO,
+  url: SITE_URL,
+};
 
 const YOURS: { icon: LucideIcon; title: string; text: string }[] = [
   {
@@ -150,6 +165,8 @@ export default async function Home() {
   );
   return (
     <>
+      {/* biome-ignore lint/security/noDangerouslySetInnerHtml: a constant object, serialized */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
       <SiteHeader />
       <main>
         <section className="mx-auto max-w-6xl px-4 pt-16 pb-16 sm:px-6 sm:pt-24">

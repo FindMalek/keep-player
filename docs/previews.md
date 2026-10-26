@@ -1,10 +1,10 @@
 # Previews
 
 Every pull request from this repo gets one, like Vercel: a build of the PR's player at `player-pr-<n>.<PREVIEW_DOMAIN>`
-(its API reference at `/api`) and of the site (`apps/web`) at `web-pr-<n>.<PREVIEW_DOMAIN>`, and one sticky comment on the
-PR (edited in place, never a new one per push) with a row each: building as soon as the PR opens, deploying, ready or
-failed, with the build log, the Dokploy deploy log and, once it's up, the Preview link. Closing the PR deletes both apps
-and marks the comment as deleted.
+(its API reference at `/api`), and one sticky comment on the PR (edited in place, never a new one per push): building as
+soon as the PR opens, deploying, ready or failed, with the build log, the Dokploy deploy log and, once it's up, the
+Preview link. Closing the PR deletes the app and marks the comment as deleted. The site (`apps/web`) is hosted on Vercel,
+which previews it on every PR with a comment of its own.
 
 Sign in with `demo` / `demo`.
 

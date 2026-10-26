@@ -28,5 +28,16 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const page = source.getPage((await params).slug);
   if (!page) notFound();
-  return { title: `${page.data.title} · keep music docs`, description: page.data.description };
+  return {
+    title: `${page.data.title} · docs`,
+    description: page.data.description,
+    alternates: { canonical: page.url },
+    openGraph: {
+      type: "article",
+      url: page.url,
+      title: page.data.title,
+      description: page.data.description,
+      images: [{ url: page.url.replace(/^\/docs/, "/og/docs"), width: 1200, height: 630 }],
+    },
+  };
 }
