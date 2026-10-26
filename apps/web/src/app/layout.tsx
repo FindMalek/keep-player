@@ -1,6 +1,7 @@
 import "@fontsource-variable/ibm-plex-sans";
 import "@fontsource-variable/jetbrains-mono";
 import "./globals.css";
+import { RootProvider } from "fumadocs-ui/provider/next";
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { SITE_URL } from "@/lib/site";
@@ -35,7 +36,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         {/* biome-ignore lint/security/noDangerouslySetInnerHtml: a constant, set before paint */}
         <script dangerouslySetInnerHTML={{ __html: THEME }} />
       </head>
-      <body>{children}</body>
+      <body className="flex min-h-screen flex-col">
+        {/* Docs search and layout; the theme stays ours (the script above follows the system). */}
+        <RootProvider theme={{ enabled: false }}>{children}</RootProvider>
+      </body>
     </html>
   );
 }

@@ -3,7 +3,7 @@
   "compilerOptions": {
     "types": ["node"],
     "plugins": [{ "name": "next" }],
-    "paths": { "@/*": ["./src/*"] }
+    "paths": { "@/*": ["./src/*"], "collections/*": ["./.source/*"] }
   },
-  "include": ["src", "next.config.ts"]
+  "include": ["src", "next.config.ts", "source.config.ts", ".source"]
 }
