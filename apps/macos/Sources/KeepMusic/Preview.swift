@@ -25,8 +25,8 @@ import SwiftUI
             .enumerated().map { LyricLine(start: Double($0.offset) * 30_000 + 60_000, text: $0.element, index: $0.offset) }
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         let shots: [(String, IslandMode, IslandTab, CGFloat)] = [
-            ("compact", .compact, .playing, 70), ("peek", .peek, .playing, 160), ("open", .open, .playing, 350),
-            ("lyrics", .open, .lyrics, 350), ("queue", .open, .queue, 350), ("settings", .open, .settings, 350),
+            ("compact", .compact, .playing, 70), ("peek", .peek, .playing, 190), ("open", .open, .playing, 260),
+            ("lyrics", .open, .lyrics, 350), ("queue", .open, .queue, 350),
         ]
         for (name, mode, tab, height) in shots {
             let state = IslandState()
@@ -42,6 +42,18 @@ import SwiftUI
                let png = NSBitmapImageRep(data: tiff)?.representation(using: .png, properties: [:]) {
                 try? png.write(to: folder.appendingPathComponent("\(name).png"))
             }
+        }
+    }
+
+    /// What's New as someone coming from 1.2.0 to the latest would see it, from the real releases.
+    static func renderWhatsNew(to folder: URL) async {
+        guard let since = Version("1.2.0") else { return }
+        let releases = await Updater.releases(limit: 50).filter { since < $0.version }
+        let renderer = ImageRenderer(content: WhatsNewView(releases: releases, since: since) {}.background(.background))
+        renderer.scale = 2
+        if let image = renderer.nsImage, let tiff = image.tiffRepresentation,
+           let png = NSBitmapImageRep(data: tiff)?.representation(using: .png, properties: [:]) {
+            try? png.write(to: folder.appendingPathComponent("whats-new.png"))
         }
     }
 
