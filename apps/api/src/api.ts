@@ -22,7 +22,7 @@ import { lyricsCoverage, queryLyrics } from "./lyrics-search";
 import { momentNotes } from "./moments";
 import type { LoginLimiter } from "./rate-limit";
 import { latestFor, lineAt, NOTHING, type NowPlayingEntry, type RemoteNow, remoteSong } from "./remote";
-import { createRpc } from "./rpc";
+import { createRpc, accountOf as dataAccount } from "./rpc";
 import { search } from "./search";
 import type { IndexSync } from "./search-index";
 import type { Session, SessionStore } from "./sessions";
@@ -574,7 +574,7 @@ export function createApi({
     }
     if (now.song && now.position !== null) {
       const found = await lyrics.get(upstream, session, now.song.id).catch(() => null);
-      if (found) now = { ...now, line: lineAt(found, now.position, lyrics.offset(session.user, now.song.id)) };
+      if (found) now = { ...now, line: lineAt(found, now.position, lyrics.offset(dataAccount(session), now.song.id)) };
     }
     return json(now, 200, { "cache-control": "no-store" });
   }
@@ -604,7 +604,7 @@ export function createApi({
     const body = (await request.json().catch(() => null)) as { prompt?: unknown } | null;
     const prompt = typeof body?.prompt === "string" ? body.prompt.trim() : "";
     if (!prompt) return json({ error: "say what you want to hear" }, 400);
-    const account = `${session.server}:${session.user}`;
+    const account = dataAccount(session);
     const { artists, played } = libraryArtists(library, session.server, account);
     if (!artists.size) return json({ error: "the library index is still building" }, 409);
     const plan = await askGroq(groq, prompt, artists, fetcher);
@@ -860,7 +860,7 @@ export function createApi({
     const query = (params.get("q") ?? "").slice(0, 200);
     const limit = Math.min(50, Math.max(1, Number(params.get("limit")) || 8));
     const [folders, liked] = await Promise.all([foldersFor(session, upstream), likesFor(session, upstream)]);
-    const moments = /\b(moment:|is:moment)/i.test(query) ? momentNotes(library, `${session.server}:${session.user}`) : undefined;
+    const moments = /\b(moment:|is:moment)/i.test(query) ? momentNotes(library, dataAccount(session)) : undefined;
     return json(search(library, upstream.id, query, { folders, liked, moments }, limit), 200, { "cache-control": "private, no-cache" });
   }
 

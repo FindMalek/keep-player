@@ -40,9 +40,11 @@ export interface RpcDeps {
 /** `client`: the browser's id (`x-keep-client`), so a play says which device it was on. */
 type Context = { session: Session | null; client: string };
 
-const accountOf = (session: Session) => `${session.server}:${session.user}`;
+/** Whose data it is: history, prefs, lyrics offsets and the rest are kept per server and user. */
+export const accountOf = (session: Session) => `${session.server}:${session.user}`;
 
 const MIXES_TTL_MS = 60 * 60_000;
+const GROQ_MISS_TTL_MS = 2 * 60_000;
 const OK = { ok: true } as const;
 
 function readSettings(db: Database, account: string) {
@@ -90,8 +92,10 @@ export function createRpc({ library, updates, groq, fetcher, upstreamFor, folder
       const moods = await moodMixes(library, groq, account, input.day, heard, fetcher);
       const weekly = await weeklyPlaylists(library, groq, account, input.day, heard, fetcher);
       const result = { day: input.day, mixes: [...made, ...moods, ...weekly] };
-      // Empty means not ready yet (no plays, the index building): asked again, never kept.
-      if (result.mixes.length) await cache.set(key, result, MIXES_TTL_MS);
+      // Empty means not ready yet (no plays, the index building): asked again, never kept. Groq coming back empty is
+      // most likely a timeout or a rate limit, so that answer is kept only briefly.
+      const groqMissed = groq && (!moods.length || !weekly.length);
+      if (result.mixes.length) await cache.set(key, result, groqMissed ? GROQ_MISS_TTL_MS : MIXES_TTL_MS);
       return result;
     }),
     artists: {
@@ -184,6 +188,8 @@ export function createRpc({ library, updates, groq, fetcher, upstreamFor, folder
       new OpenAPIReferencePlugin({
         schemaConverters: [new ZodToJsonSchemaConverter()],
         docsTitle: "keep music API",
+        // Pinned: the page runs on the player's origin, where the session cookie works.
+        docsScriptUrl: "https://cdn.jsdelivr.net/npm/@scalar/api-reference@1.74.0",
         specGenerateOptions: {
           info: {
             title: "keep music API",

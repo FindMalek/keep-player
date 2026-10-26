@@ -31,11 +31,16 @@ export function memoryCache(now: () => number = Date.now): Cache {
 
 /** Redis down means a miss, never an error: the answer is computed again. */
 export function redisCache(url: string): Cache {
-  const client = new RedisClient(url);
+  // Fail fast while disconnected instead of queueing until it reconnects: a miss costs ~30 ms, a wait seconds.
+  const client = new RedisClient(url, { enableOfflineQueue: false });
   return {
     async get<T>(key: string) {
       const raw = await client.get(`keep-player:${key}`).catch(() => null);
-      return raw ? (JSON.parse(raw) as T) : undefined;
+      try {
+        return raw ? (JSON.parse(raw) as T) : undefined;
+      } catch {
+        return undefined;
+      }
     },
     async set(key, value, ttlMs) {
       await client.set(`keep-player:${key}`, JSON.stringify(value), "PX", ttlMs).catch(() => undefined);
