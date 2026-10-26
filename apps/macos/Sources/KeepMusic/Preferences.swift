@@ -20,6 +20,11 @@ import Observation
         didSet { UserDefaults.standard.set(menuBarItem, forKey: "menuBarItem") }
     }
 
+    /// Where PR previews live (`player-pr-<n>.<domain>`); `defaults write` to point it elsewhere.
+    var previewDomain: String {
+        UserDefaults.standard.string(forKey: "previewDomain") ?? "preview.findmalek.engineer"
+    }
+
     private init() {
         let defaults = UserDefaults.standard
         server = defaults.url(forKey: "server")

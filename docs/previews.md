@@ -6,6 +6,13 @@ ready or failed, with the build log, the Dokploy deploy log and, once it's up, t
 
 Sign in with `demo` / `demo`.
 
+## In the macOS app
+
+Sign out, tap the sign-in page's background 4 times, and enter the id from the PR comment (`pr-123`, `123` or the full
+address). The app opens that preview for this launch, with the id in the window title; keep music → **Leave Preview**
+(or 4 taps again → "Back to …") returns to your server. Previews are at `player-pr-<n>.preview.findmalek.engineer`;
+point the app elsewhere with `defaults write engineer.findmalek.keep-music previewDomain preview.example.com`.
+
 ## What is isolated
 
 - **Data:** each preview runs with an empty data directory (no volume): sessions, the search index and the cover cache

@@ -12,6 +12,8 @@ import SwiftUI
     private var mini: NSPanel?
     private var notch: NotchController?
     private var statusItem: StatusItem?
+    /// The PR preview open instead of your server ("pr-123"), for this launch only; the saved server stays as it is.
+    private var preview: String?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         buildMenu()
@@ -60,12 +62,14 @@ import SwiftUI
 
     private func open(_ server: URL) {
         let player = PlayerView(server: server, nowPlaying: nowPlaying)
+        // Not inside WebKit's message callback: the alert is modal.
+        player.onPreview = { [weak self] in DispatchQueue.main.async { self?.askForPreview() } }
         self.player = player
         let window = window ?? NSWindow(
             contentRect: CGRect(x: 0, y: 0, width: 1280, height: 820),
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered, defer: false)
-        window.title = "keep music"
+        window.title = preview.map { "keep music · preview \($0)" } ?? "keep music"
         window.tabbingMode = .disallowed
         window.contentView = player.webView
         window.delegate = self
@@ -94,7 +98,48 @@ import SwiftUI
             return
         }
         preferences.server = url
+        preview = nil
+        buildMenu()
         open(url)
+    }
+
+    /// "pr-123", "123" or "#123" opens that PR's preview; a full address opens that.
+    private func askForPreview() {
+        let alert = NSAlert()
+        alert.messageText = "Open a preview"
+        alert.informativeText = "The preview id from the pull request's preview comment."
+        let field = NSTextField(frame: CGRect(x: 0, y: 0, width: 320, height: 24))
+        field.placeholderString = "pr-123"
+        field.stringValue = preview ?? ""
+        alert.accessoryView = field
+        alert.addButton(withTitle: "Open")
+        alert.addButton(withTitle: "Cancel")
+        if preview != nil, let host = preferences.server?.host { alert.addButton(withTitle: "Back to \(host)") }
+        alert.window.initialFirstResponder = field
+        switch alert.runModal() {
+        case .alertFirstButtonReturn:
+            let text = field.stringValue.trimmingCharacters(in: .whitespaces).lowercased()
+            let number = text.replacingOccurrences(of: "pr-", with: "").replacingOccurrences(of: "#", with: "")
+            if let url = URL(string: text), url.scheme == "https" || url.scheme == "http", url.host != nil {
+                preview = url.host
+                open(url)
+            } else if !number.isEmpty, number.allSatisfy(\.isNumber),
+                      let url = URL(string: "https://player-pr-\(number).\(preferences.previewDomain)") {
+                preview = "pr-\(number)"
+                open(url)
+            }
+        case .alertThirdButtonReturn:
+            leavePreview()
+        default:
+            return
+        }
+        buildMenu()
+    }
+
+    @objc func leavePreview() {
+        preview = nil
+        buildMenu()
+        if let server = preferences.server { open(server) }
     }
 
     @objc func showWindow() {
@@ -143,6 +188,7 @@ import SwiftUI
             item("Settings…", #selector(showSettings), ","),
             .separator(),
             item("Change Server…", #selector(changeServer)),
+        ] + (preview == nil ? [] : [item("Leave Preview", #selector(leavePreview))]) + [
             .separator(),
             item("Hide keep music", #selector(NSApplication.hide(_:)), "h"),
             item("Quit keep music", #selector(NSApplication.terminate(_:)), "q"),
