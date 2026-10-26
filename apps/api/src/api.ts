@@ -7,6 +7,7 @@ import type { LyricsSearch } from "@keep/shared/search";
 import { readTrack } from "@keep/shared/spotify-import";
 import type { Server } from "bun";
 import { askGroq, buildPlaylist, libraryArtists } from "./ai-playlist";
+import type { Cache } from "./cache";
 import type { Upstream } from "./config";
 import { type CoverCache, snapCoverSize } from "./covers";
 import type { DeviceHub, DevicePeer } from "./devices";
@@ -151,6 +152,7 @@ export interface ApiOptions {
   devices?: DeviceHub | null;
   /** Feedback as GitHub issues (#182); null turns it off. */
   feedback?: FeedbackTarget | null;
+  cache?: Cache;
   /** Playlists from a prompt (#57); null turns them off. */
   groq?: { key: string; model: string; url: string } | null;
   /** Stands in for Groq in tests. */
@@ -199,6 +201,7 @@ export function createApi({
   devices = null,
   groq = null,
   feedback = null,
+  cache,
   fetcher = fetch,
 }: ApiOptions) {
   const upstreamFor = (id: string) => upstreams.find((upstream) => upstream.id === id);
@@ -216,7 +219,7 @@ export function createApi({
     return folders;
   }
 
-  const rpcHandler = createRpc({ library, updates, groq, fetcher, upstreamFor, foldersFor });
+  const rpcHandler = createRpc({ library, updates, groq, fetcher, upstreamFor, foldersFor, cache });
 
   const secured = (response: Response) => {
     for (const [name, value] of Object.entries(SECURITY_HEADERS)) response.headers.set(name, value);

@@ -1,7 +1,8 @@
 import { expect, test } from "bun:test";
 import { openLibraryDb } from "./db";
 import { recordPlay } from "./history";
-import { dailyMixes } from "./mixes";
+import { dailyMixes, mixesVersion } from "./mixes";
+import { changeSong } from "./prefs";
 import { createIndexTables } from "./search-index";
 
 const NOW = Date.UTC(2026, 9, 24, 12);
@@ -121,4 +122,20 @@ test("release radar is new songs by artists you play; on this day is what you pl
   expect(first[0]?.songs.every((item) => item.artist === "Hurt")).toBe(true);
   await moodMixes(db, settings, "s:u", 20_386, l, groq);
   expect(calls).toBe(1);
+});
+
+test("the cache key for made for you changes with a play or a never pref, and only then", () => {
+  const db = openLibraryDb(":memory:");
+  createIndexTables(db);
+  const version = () => mixesVersion(db, "s", "s:u");
+  const before = version();
+  expect(version()).toBe(before);
+  recordPlay(db, "s:u", "", { song: song("a1", "Hurt", "Rapture"), started: NOW, listened: 200, finished: true });
+  const played = version();
+  expect(played).not.toBe(before);
+  // Someone else's play is not yours.
+  recordPlay(db, "s:other", "", { song: song("a1", "Hurt", "Rapture"), started: NOW, listened: 200, finished: true });
+  expect(version()).toBe(played);
+  changeSong(db, "s:u", "a1", { never: true });
+  expect(version()).not.toBe(played);
 });

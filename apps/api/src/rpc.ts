@@ -6,9 +6,10 @@ import { implement, ORPCError } from "@orpc/server";
 import { RPCHandler } from "@orpc/server/fetch";
 import { ZodToJsonSchemaConverter } from "@orpc/zod/zod4";
 import { appearsOn } from "./appears-on";
+import { type Cache, memoryCache } from "./cache";
 import type { Upstream } from "./config";
 import { type UpdateCheck, VERSION } from "./health";
-import { listening, madeForYou } from "./mixes";
+import { listening, madeForYou, mixesVersion, slotOf } from "./mixes";
 import { type Groq, moodMixes } from "./mood-mixes";
 import type { Session } from "./sessions";
 import { forgottenFavourites, listeningStats } from "./stats";
@@ -27,13 +28,16 @@ export interface RpcDeps {
   fetcher: typeof fetch;
   upstreamFor(id: string): Upstream | undefined;
   foldersFor(session: Session, upstream: Upstream): Promise<string[]>;
+  cache?: Cache;
 }
 
 type Context = { session: Session | null };
 
 const accountOf = (session: Session) => `${session.server}:${session.user}`;
 
-export function createRpc({ library, updates, groq, fetcher, upstreamFor, foldersFor }: RpcDeps) {
+const MIXES_TTL_MS = 60 * 60_000;
+
+export function createRpc({ library, updates, groq, fetcher, upstreamFor, foldersFor, cache = memoryCache() }: RpcDeps) {
   const os = implement(contract).$context<Context>();
   const signedIn = os.use(({ context, next }) => {
     if (!context.session) throw new ORPCError("UNAUTHORIZED", { message: "signed out" });
@@ -56,11 +60,18 @@ export function createRpc({ library, updates, groq, fetcher, upstreamFor, folder
     mixes: signedIn.mixes.handler(async ({ context, input }) => {
       const { session } = context;
       const account = accountOf(session);
+      // ~30 ms with 10k songs, and the same answer until the slot, a play, the index or a "never" pref changes.
+      const key = `mixes:${account}:${input.day}:${slotOf(input.hour)}:${input.tz}:${mixesVersion(library, session.server, account)}`;
+      const cached = await cache.get<{ day: number; mixes: Awaited<ReturnType<typeof madeForYou>> }>(key);
+      if (cached) return cached;
       const made = madeForYou(library, session.server, account, { day: input.day, hour: input.hour, tzMinutes: input.tz });
       const heard = groq ? listening(library, session.server, account, Date.now()) : null;
       const moods = await moodMixes(library, groq, account, input.day, heard, fetcher);
       const weekly = await weeklyPlaylists(library, groq, account, input.day, heard, fetcher);
-      return { day: input.day, mixes: [...made, ...moods, ...weekly] };
+      const result = { day: input.day, mixes: [...made, ...moods, ...weekly] };
+      // Empty means not ready yet (no plays, the index building): asked again, never kept.
+      if (result.mixes.length) await cache.set(key, result, MIXES_TTL_MS);
+      return result;
     }),
     artists: {
       appearsOn: signedIn.artists.appearsOn.handler(async ({ context, input }) => {

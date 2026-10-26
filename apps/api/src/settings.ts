@@ -114,6 +114,12 @@ export const SETTINGS = [
       "`on`: fill `INDEX_USER`'s history with months of generated listening, once (for demos and previews, see docs/previews.md). Needs `INDEX_USER`.",
   },
   {
+    name: "REDIS_URL",
+    fallback: "",
+    description:
+      "`redis://…`: keep computed answers (made for you) in Redis, shared by several instances. Unset: in memory, which is all one instance needs.",
+  },
+  {
     name: "TRUST_PROXY",
     fallback: "false",
     description: "`true` behind a reverse proxy: client IPs come from `X-Real-IP` / `X-Forwarded-For` (login rate limits).",
@@ -151,6 +157,7 @@ export interface Config {
   indexUser: string | undefined;
   indexPassword: string | undefined;
   demoSeed: boolean;
+  redisUrl?: string;
   trustProxy: boolean;
   updateCheck: boolean;
 }
@@ -238,6 +245,7 @@ export function readConfig(env: Env): { config: Config; errors: string[] } {
     indexUser,
     indexPassword,
     demoSeed,
+    redisUrl: get("REDIS_URL") || undefined,
     trustProxy: flag("TRUST_PROXY", ["1", "true", "yes", "on"], ["0", "false", "no", "off", ""]),
     updateCheck: flag("UPDATE_CHECK", ["on"], ["off"]),
   };

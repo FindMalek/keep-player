@@ -3,6 +3,7 @@ import { MAX_DEVICE_MESSAGE_BYTES } from "@keep/shared/devices";
 import { LEVELS_WORKLET_SOURCE } from "@keep/shared/levels-worklet";
 import { createApi } from "./api";
 import { LyricsBackfill, serviceAccount } from "./backfill";
+import { createCache } from "./cache";
 import { compressed } from "./compress";
 import { config } from "./config";
 import { CoverCache } from "./covers";
@@ -74,6 +75,7 @@ const api = createApi({
   devices: config.oneSession ? new DeviceHub() : null,
   groq: config.groq,
   feedback: config.feedback,
+  cache: createCache(config.redisUrl),
 });
 const health = new HealthCheck(config.upstreams);
 

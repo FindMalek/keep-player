@@ -308,6 +308,25 @@ export function madeForYou(
   ].filter((mix): mix is Mix => mix !== null);
 }
 
+/** Changes whenever made for you would: a play, a sync of the library index, a song marked "never in shuffle". */
+export function mixesVersion(db: Database, server: string, account: string): string {
+  const plays = db
+    .query<{ count: number; last: number | null }, [string]>("select count(*) as count, max(rowid) as last from plays where account = ?")
+    .get(account);
+  // The index tables exist only once the index has run.
+  const synced = (() => {
+    try {
+      return db.query<{ value: string }, [string]>("select value from meta where key = ?").get(`index-last-sync:${server}`)?.value ?? "";
+    } catch {
+      return "";
+    }
+  })();
+  const never = db
+    .query<{ ids: string | null }, [string]>("select group_concat(song_id) as ids from song_prefs where account = ? and never = 1")
+    .get(account)?.ids;
+  return Bun.hash(`${plays?.count}:${plays?.last}:${synced}:${never ?? ""}`).toString(36);
+}
+
 /** The daily mixes alone. */
 export function dailyMixes(db: Database, server: string, account: string, day: number, now = Date.now()): Mix[] {
   const l = listening(db, server, account, now);
