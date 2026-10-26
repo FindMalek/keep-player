@@ -6,3 +6,5 @@ playwright-report
 dist
 data
 .turbo
+.next
+next-env.d.ts

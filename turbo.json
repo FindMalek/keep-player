@@ -10,6 +10,12 @@
       "dependsOn": ["^typecheck"],
       "inputs": ["src/**", "package.json"]
     },
+    "build": {
+      "dependsOn": ["^typecheck"],
+      "inputs": ["src/**", "public/**", "next.config.ts", "postcss.config.mjs", "package.json", "../../packages/ui/src/**"],
+      "outputs": [".next/**", "!.next/cache/**"],
+      "env": ["SITE_URL"]
+    },
     "dev": {
       "cache": false,
       "persistent": true

@@ -36,6 +36,8 @@ jobs:
       - run: bun run size
       - run: bun scripts/config-docs.ts --check
       - run: bun scripts/shortcuts-docs.ts --check
+      # The site (apps/web): a broken Next build fails here, not at deploy.
+      - run: bunx turbo run build --filter=@keep/web
 
   # The browser suite split four ways, each on its own machine. Lighthouse waits for a release (job below).
   e2e:
