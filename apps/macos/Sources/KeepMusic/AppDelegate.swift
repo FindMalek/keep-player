@@ -6,6 +6,7 @@ import SwiftUI
 @MainActor final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     let nowPlaying = NowPlaying()
     let preferences = Preferences.shared
+    let updater = Updater()
     private var window: NSWindow?
     private var player: PlayerView?
     private var mini: NSPanel?
@@ -17,7 +18,26 @@ import SwiftUI
         if let server = preferences.server { open(server) } else { askForServer() }
         notch = NotchController(nowPlaying: nowPlaying, preferences: preferences) { [weak self] in self?.showWindow() }
         statusItem = StatusItem(nowPlaying: nowPlaying, preferences: preferences)
+        updater.onReady = { [weak self] version in self?.offerRestart(version) }
+        updater.start()
+        WhatsNew.showIfUpdated()
     }
+
+    /// A new version is downloaded: ask once; "Later" leaves "Restart to Update" in the app menu.
+    private func offerRestart(_ version: String) {
+        buildMenu()
+        let alert = NSAlert()
+        alert.icon = NSApp.applicationIconImage
+        alert.messageText = "keep music \(version) is ready"
+        alert.informativeText = "Restart to finish updating. What's new shows when it opens again."
+        alert.addButton(withTitle: "Restart Now")
+        alert.addButton(withTitle: "Later")
+        if alert.runModal() == .alertFirstButtonReturn { updater.restart() }
+    }
+
+    @objc func restartToUpdate() { updater.restart() }
+    @objc func checkForUpdates() { Task { await updater.check(userInitiated: true) } }
+    @objc func showSettings() { SettingsWindow.show(preferences: preferences, updater: updater) }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows: Bool) -> Bool {
         showWindow()
@@ -35,10 +55,10 @@ import SwiftUI
         self.player = player
         let window = window ?? NSWindow(
             contentRect: CGRect(x: 0, y: 0, width: 1280, height: 820),
-            styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
+            styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered, defer: false)
         window.title = "keep music"
-        window.titlebarAppearsTransparent = true
+        window.tabbingMode = .disallowed
         window.contentView = player.webView
         window.delegate = self
         if !window.setFrameUsingName("main") { window.center() }
@@ -103,8 +123,14 @@ import SwiftUI
             entry.keyEquivalentModifierMask = modifiers
             return entry
         }
-        submenu("keep music", [
+        var appItems = [
             item("About keep music", #selector(NSApplication.orderFrontStandardAboutPanel(_:))),
+            item("Check for Updates…", #selector(checkForUpdates)),
+        ]
+        if case let .ready(version) = updater.state { appItems.append(item("Restart to Update to \(version)", #selector(restartToUpdate))) }
+        submenu("keep music", appItems + [
+            .separator(),
+            item("Settings…", #selector(showSettings), ","),
             .separator(),
             item("Change Server…", #selector(changeServer)),
             .separator(),

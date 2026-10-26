@@ -2,14 +2,13 @@ import SwiftUI
 
 enum IslandMode { case compact, peek, open }
 enum IslandTab: String, CaseIterable, Identifiable {
-    case playing = "Now Playing", lyrics = "Lyrics", queue = "Queue", settings = "Settings"
+    case playing = "Now Playing", lyrics = "Lyrics", queue = "Queue"
     var id: String { rawValue }
     var symbol: String {
         switch self {
         case .playing: "play.circle"
         case .lyrics: "quote.bubble"
         case .queue: "list.bullet"
-        case .settings: "gearshape"
         }
     }
 }
@@ -37,8 +36,9 @@ struct IslandView: View {
         let notch = state.notch
         switch state.mode {
         case .compact: return CGSize(width: notch.width + 2 * (notch.height + 10), height: notch.height)
-        case .peek: return CGSize(width: max(notch.width + 200, 400), height: notch.height + 96)
-        case .open: return CGSize(width: max(notch.width + 320, 540), height: notch.height + 290)
+        case .peek: return CGSize(width: max(notch.width + 180, 400), height: notch.height + 128)
+        // Now Playing needs little room; lyrics and the queue get a page.
+        case .open: return CGSize(width: max(notch.width + 300, 520), height: notch.height + (state.tab == .playing ? 196 : 300))
         }
     }
 
@@ -129,19 +129,48 @@ struct Artwork: View {
     }
 }
 
-/// Hover: the cover, title and artist, where the song is, and the three buttons.
+/// Hover, like the iPhone's music Live Activity: the song on top with the bars, the playhead across, the buttons under.
 struct PeekView: View {
     let nowPlaying: NowPlaying
 
     var body: some View {
-        HStack(spacing: 14) {
-            Artwork(image: nowPlaying.cover, size: 62, radius: 12)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(nowPlaying.title ?? "").font(.system(size: 14, weight: .semibold)).lineLimit(1)
-                Text(nowPlaying.artist).font(.system(size: 12)).foregroundStyle(.secondary).lineLimit(1)
-                Progress(nowPlaying: nowPlaying, interactive: false).padding(.top, 6)
+        VStack(spacing: 10) {
+            HStack(spacing: 12) {
+                Artwork(image: nowPlaying.cover, size: 44, radius: 10)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(nowPlaying.title ?? "").font(.system(size: 14, weight: .semibold)).lineLimit(1)
+                    Text(nowPlaying.artist).font(.system(size: 12)).foregroundStyle(.secondary).lineLimit(1)
+                }
+                Spacer(minLength: 8)
+                SoundBars(playing: nowPlaying.playing).frame(width: 16, height: 13)
             }
-            Transport(nowPlaying: nowPlaying, size: 15)
+            InlineProgress(nowPlaying: nowPlaying)
+            Transport(nowPlaying: nowPlaying, size: 16)
+        }
+    }
+}
+
+/// The playhead between its two times on one line, as the Lock Screen shows it.
+struct InlineProgress: View {
+    let nowPlaying: NowPlaying
+
+    var body: some View {
+        TimelineView(.periodic(from: .now, by: nowPlaying.playing ? 0.5 : 3600)) { context in
+            let position = nowPlaying.position(at: context.date)
+            let fraction = nowPlaying.duration > 0 ? min(1, position / nowPlaying.duration) : 0
+            HStack(spacing: 8) {
+                Text(clock(position)).frame(width: 34, alignment: .leading)
+                GeometryReader { geometry in
+                    ZStack(alignment: .leading) {
+                        Capsule().fill(.white.opacity(0.2))
+                        Capsule().fill(.white).frame(width: geometry.size.width * fraction)
+                    }
+                }
+                .frame(height: 4)
+                Text("-" + clock(max(0, nowPlaying.duration - position))).frame(width: 40, alignment: .trailing)
+            }
+            .font(.system(size: 10, weight: .medium).monospacedDigit())
+            .foregroundStyle(.secondary)
         }
     }
 }
@@ -250,15 +279,14 @@ struct OpenView: View {
                     nowPlaying.like()
                 }
                 .contentTransition(.symbolEffect(.replace))
-                SoundBars(playing: nowPlaying.playing).frame(width: 14, height: 12)
+                IconButton(symbol: "arrow.up.forward.app", size: 14, label: "Open keep music", action: openPlayer)
             }
             TabBar(tab: $state.tab)
             Group {
                 switch state.tab {
-                case .playing: NowPlayingTab(nowPlaying: nowPlaying, openPlayer: openPlayer)
+                case .playing: NowPlayingTab(nowPlaying: nowPlaying)
                 case .lyrics: LyricsTab(nowPlaying: nowPlaying)
                 case .queue: QueueTab(nowPlaying: nowPlaying)
-                case .settings: SettingsTab(preferences: preferences, openPlayer: openPlayer)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -299,16 +327,11 @@ struct TabBar: View {
 
 struct NowPlayingTab: View {
     let nowPlaying: NowPlaying
-    let openPlayer: () -> Void
 
     var body: some View {
-        VStack(spacing: 18) {
-            Progress(nowPlaying: nowPlaying, interactive: true).padding(.top, 14)
-            Transport(nowPlaying: nowPlaying, size: 20)
-            Button("Open keep music", action: openPlayer)
-                .buttonStyle(.plain)
-                .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(.secondary)
+        VStack(spacing: 14) {
+            Progress(nowPlaying: nowPlaying, interactive: true).padding(.top, 12)
+            Transport(nowPlaying: nowPlaying, size: 19)
         }
     }
 }
@@ -397,50 +420,6 @@ struct QueueRow: View {
         }
         .buttonStyle(.plain)
         .onHover { hovering = $0 }
-    }
-}
-
-struct SettingsTab: View {
-    @Bindable var preferences: Preferences
-    let openPlayer: () -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            VStack(spacing: 0) {
-                SettingRow(title: "Show in the notch", detail: "The song beside the notch while it plays", isOn: $preferences.notch)
-                Divider().overlay(.white.opacity(0.08)).padding(.leading, 12)
-                SettingRow(title: "Keep showing while paused", detail: nil, isOn: $preferences.notchWhilePaused)
-                Divider().overlay(.white.opacity(0.08)).padding(.leading, 12)
-                SettingRow(title: "Menu bar item", detail: nil, isOn: $preferences.menuBarItem)
-            }
-            .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(.white.opacity(0.06)))
-            HStack(spacing: 8) {
-                Button("Open keep music", action: openPlayer)
-                Button("Change Server…") { NSApp.sendAction(#selector(AppDelegate.changeServer), to: nil, from: nil) }
-            }
-            .controlSize(.small)
-        }
-        .padding(.top, 10)
-    }
-}
-
-/// A System Settings row: the title (and a line under it) on the left, the switch on the right.
-struct SettingRow: View {
-    let title: String
-    let detail: String?
-    @Binding var isOn: Bool
-
-    var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 1) {
-                Text(title).font(.system(size: 12))
-                if let detail { Text(detail).font(.system(size: 11)).foregroundStyle(.secondary) }
-            }
-            Spacer()
-            Toggle(title, isOn: $isOn).labelsHidden().toggleStyle(.switch).controlSize(.mini)
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
     }
 }
 

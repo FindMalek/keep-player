@@ -6,16 +6,19 @@ The player in its own window, and an island around the notch, made to feel like 
 |---|---|
 | ![compact](../../docs/macos/compact.png) | **Playing:** the cover left of the notch, bars bouncing right of it. |
 | ![peek](../../docs/macos/peek.png) | **Hover:** it grows into the song, where it is, and ⏮ ⏯ ⏭. |
-| ![open](../../docs/macos/open.png) | **Click:** Now Playing (seek by dragging), Lyrics (follow along, click a line to jump), Queue (click to play), Settings. |
+| ![open](../../docs/macos/open.png) | **Click:** Now Playing (seek by dragging), Lyrics (follow along, click a line to jump), Queue (click to play). Settings are in their own window (⌘,). |
 
 - **The notch:** on by default on Macs that have one, off on the rest (a Mac mini, an external display only); switch it
-  in the island's Settings. Without a notch there's a mini player that stays on top (⌘⇧M) and a menu bar item.
+  in Settings (⌘,). Without a notch there's a mini player that stays on top (⌘⇧M) and a menu bar item.
 - **Battery:** nothing polls. The player reports changes; the playhead moves on by itself between reports and only
   while you're looking at it. The bars are a Core Animation loop the system renders at 24 fps, stopped when paused, and
   the island's window is gone when nothing plays.
 - **Closing the window keeps the music going**; the Dock icon or ⌘1 brings it back. Media keys and Now Playing work
   through WebKit, the same as in Safari.
 - **Your login** stays in the app between launches (its own WebKit store, apart from Safari's).
+- **Updates over the air:** it checks GitHub's releases at launch and every few hours (when macOS says it's cheap to),
+  downloads a new version in the background and asks to restart. After the restart, **What's New** lists everything
+  shipped since the version you last opened, every release in between. Settings (⌘,) can turn automatic downloads off.
 
 ## Install
 
