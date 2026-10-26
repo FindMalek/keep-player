@@ -134,9 +134,11 @@ export function SearchPalette({ open, onOpenChange }: { open: boolean; onOpenCha
       onOpenChange={onOpenChange}
       title="search"
       description="search artists, albums, songs, playlists and lyrics"
-      className="sm:max-w-[680px]"
+      // Fits any window: a third down at most, never past the bottom; only the list scrolls.
+      className="top-(--palette-top) flex max-h-[min(calc(100dvh-var(--palette-top)-0.75rem),44rem)] flex-col [--palette-top:clamp(0.75rem,15dvh,8rem)] sm:max-w-[680px]"
     >
       <Command
+        className="min-h-0 flex-1"
         shouldFilter={false}
         loop
         onKeyDown={(event) => {
@@ -170,7 +172,7 @@ export function SearchPalette({ open, onOpenChange }: { open: boolean; onOpenCha
           </div>
         )}
         <ListContextMenu resolve={menuTarget}>
-          <CommandList className="max-h-[60vh]">
+          <CommandList className="max-h-none min-h-0 flex-1">
             {needle && !(searching && query) && <CommandEmpty className="font-mono text-faint">no matches</CommandEmpty>}
             {query && !active.lyricsOnly && searching && <ResultGroupSkeleton />}
             {recent.length > 0 && (
