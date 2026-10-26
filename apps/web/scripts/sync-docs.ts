@@ -4,6 +4,8 @@
  * description (moved out of the body), links between docs pointing at `/docs/...`, and everything else (images, compose files) at GitHub.
  * Runs before dev and build; `content/docs` is generated, never edited.
  */
+
+import { execFileSync } from "node:child_process";
 import { mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, posix, relative } from "node:path";
 
@@ -17,10 +19,38 @@ const SKIP = new Set(["ROADMAP.md"]);
 // The start-to-finish guide is the docs' front page.
 const RENAME: Record<string, string> = { "start-to-finish.md": "index.md" };
 
+/** Per page: a shorter title where the heading is long (the page shows it too), and its sidebar icon (lib/source.ts). */
+const PAGES: Record<string, { title?: string; icon: string }> = {
+  "start-to-finish.md": { icon: "Map" },
+  "getting-started.md": { icon: "Rocket" },
+  "self-hosting.md": { icon: "Server" },
+  "configuration.md": { icon: "Settings2" },
+  "deploy/README.md": { title: "Deploy", icon: "Cloud" },
+  "deploy/dokploy.md": { icon: "Container" },
+  "troubleshooting.md": { icon: "LifeBuoy" },
+  "devices.md": { icon: "MonitorSmartphone" },
+  "sync.md": { title: "Your phone", icon: "Smartphone" },
+  "listen-together.md": { icon: "Users" },
+  "mixes.md": { title: "Mixes", icon: "Sparkles" },
+  "search.md": { icon: "Search" },
+  "lyrics.md": { icon: "MicVocal" },
+  "shortcuts.md": { title: "Shortcuts", icon: "Keyboard" },
+  "lyterion.md": { title: "Lyterion", icon: "Library" },
+  "spotify-import.md": { title: "Spotify import", icon: "Import" },
+  "api.md": { icon: "Braces" },
+  "architecture.md": { icon: "Boxes" },
+  "security.md": { icon: "ShieldCheck" },
+  "demo-library.md": { icon: "Disc3" },
+  "previews.md": { icon: "GitPullRequest" },
+  "ci/self-hosted-runner.md": { title: "Self-hosted runner", icon: "Server" },
+  "ci/runner-performance.md": { title: "Runner performance", icon: "Gauge" },
+};
+
 /** The sidebar, by section. A folder's README becomes its index. */
-const META: Record<string, { title: string; pages: string[] }> = {
+const META: Record<string, { title: string; description?: string; icon?: string; pages: string[] }> = {
   "": {
-    title: "docs",
+    title: "keep music docs",
+    description: "How to run keep music next to Navidrome, use it, bring a Spotify library over with Lyterion, and build on its API.",
     pages: [
       "---start here---",
       "index",
@@ -49,8 +79,8 @@ const META: Record<string, { title: string; pages: string[] }> = {
       "ci",
     ],
   },
-  deploy: { title: "deploy", pages: ["index", "dokploy"] },
-  ci: { title: "ci", pages: ["self-hosted-runner", "runner-performance"] },
+  deploy: { title: "Deploy", icon: "Cloud", pages: ["index", "dokploy"] },
+  ci: { title: "CI", icon: "Workflow", pages: ["self-hosted-runner", "runner-performance"] },
 };
 
 function files(dir: string): string[] {
@@ -91,13 +121,23 @@ function intro(body: string): { text: string; block: string } | undefined {
   if (!block) return undefined;
   const text = block
     .replace(/!?\[([^\]]*)\]\([^)]*\)/g, "$1")
-    .replace(/[`*_]/g, "")
+    // Emphasis and code marks only: underscores belong to names like NAVIDROME_URL.
+    .replace(/[`*]/g, "")
     .replace(/\s+/g, " ")
     .trim();
   return { text, block };
 }
 
 const yaml = (value: string) => JSON.stringify(value);
+
+/** When the source file last changed in git (ISO date); undefined outside a git checkout or for a new file. */
+function updated(file: string): string | undefined {
+  try {
+    return execFileSync("git", ["log", "-1", "--format=%cs", "--", file], { cwd: ROOT, encoding: "utf8" }).trim() || undefined;
+  } catch {
+    return undefined;
+  }
+}
 // Fence languages the site's highlighter doesn't know, shown as plain text.
 const plainFences = (markdown: string) => markdown.replace(/^(\s*```)caddy\b/gm, "$1text");
 
@@ -107,14 +147,22 @@ for (const file of files(SOURCE)) {
   if (SKIP.has(fromDocs)) continue;
   const raw = readFileSync(file, "utf8");
   const heading = raw.match(/^#\s+(.+)$/m);
-  const title = heading?.[1]?.trim() ?? fromDocs.replace(/\.md$/, "");
+  const title = PAGES[fromDocs]?.title ?? heading?.[1]?.trim() ?? fromDocs.replace(/\.md$/, "");
   const full = plainFences(rewrite(heading ? raw.replace(heading[0], "").trimStart() : raw, fromDocs));
   const lead = intro(full);
   const body = lead ? full.replace(lead.block, "").trimStart() : full;
   const summary = lead?.text;
   const target = join(OUT, (RENAME[fromDocs] ?? fromDocs).replace(/(^|\/)README\.md$/, "$1index.md"));
   mkdirSync(dirname(target), { recursive: true });
-  writeFileSync(target, `---\ntitle: ${yaml(title)}\n${summary ? `description: ${yaml(summary)}\n` : ""}---\n\n${body}`);
+  const changed = updated(file);
+  const frontmatter = [
+    `title: ${yaml(title)}`,
+    summary && `description: ${yaml(summary)}`,
+    `source: ${yaml(`docs/${fromDocs}`)}`,
+    PAGES[fromDocs] && `icon: ${yaml(PAGES[fromDocs].icon)}`,
+    changed && `updated: ${yaml(changed)}`,
+  ].filter(Boolean);
+  writeFileSync(target, `---\n${frontmatter.join("\n")}\n---\n\n${body}`);
 }
 for (const [folder, meta] of Object.entries(META)) writeFileSync(join(OUT, folder, "meta.json"), `${JSON.stringify(meta, null, 2)}\n`);
 console.info(`docs: synced into ${relative(ROOT, OUT)}`);

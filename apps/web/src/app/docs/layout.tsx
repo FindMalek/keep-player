@@ -8,6 +8,7 @@ export default function Layout({ children }: { children: ReactNode }) {
     <DocsLayout
       tree={source.getPageTree()}
       nav={{
+        url: "/",
         title: (
           <span className="flex items-center gap-2.5 font-medium font-mono text-[13px]">
             <span aria-hidden className="size-2.5 bg-foreground" />
@@ -19,6 +20,8 @@ export default function Layout({ children }: { children: ReactNode }) {
       themeSwitch={{ enabled: false }}
       links={[
         { text: "roadmap", url: "/roadmap" },
+        // The docs as markdown for language models (and the coding agent setting this up for you).
+        { text: "llms.txt", url: "/llms.txt" },
         { text: "github", url: REPO, external: true },
       ]}
     >
