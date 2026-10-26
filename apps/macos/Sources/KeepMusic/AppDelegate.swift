@@ -128,13 +128,20 @@ import SwiftUI
         case .alertFirstButtonReturn:
             let text = field.stringValue.trimmingCharacters(in: .whitespaces).lowercased()
             let number = text.replacingOccurrences(of: "pr-", with: "").replacingOccurrences(of: "#", with: "")
-            if let url = URL(string: text), url.scheme == "https" || url.scheme == "http", url.host != nil {
+            // A pasted address may come without its scheme.
+            let address = text.contains("://") || !text.contains(".") ? text : "https://\(text)"
+            if let url = URL(string: address), url.scheme == "https" || url.scheme == "http", url.host != nil {
                 preview = url.host
                 open(url)
             } else if !number.isEmpty, number.allSatisfy(\.isNumber),
                       let url = URL(string: "https://player-pr-\(number).\(preferences.previewDomain)") {
                 preview = "pr-\(number)"
                 open(url)
+            } else {
+                // Not an id or an address: ask again rather than closing as if it worked.
+                NSSound.beep()
+                askForPreview()
+                return
             }
         case .alertThirdButtonReturn:
             leavePreview()
