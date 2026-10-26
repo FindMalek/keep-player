@@ -218,13 +218,27 @@ export function createApi({
 
   const rpcHandler = createRpc({ library, updates, groq, fetcher, upstreamFor, foldersFor });
 
-  /** `/api/rpc/*`: the oRPC procedures (`@keep/orpc`). Same CSRF header as every other call; the session comes along. */
+  const secured = (response: Response) => {
+    for (const [name, value] of Object.entries(SECURITY_HEADERS)) response.headers.set(name, value);
+    if (!response.headers.has("cache-control")) response.headers.set("cache-control", "private, no-store");
+    return response;
+  };
+
+  /** `/api/rpc/*`: the oRPC procedures (`@keep/orpc`) for the player. Same CSRF header as every other call. */
   async function rpc(request: Request): Promise<Response> {
     if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
-    const response = await rpcHandler(request, sessions.get(cookieValue(request)));
-    for (const [name, value] of Object.entries(SECURITY_HEADERS)) response.headers.set(name, value);
-    response.headers.set("cache-control", "private, no-store");
-    return response;
+    return secured(await rpcHandler.rpc(request, sessions.get(cookieValue(request))));
+  }
+
+  /**
+   * `/api/*` (what no older route claims): the same procedures as plain HTTP, the reference at `/api`, the spec at
+   * `/api/spec.json`. Integrations send a Bearer token (a session of their own, made in settings); a browser's cookie
+   * counts only with the CSRF header, so another site can't call it on someone's behalf.
+   */
+  async function http(request: Request): Promise<Response> {
+    const bearer = request.headers.get("authorization")?.match(/^Bearer (\S+)$/)?.[1];
+    const session = bearer ? sessions.get(bearer) : request.headers.get(CSRF_HEADER) === "1" ? sessions.get(cookieValue(request)) : null;
+    return secured(await rpcHandler.http(request, session));
   }
 
   // Each session's liked ids (songs, albums, artists) for search; dropped whenever it stars or unstars something.
@@ -974,6 +988,7 @@ export function createApi({
 
   return {
     rpc,
+    http,
     history,
     radioBans,
     prefs,

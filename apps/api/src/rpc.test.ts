@@ -35,3 +35,17 @@ test("the typed client reaches the procedures signed in, is turned away signed o
   // Without the CSRF header the route answers 403 before oRPC sees it.
   await expect(client({ cookie: `kp_session=${cookie}` }).stats.forgotten({ days: 30 })).rejects.toBeDefined();
 });
+
+test("over plain HTTP: a bearer token signs in, a cookie needs the CSRF header, the spec lists the procedures", async () => {
+  const token = sessions.create({ server: "default", user: "demo", token: "t", salt: "s", agent: "integration" });
+  const call = (path: string, headers: Record<string, string> = {}) => api.http(new Request(`http://app${path}`, { headers }));
+
+  const withToken = await call("/api/stats/forgotten?days=30", { authorization: `Bearer ${token}` });
+  expect(withToken.status).toBe(200);
+  expect(await withToken.json()).toEqual({ songs: [] });
+  expect((await call("/api/stats/forgotten", { cookie: `kp_session=${cookie}` })).status).toBe(401);
+  expect((await call("/api/stats/forgotten", { cookie: `kp_session=${cookie}`, "x-keep-player": "1" })).status).toBe(200);
+
+  const spec = (await (await call("/api/spec.json")).json()) as { paths: Record<string, unknown> };
+  expect(Object.keys(spec.paths)).toContain("/artists/{id}/appears-on");
+});

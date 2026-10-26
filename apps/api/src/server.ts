@@ -92,6 +92,8 @@ const server = Bun.serve({
       new Response(LEVELS_WORKLET_SOURCE, { headers: { "content-type": "text/javascript", "cache-control": "public, max-age=86400" } }),
     "/api/health": { GET: () => health.response() },
     "/api/rpc/*": api.rpc,
+    "/api": api.http,
+    "/api/*": api.http,
     "/auth/login": { POST: api.login },
     "/auth/logout": { POST: api.logout },
     "/auth/session": { GET: api.current },

@@ -8,7 +8,9 @@
     "@fontsource-variable/jetbrains-mono": "5.3.0",
     "@keep/orpc": "workspace:*",
     "@keep/shared": "workspace:*",
+    "@orpc/openapi": "1.15.6",
     "@orpc/server": "1.15.6",
+    "@orpc/zod": "1.15.6",
     "zod": "4.6.6"
   },
   "scripts": {

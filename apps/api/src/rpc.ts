@@ -1,10 +1,13 @@
 import type { Database } from "bun:sqlite";
 import { contract } from "@keep/orpc";
+import { OpenAPIHandler } from "@orpc/openapi/fetch";
+import { OpenAPIReferencePlugin } from "@orpc/openapi/plugins";
 import { implement, ORPCError } from "@orpc/server";
 import { RPCHandler } from "@orpc/server/fetch";
+import { ZodToJsonSchemaConverter } from "@orpc/zod/zod4";
 import { appearsOn } from "./appears-on";
 import type { Upstream } from "./config";
-import type { UpdateCheck } from "./health";
+import { type UpdateCheck, VERSION } from "./health";
 import { listening, madeForYou } from "./mixes";
 import { type Groq, moodMixes } from "./mood-mixes";
 import type { Session } from "./sessions";
@@ -68,9 +71,36 @@ export function createRpc({ library, updates, groq, fetcher, upstreamFor, folder
     },
   });
 
-  const handler = new RPCHandler(router);
-  return async (request: Request, session: Session | null): Promise<Response> => {
-    const { matched, response } = await handler.handle(request, { prefix: "/api/rpc", context: { session } });
-    return matched ? response : Response.json({ error: "no such procedure" }, { status: 404 });
+  const rpcHandler = new RPCHandler(router);
+  // The same procedures as plain HTTP for integrations, with the reference (Scalar) at /api and the spec at /api/spec.json.
+  const httpHandler = new OpenAPIHandler(router, {
+    plugins: [
+      new OpenAPIReferencePlugin({
+        schemaConverters: [new ZodToJsonSchemaConverter()],
+        docsTitle: "keep music API",
+        specGenerateOptions: {
+          info: {
+            title: "keep music API",
+            version: VERSION,
+            description:
+              "Everything the keep music player does, for your own integrations. Sign in with a token from the player " +
+              "(settings → sync → connect) as `Authorization: Bearer <token>`. The player itself uses the same procedures over `/api/rpc`.",
+          },
+          components: { securitySchemes: { token: { type: "http", scheme: "bearer" } } },
+          security: [{ token: [] }],
+        },
+      }),
+    ],
+  });
+  const notFound = () => Response.json({ error: "no such procedure" }, { status: 404 });
+  return {
+    rpc: async (request: Request, session: Session | null): Promise<Response> => {
+      const { matched, response } = await rpcHandler.handle(request, { prefix: "/api/rpc", context: { session } });
+      return matched ? response : notFound();
+    },
+    http: async (request: Request, session: Session | null): Promise<Response> => {
+      const { matched, response } = await httpHandler.handle(request, { prefix: "/api", context: { session } });
+      return matched ? response : notFound();
+    },
   };
 }
