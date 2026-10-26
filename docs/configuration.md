@@ -30,5 +30,6 @@ boot with a message naming the variable.
 | `INDEX_USER` | — | Navidrome account for background jobs (search index, lyrics backfill). Unset: the admin who signed in most recently. |
 | `INDEX_PASSWORD` | — | Password for `INDEX_USER`. |
 | `DEMO_SEED` | `off` | `on`: fill `INDEX_USER`'s history with months of generated listening, once (for demos and previews, see docs/previews.md). Needs `INDEX_USER`. |
+| `REDIS_URL` | — | `redis://…`: keep computed answers (made for you) in Redis, shared by several instances. Unset: in memory, which is all one instance needs. |
 | `TRUST_PROXY` | `false` | `true` behind a reverse proxy: client IPs come from `X-Real-IP` / `X-Forwarded-For` (login rate limits). |
 | `UPDATE_CHECK` | `off` | `on`: admins see when a newer release is out (one request to GitHub a day). Nothing else is ever sent anywhere. |
