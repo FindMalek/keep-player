@@ -190,6 +190,7 @@ Setting them up together: [lyterion](docs/lyterion.md).
 | [devices](docs/devices.md) · [sync](docs/sync.md) · [listen together](docs/listen-together.md) | one session, your phone, friends |
 | [mixes](docs/mixes.md) · [search](docs/search.md) · [lyrics](docs/lyrics.md) · [shortcuts](docs/shortcuts.md) | how they work |
 | [lyterion](docs/lyterion.md) · [spotify import](docs/spotify-import.md) | bringing a Spotify library over |
+| [API](docs/api.md) | the typed API, its reference at `/api`, tokens for your own integrations |
 | [architecture](docs/architecture.md) · [security](docs/security.md) | how it's built, what's protected |
 | [demo library](docs/demo-library.md) · [previews](docs/previews.md) | the generated library, per-PR previews |
 | [troubleshooting](docs/troubleshooting.md) | when something's off |
