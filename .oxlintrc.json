@@ -1,0 +1,51 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": [],
+  "categories": {
+    "correctness": "off"
+  },
+  "jsPlugins": ["@shadcn/lint", "./scripts/lint/comments.mjs"],
+  "settings": {
+    "shadcn": {
+      "ui": "@keep/ui/components"
+    }
+  },
+  "rules": {
+    "shadcn/no-restyle": [
+      "error",
+      {
+        "allow": ["layout", "spacing", "typography", "color", "effects", "motion"],
+        "contracts": [
+          {
+            "pattern": "^(TableRow|DialogContent|DialogTitle|AudioDeviceSelectTrigger)$",
+            "allow": ["layout", "spacing", "typography", "color", "effects", "motion", "border-0", "outline-none"]
+          }
+        ]
+      }
+    ],
+    "shadcn/no-raw-colors": "error",
+    "shadcn/no-unknown-classes": "error",
+    "shadcn/require-static-classes": "error",
+    "keep/comment-budget": "warn"
+  },
+  "ignorePatterns": [
+    "**/dist/**",
+    "**/.next/**",
+    "**/.source/**",
+    "integrations/**",
+    "apps/macos/**",
+    "**/*.d.ts",
+    "**/components/ui/**",
+    "packages/ui/src/components/**"
+  ],
+  "overrides": [
+    {
+      "files": ["packages/ui/src/components/**", "apps/player/src/components/ui/**"],
+      "rules": {
+        "shadcn/no-restyle": "off",
+        "shadcn/require-static-classes": "off",
+        "shadcn/no-unknown-classes": "off"
+      }
+    }
+  ]
+}
