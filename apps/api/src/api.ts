@@ -229,10 +229,16 @@ export function createApi({
     return response;
   };
 
+  /** The signed-in browser. Tokens made for the terminal or for integrations are sessions too, but never count as the cookie. */
+  const browserSession = (request: Request) => {
+    const session = sessions.get(cookieValue(request));
+    return session?.agent === REMOTE_AGENT || session?.agent === API_AGENT ? null : session;
+  };
+
   /** `/api/rpc/*`: the oRPC procedures (`@keep/orpc`) for the player. Same CSRF header as every other call. */
   async function rpc(request: Request): Promise<Response> {
     if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
-    return secured(await rpcHandler.rpc(request, sessions.get(cookieValue(request))));
+    return secured(await rpcHandler.rpc(request, browserSession(request)));
   }
 
   /**
@@ -242,7 +248,7 @@ export function createApi({
    */
   async function http(request: Request): Promise<Response> {
     const bearer = request.headers.get("authorization")?.match(/^Bearer (\S+)$/)?.[1];
-    const session = bearer ? sessions.get(bearer) : request.headers.get(CSRF_HEADER) === "1" ? sessions.get(cookieValue(request)) : null;
+    const session = bearer ? sessions.get(bearer) : request.headers.get(CSRF_HEADER) === "1" ? browserSession(request) : null;
     // The terminal's token may only see and control what's playing (`/api/remote/*`), never the rest of your data.
     return secured(await rpcHandler.http(request, session?.agent === REMOTE_AGENT ? null : session));
   }
@@ -321,7 +327,7 @@ export function createApi({
   }
 
   function current(request: Request): Response {
-    const session = sessions.get(cookieValue(request));
+    const session = browserSession(request);
     return session
       ? json({
           user: session.user,
@@ -337,14 +343,14 @@ export function createApi({
   }
 
   function listSessions(request: Request): Response {
-    const session = sessions.get(cookieValue(request));
+    const session = browserSession(request);
     if (!session) return json({ error: "signed out" }, 401);
     return json({ current: session.id, sessions: sessions.list(session.server, session.user) });
   }
 
   function revokeSession(request: Request & { params: { id: string } }): Response {
     if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
-    const session = sessions.get(cookieValue(request));
+    const session = browserSession(request);
     if (!session) return json({ error: "signed out" }, 401);
     if (!sessions.revoke(session.server, session.user, request.params.id)) return json({ error: "not found" }, 404);
     devices?.dropSession(request.params.id);
@@ -357,7 +363,7 @@ export function createApi({
     const endpoint = /^\/rest\/(\w+?)(?:\.view)?$/.exec(url.pathname)?.[1];
     if (!endpoint || !ENDPOINTS.has(endpoint)) return json({ error: "not allowed" }, 404);
     if (!MEDIA.has(endpoint) && request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
-    const session = sessions.get(cookieValue(request));
+    const session = browserSession(request);
     if (!session) return json({ error: "signed out" }, 401);
     const upstream = upstreamFor(session.server);
     if (!upstream) return json({ error: "server removed from config" }, 401);
@@ -419,7 +425,7 @@ export function createApi({
    * Navidrome's cover ids change when the art does, which is what makes `immutable` safe.
    */
   async function cover(request: Request & { params: { id: string; size: string } }): Promise<Response> {
-    const session = sessions.get(cookieValue(request));
+    const session = browserSession(request);
     if (!session) return json({ error: "signed out" }, 401);
     const upstream = upstreamFor(session.server);
     if (!upstream) return json({ error: "server removed from config" }, 401);
@@ -450,7 +456,7 @@ export function createApi({
   /** `/api/lyrics/:songId`: one shape whatever the source (Navidrome, LRCLIB), cached server-side. */
   async function songLyrics(request: Request & { params: { songId: string } }): Promise<Response> {
     if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
-    const session = sessions.get(cookieValue(request));
+    const session = browserSession(request);
     if (!session) return json({ error: "signed out" }, 401);
     const upstream = upstreamFor(session.server);
     if (!upstream) return json({ error: "server removed from config" }, 401);
@@ -461,7 +467,7 @@ export function createApi({
   /** `/api/lyrics/coverage`: how much of what this user may see has lyrics, and the albums missing the most. */
   async function lyricsCoverageRoute(request: Request): Promise<Response> {
     if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
-    const session = sessions.get(cookieValue(request));
+    const session = browserSession(request);
     if (!session) return json({ error: "signed out" }, 401);
     const upstream = upstreamFor(session.server);
     if (!upstream) return json({ error: "server removed from config" }, 401);
@@ -473,7 +479,7 @@ export function createApi({
   /** `/api/doctor`: checks over the indexed library (covers, tags, duplicates…). Admins only. */
   async function doctorRoute(request: Request): Promise<Response> {
     if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
-    const session = sessions.get(cookieValue(request));
+    const session = browserSession(request);
     if (!session) return json({ error: "signed out" }, 401);
     if (!session.admin) return json({ error: "admins only" }, 403);
     const upstream = upstreamFor(session.server);
@@ -485,7 +491,7 @@ export function createApi({
   /** `POST /api/listen`: start a listening session hosted by this browser session. Returns its code. */
   async function listenCreate(request: Request): Promise<Response> {
     if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
-    const session = sessions.get(cookieValue(request));
+    const session = browserSession(request);
     if (!session) return json({ error: "signed out" }, 401);
     const body = (await request.json().catch(() => null)) as { anyoneCanSkip?: unknown; partyMode?: unknown } | null;
     const code = rooms.create(session.server, session.id, body?.anyoneCanSkip === true, body?.partyMode === true);
@@ -494,7 +500,7 @@ export function createApi({
 
   /** `GET /api/listen/:code` as a WebSocket: join (or, for its host, rejoin) the session. Same origin only. */
   function listenSocket(request: Request & { params: { code: string } }, srv: Server<SocketData>): Response | undefined {
-    const session = sessions.get(cookieValue(request));
+    const session = browserSession(request);
     if (!session) return json({ error: "signed out" }, 401);
     // Browsers can't add the CSRF header to a WebSocket: the Origin must be this site instead.
     const origin = request.headers.get("origin");
@@ -508,7 +514,7 @@ export function createApi({
   /** `GET /api/devices?id=&name=` as a WebSocket: this player joins its account's playback session. Same origin only. */
   function devicesSocket(request: Request, srv: Server<SocketData>): Response | undefined {
     if (!devices) return json({ error: "one session is off" }, 404);
-    const session = sessions.get(cookieValue(request));
+    const session = browserSession(request);
     if (!session) return json({ error: "signed out" }, 401);
     const origin = request.headers.get("origin");
     if (!origin || new URL(origin).host !== request.headers.get("host")) return json({ error: "bad origin" }, 403);
@@ -529,7 +535,7 @@ export function createApi({
   /** A sign-in of its own, made by a signed-in browser: listed under sessions as `agent`, signed out there. */
   function mintToken(request: Request, agent: string): Response {
     if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
-    const session = sessions.get(cookieValue(request));
+    const session = browserSession(request);
     if (!session) return json({ error: "signed out" }, 401);
     const token = sessions.create({ server: session.server, user: session.user, token: session.token, salt: session.salt, agent });
     return json({ token });
@@ -592,7 +598,7 @@ export function createApi({
   /** `POST /api/ai/playlist` `{ prompt }`: a playlist from your own songs for a description. Not saved: the page reviews it first. */
   async function aiPlaylist(request: Request): Promise<Response> {
     if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
-    const session = sessions.get(cookieValue(request));
+    const session = browserSession(request);
     if (!session) return json({ error: "signed out" }, 401);
     if (!groq) return json({ error: "no GROQ_API_KEY on this server" }, 404);
     const body = (await request.json().catch(() => null)) as { prompt?: unknown } | null;
@@ -614,7 +620,7 @@ export function createApi({
   /** `POST /api/feedback` `{ kind, text, page, screenshot? }`: filed as a GitHub issue; answers its URL. */
   async function sendFeedback(request: Request): Promise<Response> {
     if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
-    const session = sessions.get(cookieValue(request));
+    const session = browserSession(request);
     if (!session) return json({ error: "signed out" }, 401);
     if (!feedback) return json({ error: "feedback is off on this server" }, 404);
     const recent = (feedbackSent.get(session.id) ?? []).filter((at) => at > Date.now() - 3_600_000);
@@ -686,7 +692,7 @@ export function createApi({
   /** `/api/lyrics/missing?offset=&limit=`: songs nobody found lyrics for, a page at a time. */
   async function lyricsMissing(request: Request): Promise<Response> {
     if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
-    const session = sessions.get(cookieValue(request));
+    const session = browserSession(request);
     if (!session) return json({ error: "signed out" }, 401);
     const upstream = upstreamFor(session.server);
     if (!upstream) return json({ error: "server removed from config" }, 401);
@@ -700,7 +706,7 @@ export function createApi({
   /** `POST /api/lyrics/refetch`: forget the misses and walk the library again now. Admins only. */
   async function lyricsRefetch(request: Request): Promise<Response> {
     if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
-    const session = sessions.get(cookieValue(request));
+    const session = browserSession(request);
     if (!session) return json({ error: "signed out" }, 401);
     if (!session.admin) return json({ error: "admins only" }, 403);
     const forgotten = forgetMisses(library, session.server);
@@ -715,7 +721,7 @@ export function createApi({
    */
   async function upload(request: Request): Promise<Response> {
     if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
-    const session = sessions.get(cookieValue(request));
+    const session = browserSession(request);
     if (!session) return json({ error: "signed out" }, 401);
     if (!session.admin) return json({ error: "admins only" }, 403);
     if (request.method === "GET") return json({ enabled: Boolean(uploadDir) });
@@ -735,7 +741,7 @@ export function createApi({
    */
   async function lyterionSummary(request: Request): Promise<Response> {
     if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
-    if (!sessions.get(cookieValue(request))) return json({ error: "signed out" }, 401);
+    if (!browserSession(request)) return json({ error: "signed out" }, 401);
     if (!lyterion) return json({ error: "lyterion isn't set up" }, 404);
     const response = await fetch(`${lyterion.url}/api/rpc/api-reference/player/summary`, {
       headers: { "x-lyterion-token": lyterion.token },
@@ -756,7 +762,7 @@ export function createApi({
   async function wishlist(request: Request & { params: { step: string } }): Promise<Response> {
     const step = request.params.step;
     if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
-    const session = sessions.get(cookieValue(request));
+    const session = browserSession(request);
     if (!session) return json({ error: "signed out" }, 401);
     if (!session.admin) return json({ error: "admins only" }, 403);
     if (!lyterion) return json({ error: "lyterion isn't set up" }, 404);
@@ -810,7 +816,7 @@ export function createApi({
   /** `DELETE /api/lyrics/written`: remove every .lrc keep music wrote that is still as written. Admins only. */
   async function lyricsWritten(request: Request): Promise<Response> {
     if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
-    const session = sessions.get(cookieValue(request));
+    const session = browserSession(request);
     if (!session) return json({ error: "signed out" }, 401);
     if (!session.admin) return json({ error: "admins only" }, 403);
     if (!lrc) return json({ error: "LYRICS_WRITE_LRC is off" }, 404);
@@ -820,7 +826,7 @@ export function createApi({
   /** `/api/index`: the search index's counts and last sync (GET), or a rebuild now (POST). Admins only. */
   async function searchIndex(request: Request): Promise<Response> {
     if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
-    const session = sessions.get(cookieValue(request));
+    const session = browserSession(request);
     if (!session) return json({ error: "signed out" }, 401);
     if (!session.admin) return json({ error: "admins only" }, 403);
     const index = indexes.get(session.server);
@@ -833,7 +839,7 @@ export function createApi({
   /** `/api/search/lyrics?q=`: songs by their words, in the folders this user may see, plus how much is indexed. */
   async function searchLyrics(request: Request): Promise<Response> {
     if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
-    const session = sessions.get(cookieValue(request));
+    const session = browserSession(request);
     if (!session) return json({ error: "signed out" }, 401);
     const upstream = upstreamFor(session.server);
     if (!upstream) return json({ error: "server removed from config" }, 401);
@@ -846,7 +852,7 @@ export function createApi({
   /** `/api/search?q=`: ranked songs, albums and artists with operators, limited to what this user may see. */
   async function searchLibrary(request: Request): Promise<Response> {
     if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
-    const session = sessions.get(cookieValue(request));
+    const session = browserSession(request);
     if (!session) return json({ error: "signed out" }, 401);
     const upstream = upstreamFor(session.server);
     if (!upstream) return json({ error: "server removed from config" }, 401);
@@ -861,7 +867,7 @@ export function createApi({
   /** `/api/import/match`: POST up to 200 tracks from a Spotify export; each comes back with its best library match. */
   async function importMatch(request: Request): Promise<Response> {
     if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
-    const session = sessions.get(cookieValue(request));
+    const session = browserSession(request);
     if (!session) return json({ error: "signed out" }, 401);
     const upstream = upstreamFor(session.server);
     if (!upstream) return json({ error: "server removed from config" }, 401);
