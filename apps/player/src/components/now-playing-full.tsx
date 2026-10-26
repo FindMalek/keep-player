@@ -92,7 +92,8 @@ export function NowPlayingFull({ open, onOpenChange }: { open: boolean; onOpenCh
                 )}
               </div>
             </div>
-            <div className="min-h-0 overflow-y-auto">
+            {/* Lines fade in and out at the edges; a mask, so the aura behind stays as it is. */}
+            <div className="min-h-0 overflow-y-auto [mask-image:linear-gradient(to_bottom,transparent,black_12%,black_85%,transparent)] [scrollbar-width:none]">
               <LyricsView key={song.id} song={song} size="full" />
             </div>
           </>
