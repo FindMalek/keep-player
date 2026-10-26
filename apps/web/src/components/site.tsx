@@ -11,11 +11,12 @@ export function SiteHeader() {
           <span aria-hidden className="size-2.5 bg-foreground" />
           keep music
         </Link>
-        <div className="ml-auto hidden items-center gap-6 text-muted-foreground text-sm sm:flex">
-          <Link href="/#features" className="hover:text-foreground">
+        {/* Phones keep roadmap and docs; the in-page anchors are a scroll away anyway. */}
+        <div className="ml-auto flex items-center gap-4 text-muted-foreground text-sm sm:gap-6">
+          <Link href="/#features" className="hover:text-foreground max-sm:hidden">
             features
           </Link>
-          <Link href="/#compare" className="hover:text-foreground">
+          <Link href="/#compare" className="hover:text-foreground max-sm:hidden">
             compare
           </Link>
           <Link href="/roadmap" className="hover:text-foreground">
@@ -25,7 +26,7 @@ export function SiteHeader() {
             docs
           </a>
         </div>
-        <a href={SELF_HOSTING} className={cn(buttonVariants({ size: "sm" }), "ml-auto sm:ml-0")}>
+        <a href={SELF_HOSTING} className={cn(buttonVariants({ size: "sm" }), "shrink-0")}>
           self-host it
         </a>
       </nav>

@@ -127,7 +127,8 @@ export const SETTINGS = [
   {
     name: "UPDATE_CHECK",
     fallback: "off",
-    description: "`on`: admins see when a newer release is out (one request to GitHub a day). Nothing else is ever sent anywhere.",
+    description:
+      "`on`: admins see when a newer release is out (one request to GitHub a day). The other outside calls are lyrics lookups (`LRCLIB_URL`) and Groq when `GROQ_API_KEY` is set.",
   },
 ] as const satisfies readonly Setting[];
 

@@ -58,8 +58,8 @@ const YOURS: { icon: LucideIcon; title: string; text: string }[] = [
   },
   {
     icon: EyeOffIcon,
-    title: "nothing phones home",
-    text: "no analytics, no tracking, no accounts with us. the one outside call, a daily check for new releases, is off unless you turn it on.",
+    title: "no tracking",
+    text: "no analytics, no accounts with us. lyrics are looked up on lrclib (empty LRCLIB_URL turns it off), and the release check is off unless you turn it on.",
   },
   {
     icon: ContainerIcon,
@@ -187,7 +187,7 @@ export default async function Home() {
               </h1>
               <p className="hero-in mt-8 max-w-xl text-lg text-muted-foreground [animation-delay:160ms]">
                 mixes made from what you play, synced lyrics, one session across your devices and the song in your mac's notch. your files,
-                your server, nothing phoning home.
+                your server, no tracking.
               </p>
               <div className="hero-in mt-10 flex flex-wrap gap-3 [animation-delay:240ms]">
                 <a href={SELF_HOSTING} className={buttonVariants({ size: "lg" })}>
