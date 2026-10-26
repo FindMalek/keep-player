@@ -11,6 +11,9 @@
     },
     "apps/player": {
       "entry": ["src/main.tsx", "src/app.css"]
+    },
+    "apps/web": {
+      "ignoreDependencies": ["collections"]
     }
   }
 }
