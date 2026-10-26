@@ -39,7 +39,7 @@ import {
 } from "@/lib/playlists";
 import { queries, queryClient } from "@/lib/queries";
 import { usePath } from "@/lib/router";
-import { HEADERS } from "@/lib/subsonic";
+import { rpc } from "@/lib/rpc";
 import type { Album, Artist, Playlist, Song } from "@/lib/types";
 
 function Hero({
@@ -244,14 +244,9 @@ export function ArtistPage({ id }: { id: string }) {
     placeholderData: () => cachedSummary<Artist>(id, ["artists", "starred", "search"]),
   });
   const info = useQuery(queries.artistInfo(id));
-  const appearsOnAlbums = useQuery({
-    queryKey: ["appears-on", id],
-    queryFn: async ({ signal }) => {
-      const response = await fetch(`/api/artists/${encodeURIComponent(id)}/appears-on`, { headers: HEADERS, signal });
-      return response.ok ? ((await response.json()) as { albums: Album[] }).albums : [];
-    },
-    staleTime: 5 * 60_000,
-  });
+  const appearsOnAlbums = useQuery(
+    rpc.artists.appearsOn.queryOptions({ input: { id }, staleTime: 5 * 60_000, select: (result) => result.albums as Album[] }),
+  );
   const name = artist?.name;
   const top = useQuery({ ...queries.topSongs(name ?? ""), enabled: Boolean(name) });
   if (error)

@@ -7,7 +7,6 @@ import type { LyricsSearch } from "@keep/shared/search";
 import { readTrack } from "@keep/shared/spotify-import";
 import type { Server } from "bun";
 import { askGroq, buildPlaylist, libraryArtists } from "./ai-playlist";
-import { appearsOn } from "./appears-on";
 import type { Upstream } from "./config";
 import { type CoverCache, snapCoverSize } from "./covers";
 import type { DeviceHub, DevicePeer } from "./devices";
@@ -20,20 +19,17 @@ import { ListenRooms, type Peer } from "./listen";
 import type { LyricsService } from "./lyrics";
 import { forgetMisses, lyricsCoverageReport, missingLyrics } from "./lyrics-coverage";
 import { lyricsCoverage, queryLyrics } from "./lyrics-search";
-import { listening, madeForYou } from "./mixes";
 import { addMoment, deleteMoment, listMoments, momentNotes, updateMoment } from "./moments";
-import { moodMixes } from "./mood-mixes";
 import { changeAlbum, changeSong, readPrefs } from "./prefs";
 import { ban, listBans, unban } from "./radio";
 import type { LoginLimiter } from "./rate-limit";
 import { latestFor, lineAt, NOTHING, type NowPlayingEntry, type RemoteNow, remoteSong } from "./remote";
+import { createRpc } from "./rpc";
 import { search } from "./search";
 import type { IndexSync } from "./search-index";
 import type { Session, SessionStore } from "./sessions";
-import { forgottenFavourites, listeningStats } from "./stats";
 import { subsonic, upstreamQuery } from "./subsonic";
 import { MAX_UPLOAD_BYTES, saveUpload, uploadPath } from "./upload";
-import { weeklyPlaylists } from "./weekly-playlists";
 
 const COOKIE = "kp_session";
 const FOLDERS_TTL_MS = 10 * 60_000;
@@ -218,6 +214,17 @@ export function createApi({
     const folders = (result.musicFolders.musicFolder ?? []).map((folder) => String(folder.id));
     folderCache.set(session.id, { folders, at: Date.now() });
     return folders;
+  }
+
+  const rpcHandler = createRpc({ library, updates, groq, fetcher, upstreamFor, foldersFor });
+
+  /** `/api/rpc/*`: the oRPC procedures (`@keep/orpc`). Same CSRF header as every other call; the session comes along. */
+  async function rpc(request: Request): Promise<Response> {
+    if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
+    const response = await rpcHandler(request, sessions.get(cookieValue(request)));
+    for (const [name, value] of Object.entries(SECURITY_HEADERS)) response.headers.set(name, value);
+    response.headers.set("cache-control", "private, no-store");
+    return response;
   }
 
   // Each session's liked ids (songs, albums, artists) for search; dropped whenever it stars or unstars something.
@@ -592,17 +599,6 @@ export function createApi({
     return json({ name: plan.name, description: plan.description, artists: plan.artists, songs });
   }
 
-  /** `GET /api/artists/:id/appears-on`: albums by others with this artist on them, from the index. */
-  async function artistAppearsOn(request: Request & { params: { id: string } }): Promise<Response> {
-    if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
-    const session = sessions.get(cookieValue(request));
-    if (!session) return json({ error: "signed out" }, 401);
-    const upstream = upstreamFor(session.server);
-    if (!upstream) return json({ error: "server removed from config" }, 401);
-    const albums = appearsOn(library, upstream.id, request.params.id, await foldersFor(session, upstream));
-    return json({ albums }, 200, { "cache-control": "private, max-age=300" });
-  }
-
   /** Feedback sent per browser session in the last hour: a handful is plenty, and the token's rate limit is shared. */
   const feedbackSent = new Map<string, number[]>();
   const FEEDBACK_PER_HOUR = 5;
@@ -807,16 +803,6 @@ export function createApi({
     return json({ matches }, 200, { "cache-control": "private, no-store" });
   }
 
-  /** `/api/version`: the running version, and for admins whether a newer release is out. */
-  async function version(request: Request): Promise<Response> {
-    const session = sessions.get(cookieValue(request));
-    if (!session) return json({ error: "signed out" }, 401);
-    const info = await updates.info();
-    return json(session.admin ? info : { version: info.version, latest: null, updateAvailable: false }, 200, {
-      "cache-control": "private, no-cache",
-    });
-  }
-
   /** `/api/history`: GET your plays (newest first, `?before=` to page back), POST one that just ended. */
   async function history(request: Request): Promise<Response> {
     if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
@@ -960,53 +946,6 @@ export function createApi({
     return json({ songs: listBans(library, account) }, 200, { "cache-control": "private, no-cache" });
   }
 
-  /** `/api/stats?from=&to=&tz=`: your listening in a range (ms epoch, `tz` minutes east of UTC). At most ~400 days. */
-  async function stats(request: Request): Promise<Response> {
-    if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
-    const session = sessions.get(cookieValue(request));
-    if (!session) return json({ error: "signed out" }, 401);
-    const params = new URL(request.url).searchParams;
-    const to = Number(params.get("to")) || Date.now();
-    const from = Math.max(Number(params.get("from")) || to - 30 * 86_400_000, to - 400 * 86_400_000);
-    const tz = Math.max(-840, Math.min(840, Number(params.get("tz")) || 0));
-    if (from >= to) return json({ error: "from before to" }, 400);
-    return json(listeningStats(library, `${session.server}:${session.user}`, from, to, tz), 200, { "cache-control": "private, no-cache" });
-  }
-
-  /** `/api/stats/forgotten?days=`: songs you played a lot and not in that many days. */
-  async function forgotten(request: Request): Promise<Response> {
-    if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
-    const session = sessions.get(cookieValue(request));
-    if (!session) return json({ error: "signed out" }, 401);
-    const days = Math.min(3650, Math.max(1, Number(new URL(request.url).searchParams.get("days")) || 60));
-    return json({ songs: forgottenFavourites(library, `${session.server}:${session.user}`, days) }, 200, {
-      "cache-control": "private, no-cache",
-    });
-  }
-
-  /**
-   * `GET /api/mixes?day=N&hour=H&tz=M`: everything made for you right now (daily mixes, Discover Weekly, the daylist).
-   * `day` is the browser's local days since the epoch, `hour` its local hour, `tz` its `getTimezoneOffset()`.
-   */
-  async function mixes(request: Request): Promise<Response> {
-    if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
-    const session = sessions.get(cookieValue(request));
-    if (!session) return json({ error: "signed out" }, 401);
-    const params = new URL(request.url).searchParams;
-    const day = Number(params.get("day")) || Math.floor(Date.now() / 86_400_000);
-    const hour = Math.min(23, Math.max(0, Number(params.get("hour")) || 0));
-    const tzMinutes = Math.min(840, Math.max(-840, Number(params.get("tz")) || 0));
-    const account = `${session.server}:${session.user}`;
-    const made = madeForYou(library, session.server, account, { day, hour, tzMinutes });
-    const heard = groq ? listening(library, session.server, account, Date.now()) : null;
-    const moods = await moodMixes(library, groq, account, day, heard, fetcher);
-    const weekly = await weeklyPlaylists(library, groq, account, day, heard, fetcher);
-    const mixes = [...made, ...moods, ...weekly];
-    return json({ day, mixes }, 200, {
-      "cache-control": "private, no-cache",
-    });
-  }
-
   /** `/api/playlists/:id/hidden`: the songs you hid in a playlist (GET), hide or show one (PUT `{ songId, hidden }`). */
   async function playlistHidden(request: Request & { params: { id: string } }): Promise<Response> {
     if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
@@ -1034,6 +973,7 @@ export function createApi({
   }
 
   return {
+    rpc,
     history,
     radioBans,
     prefs,
@@ -1041,14 +981,10 @@ export function createApi({
     userSettings,
     moments,
     moment,
-    stats,
-    forgotten,
-    mixes,
     playlistHidden,
     login,
     logout,
     current,
-    version,
     listSessions,
     revokeSession,
     proxy,
@@ -1064,7 +1000,6 @@ export function createApi({
     sockets,
     aiPlaylist,
     sendFeedback,
-    artistAppearsOn,
     remoteToken,
     remoteNow,
     remoteAction,

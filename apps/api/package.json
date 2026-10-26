@@ -4,9 +4,12 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "@keep/shared": "workspace:*",
     "@fontsource-variable/ibm-plex-sans": "5.3.0",
-    "@fontsource-variable/jetbrains-mono": "5.3.0"
+    "@fontsource-variable/jetbrains-mono": "5.3.0",
+    "@keep/orpc": "workspace:*",
+    "@keep/shared": "workspace:*",
+    "@orpc/server": "1.15.6",
+    "zod": "4.6.6"
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p .",
