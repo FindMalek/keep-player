@@ -105,6 +105,12 @@ export function startNativeBridge(): void {
       const entry = [...queue.upNext, ...Q.contextUpcoming(queue)].find((item) => item.uid === uid);
       if (entry) player.jumpTo(entry);
     },
+    /** The app shows bars (the island is up): send the music's levels ~15 times a second while a song plays. */
+    levels: (on: boolean) => {
+      player
+        .levels(on ? (levels) => player.getState().playing && native.postMessage({ levels }) : null)
+        .catch((error: unknown) => native.postMessage({ debug: `levels: ${error}` }));
+    },
     /** Synced lines (ms) for the song playing, or plain ones with no times. */
     lyrics: async () => {
       const song = currentSong(player.getState());

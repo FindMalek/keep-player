@@ -137,6 +137,16 @@ function wav(seconds: number): Uint8Array<ArrayBuffer> {
   const rate = 8000;
   const data = rate * seconds;
   const bytes = new Uint8Array(44 + data).fill(128, 44);
+  // `MOCK_AUDIO=beat`: a 120 bpm kick with a hat on the off-beat, for checking visuals that follow the music.
+  if (process.env.MOCK_AUDIO === "beat")
+    for (let i = 0; i < data; i += 1) {
+      const t = i / rate;
+      const sinceKick = t % 0.5;
+      const sinceHat = (t + 0.25) % 0.5;
+      const kick = Math.sin(2 * Math.PI * 55 * sinceKick) * Math.exp(-sinceKick * 12);
+      const hat = (Math.random() * 2 - 1) * Math.exp(-sinceHat * 40) * 0.35;
+      bytes[44 + i] = Math.round(128 + 110 * Math.max(-1, Math.min(1, kick + hat)));
+    }
   const view = new DataView(bytes.buffer);
   const text = (offset: number, value: string) => {
     for (let i = 0; i < value.length; i += 1) view.setUint8(offset + i, value.charCodeAt(i));

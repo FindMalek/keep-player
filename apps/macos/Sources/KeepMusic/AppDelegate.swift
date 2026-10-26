@@ -21,6 +21,14 @@ import SwiftUI
         updater.onReady = { [weak self] version in self?.offerRestart(version) }
         updater.start()
         WhatsNew.showIfUpdated()
+        #if DEBUG
+        if ProcessInfo.processInfo.environment["KEEP_TEST_HIDE"] != nil {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 30) { [weak self] in
+                print("test: window hidden")
+                self?.window?.orderOut(nil)
+            }
+        }
+        #endif
     }
 
     /// A new version is downloaded: ask once; "Later" leaves "Restart to Update" in the app menu.
@@ -97,11 +105,13 @@ import SwiftUI
     @objc func toggleMini() {
         if let mini, mini.isVisible {
             mini.orderOut(nil)
+            LevelMeter.shared.want("mini", false)
             return
         }
         let panel = mini ?? MiniPlayer.panel(nowPlaying: nowPlaying)
         mini = panel
         panel.orderFrontRegardless()
+        LevelMeter.shared.want("mini", true)
     }
 
     @objc func changeServer() { askForServer() }

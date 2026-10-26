@@ -1,5 +1,10 @@
 import AppKit
 
+#if DEBUG
+setvbuf(stdout, nil, _IONBF, 0)
+_ = PlayerView.startUptime
+#endif
+
 MainActor.assumeIsolated {
     if let flag = CommandLine.arguments.firstIndex(of: "--preview"), CommandLine.arguments.count > flag + 1 {
         let folder = URL(fileURLWithPath: CommandLine.arguments[flag + 1])

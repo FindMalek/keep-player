@@ -26,10 +26,16 @@ private struct BarsRepresentable: NSViewRepresentable {
     func updateNSView(_ view: BarsView, context: Context) { view.setPlaying(playing) }
 }
 
+/// Four bars. With levels from the page they follow the music (each eases to its band in 80 ms); without (before the
+/// first levels arrive, or the page can't measure) they fall back to a gentle loop. Paused, they rest low.
 final class BarsView: NSView {
     private var bars: [CALayer] = []
     private var playing = false
+    private var live = false
+    private var lastLevels: CFTimeInterval = 0
+    private var watching = false
     private let durations: [CFTimeInterval] = [0.42, 0.55, 0.37, 0.49]
+    private static let rest: CGFloat = 0.22
 
     init(color: NSColor) {
         super.init(frame: .zero)
@@ -44,6 +50,15 @@ final class BarsView: NSView {
     }
 
     required init?(coder: NSCoder) { nil }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        if window == nil {
+            MainActor.assumeIsolated { LevelMeter.shared.stop(self) }
+        } else {
+            MainActor.assumeIsolated { LevelMeter.shared.listen(self) { [weak self] levels in self?.show(levels) } }
+        }
+    }
 
     override func layout() {
         super.layout()
@@ -63,16 +78,55 @@ final class BarsView: NSView {
     func setPlaying(_ value: Bool) {
         guard value != playing else { return }
         playing = value
+        live = false
         apply()
     }
 
+    private func show(_ levels: [Double]) {
+        guard playing, levels.count == bars.count else { return }
+        if !live {
+            live = true
+            bars.forEach { $0.removeAnimation(forKey: "loop") }
+        }
+        CATransaction.begin()
+        CATransaction.setAnimationDuration(0.08)
+        CATransaction.setAnimationTimingFunction(CAMediaTimingFunction(name: .linear))
+        for (bar, level) in zip(bars, levels) {
+            // A softer curve, so quiet passages still move and loud ones don't all pin to the top.
+            let scale = Self.rest + (1 - Self.rest) * CGFloat(pow(min(1, max(0, level)), 0.75))
+            bar.transform = CATransform3DMakeScale(1, scale, 1)
+        }
+        CATransaction.commit()
+        lastLevels = CACurrentMediaTime()
+        watch()
+    }
+
+    /// Levels stopped (the page went quiet or can't measure): back to the loop. One check every 0.6 s while levels
+    /// flow, instead of a timer per message.
+    private func watch() {
+        guard !watching else { return }
+        watching = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
+            guard let self else { return }
+            self.watching = false
+            guard self.live else { return }
+            if CACurrentMediaTime() - self.lastLevels > 0.5 {
+                self.live = false
+                self.apply()
+            } else {
+                self.watch()
+            }
+        }
+    }
+
     private func apply() {
+        guard !live else { return }
         for (index, bar) in bars.enumerated() {
             bar.removeAllAnimations()
-            bar.transform = CATransform3DMakeScale(1, playing ? 1 : 0.28, 1)
+            bar.transform = CATransform3DMakeScale(1, playing ? 1 : Self.rest, 1)
             guard playing else { continue }
             let bounce = CABasicAnimation(keyPath: "transform.scale.y")
-            bounce.fromValue = 0.28
+            bounce.fromValue = Self.rest
             bounce.toValue = 1
             bounce.duration = durations[index]
             bounce.autoreverses = true
@@ -81,7 +135,7 @@ final class BarsView: NSView {
             bounce.timeOffset = Double(index) * 0.13
             // No need for 120 Hz to show bouncing bars: fewer frames, less battery.
             bounce.preferredFrameRateRange = CAFrameRateRange(minimum: 15, maximum: 30, preferred: 24)
-            bar.add(bounce, forKey: "bounce")
+            bar.add(bounce, forKey: "loop")
         }
     }
 }

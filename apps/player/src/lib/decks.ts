@@ -7,7 +7,9 @@ import { BANDS, FLAT, headroom } from "./eq";
  * clicks) and the decks swap roles. The engine (player.ts) only talks songs; this module owns elements and the graph:
  *
  *   deck A ─ MediaElementSource ─ gain (ReplayGain) ─┐
- *   deck B ─ MediaElementSource ─ gain (ReplayGain) ─┴─ bus ─ 10 EQ filters ─ master (volume) ─ destination
+ *   deck B ─ MediaElementSource ─ gain (ReplayGain) ─┴─ bus ─┬─ dry ─────────────────┬─ out ─ master (volume) ─ destination
+ *                                                            └─ 10 EQ filters ─ wet ─┘    └─ levels worklet (while wanted)
+ * With the equalizer off the filters are disconnected (dry only): ten biquads on every sample cost real CPU for nothing.
  *
  * With a crossfade the idle deck starts `fade` seconds early and the two gains follow equal-power curves; a manual
  * skip fades the old song out over 300 ms instead.
@@ -62,10 +64,18 @@ interface Deck {
   fade: number;
 }
 
+/** The levels worklet (packages/shared/src/levels-worklet.ts), served by our server: the CSP allows no blob: scripts. */
+const LEVELS_WORKLET = "/worklets/levels.js";
+
 export class Decks {
   private readonly decks: [Deck, Deck];
   private active = 0;
   private context: AudioContext | null = null;
+  private meter: { node: AudioWorkletNode; sink: GainNode } | null = null;
+  private paths: { dry: GainNode; wet: GainNode; out: GainNode } | null = null;
+  private eqConnected = false;
+  private eqUnplug: ReturnType<typeof setTimeout> | undefined;
+  private onLevels: ((levels: number[]) => void) | null = null;
   private master: GainNode | null = null;
   /** Where both decks meet, ahead of the equalizer: takes the loudest boost off so boosted bands don't clip. */
   private bus: GainNode | null = null;
@@ -127,6 +137,32 @@ export class Decks {
     return this.playing.element;
   }
 
+  /**
+   * Four levels (0–1), bass to treble, ~15 times a second while `listener` is set (the macOS app's bars). Measured in an
+   * AudioWorklet on the audio thread: a page timer would be slowed to once a second whenever the window is covered.
+   */
+  async levels(listener: ((levels: number[]) => void) | null): Promise<void> {
+    this.onLevels = listener;
+    if (!listener) {
+      this.meter?.node.disconnect();
+      this.meter?.sink.disconnect();
+      this.meter = null;
+      return;
+    }
+    const context = this.context;
+    const out = this.paths?.out;
+    if (!context || !out || this.meter) return;
+    await context.audioWorklet.addModule(LEVELS_WORKLET);
+    if (!this.onLevels || this.meter) return;
+    const node = new AudioWorkletNode(context, "keep-levels", { numberOfOutputs: 1 });
+    // Silent, but connected to the output so the browser keeps running it.
+    const sink = context.createGain();
+    sink.gain.value = 0;
+    out.connect(node).connect(sink).connect(context.destination);
+    node.port.onmessage = (event: MessageEvent<number[]>) => this.onLevels?.(event.data);
+    this.meter = { node, sink };
+  }
+
   /** Builds the Web Audio graph; browsers only allow it after a user gesture, so call this from play. */
   ensureGraph(): void {
     markPlaybackSession();
@@ -145,13 +181,20 @@ export class Decks {
         return filter;
       });
       this.bus = bus;
-      bus.connect(this.filters[0] as BiquadFilterNode);
+      const out = context.createGain();
+      out.connect(master);
+      const dry = context.createGain();
+      const wet = context.createGain();
+      wet.gain.value = 0;
+      bus.connect(dry).connect(out);
       this.filters
         .reduce((from, to) => {
           from.connect(to);
           return to;
         })
-        .connect(master);
+        .connect(wet)
+        .connect(out);
+      this.paths = { dry, wet, out };
       for (const deck of this.decks) {
         deck.gain = context.createGain();
         context.createMediaElementSource(deck.element).connect(deck.gain).connect(bus);
@@ -160,6 +203,7 @@ export class Decks {
       }
       this.context = context;
       this.master = master;
+      if (this.onLevels) void this.levels(this.onLevels);
       this.applyEq();
       this.applyVolume();
       void this.setSink(this.sinkId);
@@ -192,6 +236,23 @@ export class Decks {
     const time = this.context?.currentTime ?? 0;
     for (const [index, filter] of this.filters.entries()) filter.gain.setTargetAtTime(on ? (gains[index] ?? 0) : 0, time, 0.01);
     this.bus?.gain.setTargetAtTime(on ? headroom(gains) : 1, time, 0.01);
+    const paths = this.paths;
+    const first = this.filters[0];
+    if (!paths || !this.bus || !first) return;
+    clearTimeout(this.eqUnplug);
+    // Crossfade dry ↔ filtered in ~10 ms, then unplug the filters once they're silent, so off costs nothing.
+    if (on && !this.eqConnected) {
+      this.bus.connect(first);
+      this.eqConnected = true;
+    }
+    paths.wet.gain.setTargetAtTime(on ? 1 : 0, time, 0.01);
+    paths.dry.gain.setTargetAtTime(on ? 0 : 1, time, 0.01);
+    if (!on && this.eqConnected)
+      this.eqUnplug = setTimeout(() => {
+        if (this.eq.on || !this.bus) return;
+        this.bus.disconnect(first);
+        this.eqConnected = false;
+      }, 100);
   }
 
   /** Volume 0..1 (already 0 when muted). Through the master gain once the graph exists, else on the element. */

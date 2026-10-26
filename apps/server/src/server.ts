@@ -1,5 +1,6 @@
 import { join } from "node:path";
 import { MAX_DEVICE_MESSAGE_BYTES } from "@keep/shared/devices";
+import { LEVELS_WORKLET_SOURCE } from "@keep/shared/levels-worklet";
 import { createApi } from "./api";
 import { LyricsBackfill, serviceAccount } from "./backfill";
 import { config } from "./config";
@@ -86,6 +87,8 @@ const server = Bun.serve({
   routes: {
     // Liveness (the container's healthcheck): the process answers. Readiness, with Navidrome: /api/health.
     "/healthz": () => new Response("ok"),
+    "/worklets/levels.js": () =>
+      new Response(LEVELS_WORKLET_SOURCE, { headers: { "content-type": "text/javascript", "cache-control": "public, max-age=86400" } }),
     "/api/health": { GET: () => health.response() },
     "/api/version": { GET: api.version },
     "/auth/login": { POST: (request, srv) => api.login(request, srv) },

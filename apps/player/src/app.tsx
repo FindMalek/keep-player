@@ -243,14 +243,14 @@ export function App() {
     void loadPrefs();
     startListeningHistory();
     startRecentSources();
+    // Inside the macOS app the island waits on this: straight away, not with the deferred extras below.
+    if ("webkit" in window) void import("@/lib/native").then((module) => module.startNativeBridge());
     void import("@/lib/settings-sync").then((sync) => sync.startSettingsSync());
     // The queue hand-off (Arpeggi, other browsers) waits until the first screen is done.
     const id = setTimeout(() => {
       void import("@/lib/queue-sync").then((sync) => sync.startQueueSync());
       startElsewhere();
       void import("@/lib/session").then((module) => module.session.start());
-      // Only inside the macOS app.
-      if ("webkit" in window) void import("@/lib/native").then((module) => module.startNativeBridge());
     }, 1500);
     return () => clearTimeout(id);
   }, [user]);
