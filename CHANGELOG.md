@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.6.1](https://github.com/FindMalek/keep-player/compare/v1.6.0...v1.6.1) (2026-10-26)
+
+
+### Features
+
+* **player:** add song from link ([#334](https://github.com/FindMalek/keep-player/issues/334)) ([e658b7c](https://github.com/FindMalek/keep-player/commit/e658b7c41c2ef98f05efbde19ec1618d5d9629ef))
+
+
+### Bug Fixes
+
+* **player:** add-track review fixes ([#337](https://github.com/FindMalek/keep-player/issues/337)) ([d3e6fc7](https://github.com/FindMalek/keep-player/commit/d3e6fc77371694bf75535093f2845e727b36031f))
+
 ## [1.6.0](https://github.com/FindMalek/keep-player/compare/v1.5.0...v1.6.0) (2026-10-26)
 
 
