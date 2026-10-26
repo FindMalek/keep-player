@@ -44,27 +44,28 @@ import {
   HistoryPage,
   HomePage,
   ImportPage,
+  InfoPanel,
   LikedPage,
   ListenPage,
   LyricsPage,
+  LyricsPanel,
   MomentsPage,
   PlaylistPage,
   preloadAllRoutes,
+  preloadPanels,
+  QueuePanel,
   SearchPage,
   SettingsPage,
   SongLink,
   SongsPage,
+  SplitView,
   StatsPage,
   UploadPage,
 } from "@/routes";
 import { appShortcuts } from "./app-shortcuts";
 
-// Signed-out visitors and the side panels are rare enough to load on demand.
+// Signed-out visitors are rare enough to load on demand.
 const Login = lazy(() => import("@/components/login").then((module) => ({ default: module.Login })));
-const SplitView = lazy(() => import("@/components/split-view").then((module) => ({ default: module.SplitView })));
-const QueuePanel = lazy(() => import("@/components/side-panels").then((module) => ({ default: module.QueuePanel })));
-const InfoPanel = lazy(() => import("@/components/side-panels").then((module) => ({ default: module.InfoPanel })));
-const LyricsPanel = lazy(() => import("@/components/side-panels").then((module) => ({ default: module.LyricsPanel })));
 
 const NowPlayingFull = lazy(() => import("@/components/now-playing-full").then((module) => ({ default: module.NowPlayingFull })));
 const FirstRun = lazy(() => import("@/components/first-run").then((module) => ({ default: module.FirstRun })));
@@ -198,6 +199,10 @@ export function App() {
   const closeSettings = () => (behind.inApp ? window.history.back() : replace("/"));
   const hasTrack = usePlayer((state) => state.queue.current !== null);
   const nowPlaying = usePlayer(currentSong);
+  const anythingPlaying = nowPlaying !== null;
+  useEffect(() => {
+    if (anythingPlaying) preloadPanels();
+  }, [anythingPlaying]);
   const playing = usePlayer((state) => state.playing);
   const showPanel = panel !== null && hasTrack;
   const narrow = useIsMobile();
@@ -264,8 +269,6 @@ export function App() {
   useEffect(() => {
     if (user)
       preloadAllRoutes([
-        () => import("@/components/split-view"),
-        () => import("@/components/side-panels"),
         () => import("@/components/user-menu"),
         () => import("@/components/now-playing-details"),
         () => import("@/components/artist-card"),

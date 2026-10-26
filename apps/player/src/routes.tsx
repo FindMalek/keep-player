@@ -23,6 +23,10 @@ const chunks = {
   doctor: () => import("@/pages/doctor"),
   upload: () => import("@/pages/upload"),
   listen: () => import("@/pages/listen"),
+  // The queue, info and lyrics panels and the split layout they open in: not pages, but the same suspense trap made the
+  // first panel of a session wait ~300 ms.
+  panels: () => import("@/components/side-panels"),
+  split: () => import("@/components/split-view"),
 };
 
 const SECTIONS: Record<string, keyof typeof chunks> = {
@@ -76,6 +80,17 @@ function page<C extends Chunk, K extends keyof Module<C>>(chunk: C, name: K): Mo
   }
   return Page as Module<C>[K];
 }
+
+export const QueuePanel = page("panels", "QueuePanel");
+export const InfoPanel = page("panels", "InfoPanel");
+export const LyricsPanel = page("panels", "LyricsPanel");
+export const SplitView = page("split", "SplitView");
+
+/** As soon as something plays, a panel is one click (or `l`) away: don't wait for the idle preload. */
+export const preloadPanels = (): void => {
+  void load("panels");
+  void load("split");
+};
 
 export function preloadRoute(path: string): void {
   const chunk = SECTIONS[path.split("/")[1] ?? ""];
