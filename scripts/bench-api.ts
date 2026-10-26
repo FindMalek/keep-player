@@ -54,3 +54,5 @@ for (const [name, path, init] of calls) {
   times.sort((a, b) => a - b);
   console.log(`| ${name} | ${times[Math.floor(RUNS / 2)]?.toFixed(1)} | ${bytes.toLocaleString("en")} | ${encoding} |`);
 }
+
+export {};
