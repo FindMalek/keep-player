@@ -35,3 +35,26 @@ test("the shortcuts sheet scrolls to its last shortcut in a short window", async
   const box = await last.boundingBox();
   expect(box && box.y >= 0 && box.y + box.height <= 480).toBe(true);
 });
+
+test("a new search starts at the top with its first result selected", async ({ page, signedIn }) => {
+  test.setTimeout(60_000);
+  await expect(signedIn.locator('a[href^="/album/"]').first()).toBeVisible();
+  await page.keyboard.press("ControlOrMeta+k");
+  const box = page.getByRole("dialog", { name: "search" }).getByRole("combobox");
+  await expect(box).toBeFocused();
+  await box.fill("a");
+  await expect(page.locator('[cmdk-item][data-value^="top-"]').first()).toBeVisible({ timeout: 30_000 });
+  for (let i = 0; i < 40; i++) await page.keyboard.press("ArrowDown");
+  const first = () => page.locator("[cmdk-item]").first().getAttribute("data-value");
+  const before = await first();
+  await box.fill("night");
+  await expect.poll(first).not.toBe(before);
+  await page.waitForTimeout(400);
+  const state = await page.evaluate(() => {
+    let scrolled = 0;
+    for (let element = document.querySelector<HTMLElement>("[cmdk-list]"); element; element = element.parentElement)
+      scrolled += element.scrollTop;
+    return { scrolled, firstSelected: document.querySelector("[cmdk-item]")?.getAttribute("data-selected") === "true" };
+  });
+  expect(state).toEqual({ scrolled: 0, firstSelected: true });
+});
