@@ -47,7 +47,7 @@ import WebKit
         let type: AnyObject = WKPreferences.self
         guard type.responds(to: list), preferences.responds(to: set),
               let features = type.perform(list)?.takeUnretainedValue() as? [NSObject],
-              let feature = features.first(where: { $0.value(forKey: "key") as? String == "PreferPageRenderingUpdatesNear60FPSEnabled" })
+              let feature = features.first(where: { $0.responds(to: NSSelectorFromString("key")) && $0.value(forKey: "key") as? String == "PreferPageRenderingUpdatesNear60FPSEnabled" })
         else { return }
         typealias SetEnabled = @convention(c) (AnyObject, Selector, Bool, AnyObject) -> Void
         unsafeBitCast(preferences.method(for: set), to: SetEnabled.self)(preferences, set, false, feature)

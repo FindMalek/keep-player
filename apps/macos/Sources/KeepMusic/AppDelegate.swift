@@ -111,7 +111,7 @@ import SwiftUI
         open(url)
     }
 
-    /// "pr-123", "123" or "#123" opens that PR's preview; a full address opens that.
+    /// "pr-123", "123" or "#123" opens that PR's preview; a full address (https:// optional) opens that.
     private func askForPreview() {
         let alert = NSAlert()
         alert.messageText = "Open a preview"
@@ -128,13 +128,19 @@ import SwiftUI
         case .alertFirstButtonReturn:
             let text = field.stringValue.trimmingCharacters(in: .whitespaces).lowercased()
             let number = text.replacingOccurrences(of: "pr-", with: "").replacingOccurrences(of: "#", with: "")
-            if let url = URL(string: text), url.scheme == "https" || url.scheme == "http", url.host != nil {
+            let address = text.contains("://") ? text : "https://\(text)"
+            if text.contains("."), let url = URL(string: address), url.scheme == "https" || url.scheme == "http", url.host != nil {
                 preview = url.host
                 open(url)
             } else if !number.isEmpty, number.allSatisfy(\.isNumber),
                       let url = URL(string: "https://player-pr-\(number).\(preferences.previewDomain)") {
                 preview = "pr-\(number)"
                 open(url)
+            } else {
+                let failed = NSAlert()
+                failed.messageText = "Not a preview"
+                failed.informativeText = "Use a PR number like pr-123 or the preview address."
+                failed.runModal()
             }
         case .alertThirdButtonReturn:
             leavePreview()
