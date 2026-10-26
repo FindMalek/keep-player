@@ -93,6 +93,8 @@ const SECURITY_HEADERS = {
   "referrer-policy": "no-referrer",
 };
 
+const COVER_HOSTS = /(^|\.)(ytimg\.com|sndcdn\.com|dzcdn\.net|ggpht\.com|googleusercontent\.com)$/;
+
 function json(body: unknown, status = 200, headers: Record<string, string> = {}): Response {
   return Response.json(body, { status, headers: { ...SECURITY_HEADERS, "cache-control": "no-store", ...headers } });
 }
@@ -329,6 +331,7 @@ export function createApi({
           oneSession: devices !== null,
           ai: groq !== null,
           feedback: feedback !== null,
+          lyterionAdd: session.admin && lyterion !== null,
         })
       : json({ error: "signed out" }, 401);
   }
@@ -742,6 +745,68 @@ export function createApi({
     return json(await response.json(), 200, { "cache-control": "private, no-cache" });
   }
 
+  const wishlistSent = new Map<string, number[]>();
+  const WISHLIST_PER_HOUR = 30;
+
+  /**
+   * `POST /api/wishlist/preview|add|status`: add a song to the library through Lyterion from a YouTube, SoundCloud
+   * or Deezer link or a plain name. Admins only (it downloads onto the server); the token stays on the server.
+   * `preview` says what the input is, `add` starts it, `status` `{ recordingId }` follows it.
+   */
+  async function wishlist(request: Request & { params: { step: string } }): Promise<Response> {
+    const step = request.params.step;
+    if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
+    const session = sessions.get(cookieValue(request));
+    if (!session) return json({ error: "signed out" }, 401);
+    if (!session.admin) return json({ error: "admins only" }, 403);
+    if (!lyterion) return json({ error: "lyterion isn't set up" }, 404);
+    const route = { preview: "wishlist/preview", add: "wishlist", status: "wishlist/status" }[step];
+    if (!route) return json({ error: "not found" }, 404);
+    const body = (await request.json().catch(() => null)) as { input?: unknown; recordingId?: unknown } | null;
+    const input = typeof body?.input === "string" ? body.input.trim().slice(0, 300) : "";
+    if (step !== "status" && input.length < 2) return json({ error: "paste a link or type a song name" }, 400);
+    const payload = step === "status" ? { recordingId: typeof body?.recordingId === "string" ? body.recordingId : "" } : { input };
+    if (step === "add") {
+      const recent = (wishlistSent.get(session.id) ?? []).filter((at) => at > Date.now() - 3_600_000);
+      if (recent.length >= WISHLIST_PER_HOUR) return json({ error: "that's a lot of songs for one hour, try again later" }, 429);
+      wishlistSent.set(session.id, [...recent, Date.now()]);
+    }
+    const response = await fetcher(`${lyterion.url}/api/rpc/api-reference/player/${route}`, {
+      method: "POST",
+      headers: { "x-lyterion-token": lyterion.token, "content-type": "application/json" },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(45_000),
+    }).catch(() => null);
+    if (!response) return json({ error: "lyterion didn't answer" }, 502);
+    const answer = (await response.json().catch(() => null)) as { message?: unknown } | null;
+    if (!response.ok)
+      return json(
+        { error: typeof answer?.message === "string" ? answer.message : "lyterion couldn't do that" },
+        response.status === 412 ? 409 : response.status >= 500 ? 502 : 400,
+      );
+    if (step === "preview" && answer && typeof answer === "object") {
+      const { coverUrl, ...rest } = answer as { coverUrl?: unknown };
+      return json({ ...rest, cover: await inlineCover(coverUrl) }, 200, { "cache-control": "private, no-store" });
+    }
+    return json(answer, 200, { "cache-control": "private, no-store" });
+  }
+
+  /** The player's CSP only allows its own images, so a preview cover from YouTube, SoundCloud or Deezer rides along as a data URI. */
+  async function inlineCover(url: unknown): Promise<string | null> {
+    if (typeof url !== "string") return null;
+    try {
+      const target = new URL(url);
+      if (target.protocol !== "https:" || !COVER_HOSTS.test(target.hostname)) return null;
+      const response = await fetcher(target, { signal: AbortSignal.timeout(8_000), redirect: "error" });
+      const type = response.headers.get("content-type") ?? "";
+      if (!response.ok || !/^image\/(jpeg|png|webp)/.test(type)) return null;
+      const bytes = new Uint8Array(await response.arrayBuffer());
+      return bytes.length <= 400_000 ? `data:${type.split(";")[0]};base64,${Buffer.from(bytes).toString("base64")}` : null;
+    } catch {
+      return null;
+    }
+  }
+
   /** `DELETE /api/lyrics/written`: remove every .lrc keep music wrote that is still as written. Admins only. */
   async function lyricsWritten(request: Request): Promise<Response> {
     if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
@@ -835,6 +900,7 @@ export function createApi({
     lyricsRefetch,
     lyricsWritten,
     lyterionSummary,
+    wishlist,
     upload,
     searchIndex,
     searchLyrics,

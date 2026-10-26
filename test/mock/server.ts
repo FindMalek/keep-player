@@ -493,6 +493,8 @@ function lrclib(url: URL): Response {
   ]);
 }
 
+const wishPolls = new Map<string, number>();
+
 const server = Bun.serve({
   port: PORT,
   idleTimeout: 0,
@@ -520,6 +522,28 @@ const server = Bun.serve({
             ],
           })
         : new Response("unauthorized", { status: 401 });
+    // Lyterion's wishlist (add a song from a link or a name): preview, add, then a status that moves along per call.
+    if (url.pathname.startsWith("/lyterion/api/rpc/api-reference/player/wishlist")) {
+      if (request.headers.get("x-lyterion-token") !== "e2e-lyterion-token-0123456789") return new Response("unauthorized", { status: 401 });
+      const body = (await request.json()) as { input?: string; recordingId?: string };
+      const step = url.pathname.replace(/.*player\/wishlist\/?/, "");
+      if (step === "status") {
+        const stages = ["searching", "fetching", "verifying", "placed"];
+        const seen = wishPolls.get(body.recordingId ?? "") ?? 0;
+        wishPolls.set(body.recordingId ?? "", seen + 1);
+        const stage = stages[Math.min(seen, stages.length - 1)] ?? "placed";
+        return Response.json({ status: stage === "placed" ? "placed" : "working", stage });
+      }
+      if (body.input?.includes("album"))
+        return Response.json({ message: "paste a deezer track link, not an album or playlist" }, { status: 400 });
+      const meta = {
+        title: "Widows Weep",
+        artists: ["SHYLER"],
+        durationMs: 132_000,
+        source: body.input?.startsWith("http") ? "youtube" : "search",
+      };
+      return Response.json(step === "preview" ? meta : { recordingId: "wish-e2e", meta });
+    }
     if (url.pathname.startsWith("/mock/")) return control(url, request);
     const match = /^\/rest\/(\w+?)(?:\.view)?$/.exec(url.pathname);
     if (!match?.[1]) return new Response("not found", { status: 404 });
