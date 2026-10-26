@@ -1,7 +1,6 @@
 import { useSyncExternalStore } from "react";
 import { player } from "./player";
 
-/** Something you started playing from: an album, playlist, artist or genre page. */
 export interface RecentSource {
   kind: string;
   name: string;
@@ -37,7 +36,6 @@ function remember(source: RecentSource): void {
 
 let started = false;
 
-/** Watches what you start playing and keeps the last eight places it came from, newest first. This device only. */
 export function startRecentSources(): void {
   if (started) return;
   started = true;

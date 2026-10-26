@@ -4,15 +4,11 @@ import { keyOf, seeded, shuffle } from "./mixes";
 import { readPrefs } from "./prefs";
 import { genresOf, type StatsSong as Song } from "./stats";
 
-/*
- * Prompt to playlist (#57): "rainy sunday, slow, warm, no vocals" → Groq picks artists (and an era) from a catalog of
- * your own library → we build the list from songs you own. The model never names a song, so it can't invent one.
- */
+// Groq picks artists from your own library; the model never names a song, so it can't invent one.
 
 const MAX_CATALOG = 700;
 const DEFAULT_SIZE = 30;
 const MAX_SIZE = 60;
-/** Share of the list that is songs you already play; the rest are those artists' songs you haven't. */
 const FAMILIAR = 0.5;
 
 export interface Plan {
@@ -57,7 +53,6 @@ export function libraryArtists(db: Database, server: string, account: string): {
 
 const yearOf = (song: Song) => (typeof song.year === "number" && song.year > 0 ? song.year : null);
 
-/** One line per artist for the model: the ones you play most first, then the biggest. */
 function catalog(artists: Map<string, Artist>, limit = MAX_CATALOG): string {
   return [...artists.values()]
     .sort((a, b) => b.plays - a.plays || b.songs.length - a.songs.length)
@@ -78,7 +73,6 @@ function catalog(artists: Map<string, Artist>, limit = MAX_CATALOG): string {
     .join("\n");
 }
 
-/** The model's JSON, checked: artists must be in the catalog (matched loosely), years and size sane. */
 export function parsePlan(text: string, artists: Map<string, Artist>): Plan | null {
   let value: unknown;
   try {
@@ -104,7 +98,6 @@ export function parsePlan(text: string, artists: Map<string, Artist>): Plan | nu
   };
 }
 
-/** The songs: those artists' (in the era, when one was asked), half you play and half you don't, one artist at a time. */
 export function buildPlaylist(plan: Plan, artists: Map<string, Artist>, played: Set<string>, seed: string): Song[] {
   const random = seeded(seed);
   const size = plan.size ?? DEFAULT_SIZE;
@@ -136,7 +129,6 @@ const SYSTEM = `You make playlists from a person's own music library. You get th
 Answer with JSON only: {"name": short lowercase playlist name, "description": one short line, "artists": 3 to 12 artist names copied exactly from the catalog, "years": [from, to] only if the request implies an era, "size": number of songs (default 30)}.
 Pick artists that fit the mood, sound and era asked for, from what you know about them. Never name an artist that isn't in the catalog. Prefer artists they play when it fits, and mix in a few they don't.`;
 
-/** Ask Groq for a plan. Null when it fails or answers something unusable. */
 export async function askGroq(
   { key, model, url }: { key: string; model: string; url: string },
   prompt: string,

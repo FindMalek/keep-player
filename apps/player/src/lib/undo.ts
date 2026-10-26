@@ -1,11 +1,7 @@
 import { notify } from "./notify";
 import { onAccountChange } from "./subsonic";
 
-/*
- * One undo history for everything you change here (#63): queue edits, playlist edits, likes. ⌘Z undoes the latest,
- * ⌘⇧Z redoes it, and every toast's "undo" goes through the same history so the two never disagree. The last 50
- * actions, for this tab's lifetime.
- */
+// One history for every undoable change; toast "undo" buttons go through it too so the two never disagree.
 
 export interface Undoable {
   /** What was done, in the past tense: "cleared your queue". */
@@ -18,7 +14,6 @@ const LIMIT = 50;
 const past: Undoable[] = [];
 const future: Undoable[] = [];
 
-/** Remember an action that just happened. A new action drops whatever could have been redone. */
 export function record(action: Undoable): Undoable {
   past.push(action);
   if (past.length > LIMIT) past.shift();
@@ -35,7 +30,6 @@ async function run(step: () => unknown): Promise<boolean> {
   }
 }
 
-/** Undo `action` (a toast's button), or the latest one (⌘Z). */
 export async function undo(action?: Undoable): Promise<void> {
   const at = action ? past.lastIndexOf(action) : past.length - 1;
   const target = past[at];
@@ -66,13 +60,11 @@ export async function redo(): Promise<void> {
   notify({ message: `redid: ${target.label}`, id: "undo", action: { label: "undo", onClick: () => void undo(target) } });
 }
 
-/** Record an action and say so, with an undo button. */
 export function done(action: Undoable): void {
   record(action);
   notify({ message: action.label, action: { label: "undo", onClick: () => void undo(action) } });
 }
 
-/** A new account starts with an empty history. */
 function clearHistory(): void {
   past.length = 0;
   future.length = 0;

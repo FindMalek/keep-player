@@ -12,10 +12,8 @@ import { player } from "./player";
 import { HEADERS } from "./subsonic";
 import type { Song } from "./types";
 
-/*
- * Listen together (#65), the browser side. A host publishes what it plays; listeners follow it and correct their
- * playhead when it drifts. Everyone can ask for a song to be added; the host's player does the adding.
- */
+// Listen together: the host publishes what it plays, listeners follow and correct drift; anyone can ask for a song,
+// the host's player adds it.
 
 export type ListenStatus = "off" | "connecting" | "host" | "listener" | "ended" | "failed";
 
@@ -26,7 +24,6 @@ export interface ListenState {
   anyoneCanSkip: boolean;
   /** Party mode: only the host's device plays; listeners control it. */
   partyMode: boolean;
-  /** Who added or skipped what, newest last (kept short). */
   notes: string[];
 }
 
@@ -80,7 +77,6 @@ function hostState(): HostState {
   return { song: current ? toListenSong(current) : null, position: player.getPosition(), playing: player.getState().playing };
 }
 
-/** Publish the host's playback when the song or play state changes, and every few seconds so listeners stay aligned. */
 function startHosting(): void {
   let key = "";
   const publish = (force: boolean) => {
@@ -101,7 +97,6 @@ function startHosting(): void {
   };
 }
 
-/** In party mode a listener is a remote: its buttons go to the host, picking a song adds it there. */
 const PARTY_REMOTE = {
   toggle: () => send({ t: "toggle" }),
   next: () => send({ t: "skip" }),
@@ -116,7 +111,6 @@ const PARTY_REMOTE = {
   },
 };
 
-/** A listener in party mode shows the host's playback without playing it; otherwise it plays along. */
 function applyParty(): void {
   const party = state.status === "listener" && state.partyMode;
   if (party && !player.isRemote()) {
@@ -125,7 +119,6 @@ function applyParty(): void {
   } else if (!party && player.isRemote()) player.setRemote(null);
 }
 
-/** Make this player match the host: same song, play state and (within the drift allowance) position. */
 function follow(): void {
   if (!last || state.status !== "listener") return;
   const wanted = last.state;
@@ -216,9 +209,7 @@ function connect(code: string, host: boolean): void {
   ws.onmessage = (event) => {
     try {
       onMessage(JSON.parse(String(event.data)) as ServerMessage);
-    } catch {
-      // A malformed message from the server is ignored.
-    }
+    } catch {}
   };
   ws.onclose = () => {
     if (socket !== ws) return;
@@ -234,7 +225,6 @@ export const listen = {
     listeners.add(listener);
     return () => listeners.delete(listener);
   },
-  /** Start a session and host it; resolves to the code to share. */
   async host(anyoneCanSkip = false, partyMode = false): Promise<string | null> {
     cleanup();
     set({ ...IDLE, anyoneCanSkip, partyMode, status: "connecting" });
@@ -256,7 +246,6 @@ export const listen = {
     set({ ...IDLE });
     connect(code, false);
   },
-  /** After a reload: rejoin the session this tab was in. */
   resume(): void {
     try {
       const saved = JSON.parse(sessionStorage.getItem(REMEMBER) ?? "null") as { code?: unknown; host?: unknown } | null;
@@ -265,7 +254,6 @@ export const listen = {
       remember(null);
     }
   },
-  /** Leave (a listener) or end the session (the host). */
   leave(): void {
     if (state.status === "host") send({ t: "end" });
     remember(null);
@@ -280,7 +268,6 @@ export const listen = {
   setPartyMode(value: boolean): void {
     send({ t: "setting", partyMode: value });
   },
-  /** Play or pause the host (party mode, when anyone can skip). */
   toggle: () => send({ t: "toggle" }),
 };
 

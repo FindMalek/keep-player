@@ -1,9 +1,7 @@
 import { Database } from "bun:sqlite";
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
 
-/** What the proxy needs to call the upstream as this user. Encrypted at rest; never sent to the browser. */
 export interface Session {
-  /** Public id (a prefix of the stored hash), safe to show and to revoke by. */
   id: string;
   server: string;
   user: string;
@@ -12,16 +10,13 @@ export interface Session {
   created: number;
   seen: number;
   agent: string;
-  /** A Navidrome admin when they signed in: may see and rebuild the search index. */
   admin: boolean;
 }
 
 const MINUTE = 60_000;
 
-/**
- * Sessions in SQLite. The cookie holds a random 256-bit value; only its SHA-256 is stored, so a copy of the database
- * can't be replayed as cookies. The Subsonic token + salt are AES-256-GCM encrypted with a key from the session secret.
- */
+// Only the cookie's SHA-256 is stored, so a copy of the database can't be replayed as cookies;
+// the Subsonic token + salt are AES-256-GCM encrypted with a key from the session secret.
 export class SessionStore {
   private readonly db: Database;
   private readonly key: Buffer;
@@ -37,7 +32,6 @@ export class SessionStore {
     this.db.run(
       "create table if not exists sessions (hash text primary key, server text not null, user text not null, secret blob not null, created integer not null, seen integer not null, agent text not null default '')",
     );
-    // Added later: whether the user is a Navidrome admin (their session can run background jobs).
     if (!this.db.query("select 1 from pragma_table_info('sessions') where name = 'admin'").get())
       this.db.run("alter table sessions add column admin integer not null default 0");
     this.key = createHash("sha256").update(`keep-player:sessions:${secret}`).digest();
@@ -66,7 +60,6 @@ export class SessionStore {
     }
   }
 
-  /** Returns the cookie value. */
   create(input: { server: string; user: string; token: string; salt: string; agent: string; admin?: boolean }): string {
     const cookie = randomBytes(32).toString("base64url");
     const time = this.now();
@@ -86,7 +79,6 @@ export class SessionStore {
     return cookie;
   }
 
-  /** The session for a cookie, or null when missing or idle too long. Marks it as seen (at most once a minute). */
   get(cookie: string | undefined): Session | null {
     if (!cookie) return null;
     const hash = SessionStore.hash(cookie);
@@ -132,13 +124,11 @@ export class SessionStore {
       }));
   }
 
-  /** Revokes one of this user's sessions by its public id. */
   revoke(server: string, user: string, id: string): boolean {
     if (!/^[0-9a-f]{16}$/.test(id)) return false;
     return this.db.query("delete from sessions where server = ? and user = ? and hash like ?").run(server, user, `${id}%`).changes > 0;
   }
 
-  /** Credentials of the most recently active admin session on `server`, for background jobs. */
   adminCredentials(server: string): { user: string; token: string; salt: string } | null {
     const row = this.db
       .query<RowData, [string, number]>("select * from sessions where server = ? and admin = 1 and seen > ? order by seen desc limit 1")

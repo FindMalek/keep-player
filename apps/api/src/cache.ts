@@ -1,6 +1,5 @@
 import { RedisClient } from "bun";
 
-/** Computed answers worth keeping (made for you): in memory, or Redis when `REDIS_URL` is set (several instances). */
 export interface Cache {
   get<T>(key: string): Promise<T | undefined>;
   set(key: string, value: unknown, ttlMs: number): Promise<void>;

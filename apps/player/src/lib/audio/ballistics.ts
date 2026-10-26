@@ -1,14 +1,11 @@
 import { dbToGain, gainToDb } from "@/lib/audio/decibels";
 
-/** How a meter moves between readings. All times are in milliseconds. */
+/** All times are in milliseconds. */
 interface BallisticsOptions {
-  /** Time constant for rising levels. 0 jumps instantly. */
   attackMs: number;
-  /** Time constant for falling levels. 0 drops instantly. */
   releaseMs: number;
   /** How long the peak-hold marker stays before it starts to fall. 0 disables it. */
   peakHoldMs: number;
-  /** Time constant for the peak-hold marker's fall. */
   peakReleaseMs: number;
 }
 
@@ -32,9 +29,7 @@ const resolveBallistics = (
 };
 
 interface BallisticsState {
-  /** The smoothed level in dBFS. */
   db: number;
-  /** The peak-hold level in dBFS. */
   holdDb: number;
 }
 
@@ -50,10 +45,7 @@ const smoothingFactor = (elapsedMs: number, timeConstantMs: number): number => {
   return 1 - Math.exp(-elapsedMs / timeConstantMs);
 };
 
-/**
- * Creates a meter ballistics integrator. Smoothing runs on linear amplitude,
- * so a falling level drops at a steady rate in dB, like a hardware meter.
- */
+// Smoothing runs on linear amplitude, so a falling level drops at a steady dB rate, like a hardware meter.
 const createBallistics = (input?: BallisticsInput): Ballistics => {
   const options = resolveBallistics(input);
   let amplitude = 0;

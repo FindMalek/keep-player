@@ -3,14 +3,7 @@ import { createHash } from "node:crypto";
 import { existsSync, linkSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { dirname, isAbsolute, join, normalize, relative, sep } from "node:path";
 
-/*
- * Opt-in (`LYRICS_WRITE_LRC=on`): lyrics found on LRCLIB are also written as `<track>.lrc` next to the audio file, so
- * Navidrome serves them to every other client (Arpeggi, Symfonium…). Needs the music folder mounted writable at
- * `MUSIC_DIR` and Navidrome's "Report Real Path" so songs carry their path.
- *
- * Never overwrites: the file is written to a temp name and hard-linked into place, which fails if anything is already
- * there. Every write is logged with a hash of what was written, so "undo" removes only files nobody changed since.
- */
+// Never overwrites (temp file + hard link fails on EEXIST); writes are logged with a hash so undo skips edited files.
 
 interface Written {
   path: string;
@@ -22,7 +15,6 @@ const sha = (text: string) => createHash("sha256").update(text).digest("hex");
 export class LrcWriter {
   constructor(
     private readonly db: Database,
-    /** The music folder as mounted here. Song paths are resolved under it and never outside it. */
     private readonly musicDir: string,
   ) {
     db.run(`create table if not exists lrc_written (
@@ -35,7 +27,6 @@ export class LrcWriter {
     )`);
   }
 
-  /** Where the sidecar for this song goes, or null when its path can't be trusted (outside the folder, missing audio). */
   target(songPath: string | undefined): string | null {
     if (!songPath) return null;
     const root = normalize(this.musicDir);
@@ -54,7 +45,6 @@ export class LrcWriter {
     return null;
   }
 
-  /** Writes the sidecar if there's none yet. True when a file was written. */
   write(server: string, song: { id: string; path?: string }, text: string): boolean {
     const body = text.trim();
     if (!body) return false;
@@ -64,7 +54,6 @@ export class LrcWriter {
     const content = `${body}\n`;
     try {
       writeFileSync(temp, content, { flag: "wx" });
-      // Fails with EEXIST if a file appeared meanwhile: never overwrite.
       linkSync(temp, target);
     } catch {
       return false;
@@ -83,7 +72,6 @@ export class LrcWriter {
     return this.db.query<{ n: number }, [string]>("select count(*) as n from lrc_written where server = ?").get(server)?.n ?? 0;
   }
 
-  /** Removes every sidecar written for this server that is still exactly as written. Returns how many were removed. */
   undoAll(server: string): { removed: number; kept: number } {
     const rows = this.db.query<Written, [string]>("select path, hash from lrc_written where server = ?").all(server);
     let removed = 0;

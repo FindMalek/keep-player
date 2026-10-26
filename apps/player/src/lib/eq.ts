@@ -1,7 +1,4 @@
-/*
- * The equalizer (#24): ten bands from 31 Hz to 16 kHz, each -12 to +12 dB, with a few presets. Pure data and maths; the
- * filters themselves live in the deck graph (decks.ts).
- */
+// Pure data and maths; the filters live in the deck graph (decks.ts).
 
 export const BANDS = [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000] as const;
 export const MAX_DB = 12;
@@ -26,7 +23,6 @@ export function clampGains(gains: unknown): number[] {
   });
 }
 
-/** The preset these gains equal, if any. */
 export function presetOf(gains: number[]): string | null {
   return Object.entries(PRESETS).find(([, preset]) => preset.every((value, index) => value === gains[index]))?.[0] ?? null;
 }
@@ -36,5 +32,4 @@ export function headroom(gains: number[]): number {
   return 10 ** (-Math.max(0, ...gains) / 20);
 }
 
-/** dB → linear. */
 export const fromDb = (db: number): number => 10 ** (db / 20);

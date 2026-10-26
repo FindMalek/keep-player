@@ -9,11 +9,8 @@ interface Summary {
   playlists: { name: string; total: number; inLibrary: number; missing: { artist: string; title: string }[] }[];
 }
 
-/**
- * With Lyterion connected there's nothing to upload: it already syncs your Spotify playlists and likes into Navidrome.
- * This shows how far each one got and what's still missing (Lyterion keeps looking for those on every run).
- * Renders nothing without Lyterion, so the page falls back to the export file.
- */
+// Lyterion already syncs Spotify playlists and likes into Navidrome: this shows what each one still misses.
+// Renders nothing without Lyterion, so the page falls back to the export file.
 export function LyterionImport() {
   const { data } = useQuery({
     queryKey: ["lyterion"],

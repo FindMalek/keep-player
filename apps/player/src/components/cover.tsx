@@ -10,17 +10,11 @@ interface CoverProps {
   size: number;
   className?: string;
   alt?: string;
-  /** Above-the-fold art (album hero, now playing): fetch first, no lazy loading. */
   priority?: boolean;
 }
 
-/**
- * Square album art. The square is always there (no layout shift); the image fades in once decoded. A record mark
- * stands in when there is no art or it fails.
- */
 export function Cover({ id, size, className, alt = "", priority = false }: CoverProps) {
   const src = coverUrl(id, size);
-  // Keyed by URL, so a component that switches covers (player bar, reused rows) starts over for the new one.
   const [loaded, setLoaded] = useState<string | null>(null);
   const [failed, setFailed] = useState<string | null>(null);
   const ready = src !== null && loaded === src;

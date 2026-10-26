@@ -6,7 +6,6 @@ import { expect, fakeMediaClock, test, trackTitles } from "./fixtures";
 test.describe.configure({ mode: "serial" });
 
 const MOCK = process.env.E2E_MOCK_URL as string;
-/** Straight to the mock, as another client would (its own credentials, its own client name). */
 const AUTH = `u=demo&t=${createHash("md5").update("demosalt").digest("hex")}&s=salt&v=1.16.1&f=json`;
 
 async function syncOn(page: Page): Promise<void> {
@@ -17,7 +16,6 @@ async function syncOn(page: Page): Promise<void> {
   });
 }
 
-/** What Arpeggi does when you pause on the phone. */
 async function saveFromArpeggi(page: Page, ids: string[], index: number, positionMs: number): Promise<void> {
   const body = new URLSearchParams([
     ...ids.map((id) => ["id", id]),
@@ -60,8 +58,7 @@ test("playing here saves the queue as this browser, and keep mine is remembered"
     })
     .toEqual([expect.stringMatching(/^keep-player@/), titles[0]]);
 
-  // The phone saves something newer; we keep ours, and aren't asked again. (Coming back online makes it look now;
-  // a reload would save ours on the way out, which is newer.)
+  // The phone saves something newer; we keep ours and aren't asked again (a reload would save ours, which is newer).
   await saveFromArpeggi(page, ["so-40"], 0, 5_000);
   await page.evaluate(() => window.dispatchEvent(new Event("online")));
   await page.getByRole("button", { name: "keep mine" }).click({ timeout: 10_000 });

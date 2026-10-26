@@ -1,8 +1,7 @@
 import { appShortcuts, lyricsShortcuts } from "../apps/player/src/app-shortcuts";
 import type { Shortcut, ShortcutGroup } from "../apps/player/src/lib/shortcuts";
 
-// Regenerates docs/shortcuts.md from the shortcut registry (the same list the `?` sheet shows); `--check` fails when
-// the file is out of date (CI).
+// Regenerates docs/shortcuts.md from the shortcut registry; `--check` fails in CI when it's out of date.
 // Every action is a no-op: only the list matters here, so a new action never needs adding.
 const stub = new Proxy({}, { get: () => () => undefined }) as never;
 const shortcuts: Shortcut[] = [...appShortcuts(stub), ...lyricsShortcuts(() => true, 250)];

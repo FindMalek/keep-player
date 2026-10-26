@@ -2,11 +2,8 @@ import { useMemo } from "react";
 import type { AudioPlayerController, AudioPlayerStatus } from "@/hooks/use-audio-player";
 import { currentSong, player, positionFrames, usePlayer } from "./player";
 
-/**
- * Our engine behind audiocn's `AudioPlayerController`, so the audiocn components render it without owning an <audio>.
- * Position and buffered are getters plus a frame source: the controller only changes identity on state the bar shows,
- * never per frame, so the player bar doesn't re-render while a song plays.
- */
+// The controller only changes identity on state the bar shows, never per frame (position comes from a frame source),
+// so the player bar doesn't re-render while a song plays.
 export function useEngineController(): AudioPlayerController {
   const hasSong = usePlayer((state) => currentSong(state) !== undefined);
   const playing = usePlayer((state) => state.playing);

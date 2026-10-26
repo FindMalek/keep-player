@@ -15,7 +15,6 @@ test("lyrics come from Navidrome, fall back to LRCLIB, and say when there are no
 test("the lyrics panel shows LRCLIB lyrics for a song Navidrome has none for", async ({ page, signedIn }) => {
   await signedIn.goto("/album/al-0");
   await page.getByRole("button", { name: "play", exact: true }).first().click();
-  // so-4 is the album's fifth track.
   for (let i = 0; i < 4; i += 1) await page.keyboard.press("n");
   await page.keyboard.press("y");
   const panel = page.getByRole("complementary", { name: "lyrics" });
@@ -25,7 +24,6 @@ test("the lyrics panel shows LRCLIB lyrics for a song Navidrome has none for", a
 
 test("synced lyrics follow the song, a click seeks, and ] nudges the timing for good", async ({ page, signedIn }) => {
   await page.addInitScript(fakeMediaClock);
-  // so-2 is album al-0's third track and has synced lyrics in Navidrome (a line every 5 s).
   await signedIn.goto("/album/al-0");
   // The nudge is saved on the server, so a retry would start from the last run's.
   await page.evaluate(() =>
@@ -58,7 +56,6 @@ test("synced lyrics follow the song, a click seeks, and ] nudges the timing for 
 test("a song with no lyrics anywhere offers an LRCLIB search", async ({ page, signedIn }) => {
   await signedIn.goto("/album/al-0");
   await page.getByRole("button", { name: "play", exact: true }).first().click();
-  // so-1 has none in Navidrome and isn't on the fake LRCLIB.
   await page.keyboard.press("n");
   await page.keyboard.press("y");
   const panel = page.getByRole("complementary", { name: "lyrics" });

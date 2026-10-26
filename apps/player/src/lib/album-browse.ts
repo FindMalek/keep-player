@@ -1,10 +1,5 @@
 import type { Album } from "./types";
 
-/*
- * The albums page (#49): sort, filter and group a list of albums. Pure, so the page stays a thin shell and the rules
- * are tested.
- */
-
 export const ALBUM_SORTS = [
   ["newest", "recently added"],
   ["name", "a–z"],
@@ -86,7 +81,6 @@ const RELEASE_ORDER: [ReleaseKind, string][] = [
   ["other", "other"],
 ];
 
-/** Where an album sits on an artist page: its first OpenSubsonic release type, compilations aside. */
 export function releaseKind(album: Album): ReleaseKind {
   const types = (album.releaseTypes ?? []).map((type) => type.toLowerCase());
   if (album.isCompilation || types.includes("compilation")) return "compilation";
@@ -97,7 +91,6 @@ export function releaseKind(album: Album): ReleaseKind {
   return "other";
 }
 
-/** An artist's albums by release type, newest first inside each, empty groups dropped. */
 export function groupByRelease(albums: Album[]): { kind: ReleaseKind; title: string; albums: Album[] }[] {
   const groups = new Map<ReleaseKind, Album[]>();
   for (const album of albums) groups.set(releaseKind(album), [...(groups.get(releaseKind(album)) ?? []), album]);
@@ -107,7 +100,6 @@ export function groupByRelease(albums: Album[]): { kind: ReleaseKind; title: str
   });
 }
 
-/** Each disc's first track index, for "play from disc 2"; empty unless the album has more than one disc. */
 export function discStarts(songs: { discNumber?: number }[]): { disc: number; index: number }[] {
   const starts: { disc: number; index: number }[] = [];
   songs.forEach((song, index) => {
@@ -117,7 +109,6 @@ export function discStarts(songs: { discNumber?: number }[]): { disc: number; in
   return starts.length > 1 ? starts : [];
 }
 
-/** The artists with the most albums in a list (a genre's albums), most first; ties by name. */
 export function topArtists(albums: Album[], limit = 12): { id: string; name: string; albums: number }[] {
   const byArtist = new Map<string, { id: string; name: string; albums: number }>();
   for (const album of albums) {
@@ -129,7 +120,6 @@ export function topArtists(albums: Album[], limit = 12): { id: string; name: str
   return [...byArtist.values()].sort((a, b) => b.albums - a.albums || byText(a.name, b.name)).slice(0, limit);
 }
 
-/** The most played songs of a list; a list nobody has played keeps its own order. */
 export function topSongs<T extends { playCount?: number }>(songs: T[], limit = 20): T[] {
   return [...songs].sort((a, b) => (b.playCount ?? 0) - (a.playCount ?? 0)).slice(0, limit);
 }

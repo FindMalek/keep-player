@@ -2,14 +2,10 @@ import { player } from "./player";
 import { HEADERS } from "./subsonic";
 import type { Song } from "./types";
 
-/*
- * Listening history (#44): each song that played is recorded on the server when the next one starts or the tab goes
- * away, with the seconds you actually listened (counted while playing, so seeking ahead doesn't count) and whether
- * it ran to its end. Skips come from that: under 30 s and not finished (decided server-side).
- */
+// A play is recorded when the next song starts or the tab goes away, with the seconds actually listened (seeking
+// ahead doesn't count); skips (under 30 s, not finished) are decided server-side.
 
 interface Listening {
-  /** The queue entry, so the same song queued twice is two listens. */
   uid: string;
   song: Song;
   started: number;

@@ -1,10 +1,7 @@
 import { useSyncExternalStore } from "react";
 
-/*
- * How much the player bar shows, by window width. Everything that doesn't fit moves into the "more" menu rather
- * than squeezing the rest: full has every control inline, laptop folds the rarely used ones away, compact drops the
- * volume slider too, mobile is two rows with only play, next and the queue in reach.
- */
+// What doesn't fit moves into the "more" menu rather than squeezing the rest; mobile is two rows with only play, next
+// and the queue in reach.
 export type BarMode = "full" | "laptop" | "compact" | "mobile";
 
 const FULL_FROM = 1600;

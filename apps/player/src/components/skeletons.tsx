@@ -1,14 +1,11 @@
 import { Skeleton } from "@keep/ui/components/skeleton";
 import { type ReactNode, useEffect, useState } from "react";
 
-/*
- * Loading placeholders with the exact geometry of what replaces them, so nothing moves when data arrives (CLS 0,
- * checked on every route in e2e/cls.e2e.ts). None of them shows for the first 150 ms: fast loads never flash.
- */
+// Exact geometry of what replaces them (CLS 0, e2e/cls.e2e.ts); none shows in the first 150 ms,
+// so fast loads never flash.
 
 const SHOW_AFTER_MS = 150;
 
-/** Renders `children` only once `ms` have passed (a placeholder that would just flash on a fast load). */
 export function Delayed({ ms = SHOW_AFTER_MS, children }: { ms?: number; children: ReactNode }) {
   const [shown, setShown] = useState(false);
   useEffect(() => {
@@ -36,7 +33,6 @@ export function TrackListSkeleton({ count, immediate = false }: { count: number;
   return immediate ? rows : <Delayed>{rows}</Delayed>;
 }
 
-/** A detail page's header (cover, kind, title, a line, the buttons), like Hero in pages/detail. */
 export function HeroSkeleton() {
   return (
     <Delayed>
@@ -57,7 +53,6 @@ export function HeroSkeleton() {
   );
 }
 
-/** Lines of artist names (the artists page). */
 export function ArtistRowsSkeleton({ count }: { count: number }) {
   return (
     <Delayed>
@@ -74,7 +69,6 @@ export function ArtistRowsSkeleton({ count }: { count: number }) {
   );
 }
 
-/** One palette group of results while the first answer is on its way. */
 export function ResultGroupSkeleton({ count = 4 }: { count?: number }) {
   return (
     <Delayed>

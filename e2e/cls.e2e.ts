@@ -53,7 +53,6 @@ test.describe(() => {
       .nth(5);
     const name = (await card.locator("span").first().textContent()) as string;
     await card.click();
-    // Well before the held album answers: the title and the right number of placeholder rows come from the card.
     await expect(page.getByRole("heading", { level: 1, name })).toBeVisible({ timeout: 1000 });
     expect(await shifts(page)).toEqual({ cls: 0, shifts: [] });
   });

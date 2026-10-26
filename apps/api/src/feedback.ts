@@ -1,12 +1,8 @@
-/*
- * Feedback from inside the player (#182): a bug or an idea, with an optional screenshot, filed as a GitHub issue by
- * the server's own token. GitHub's API can't attach an image to an issue, so a screenshot is committed to a
- * `feedback` branch (never the default one: no CI, no release) and linked from the issue.
- */
+// GitHub's API can't attach an image to an issue, so screenshots are committed to a `feedback` branch
+// (never the default one: no CI, no release) and linked from the issue.
 
 export interface FeedbackTarget {
   token: string;
-  /** "owner/repo" */
   repo: string;
 }
 
@@ -15,7 +11,6 @@ export interface Feedback {
   text: string;
   user: string;
   version: string;
-  /** Where in the app they were. */
   page: string;
   /** base64 PNG or JPEG, without the data: prefix. */
   screenshot?: { data: string; type: "image/png" | "image/jpeg" };
@@ -41,7 +36,6 @@ function github(target: FeedbackTarget, fetcher: Fetcher) {
     });
 }
 
-/** The branch screenshots live on, made from the default branch the first time. */
 async function ensureBranch(call: ReturnType<typeof github>): Promise<boolean> {
   if ((await call(`/branches/${BRANCH}`)).ok) return true;
   const repo = (await (await call("")).json().catch(() => null)) as { default_branch?: string } | null;
@@ -59,7 +53,6 @@ export function issueTitle(feedback: Feedback): string {
   return `${feedback.kind === "bug" ? "bug" : "idea"}: ${short || "feedback"}`;
 }
 
-/** File it. Resolves to the issue's URL, or null when GitHub refused. */
 export async function fileFeedback(target: FeedbackTarget, feedback: Feedback, fetcher: Fetcher = fetch): Promise<string | null> {
   const call = github(target, fetcher);
   let image = "";

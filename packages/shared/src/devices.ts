@@ -1,11 +1,5 @@
 import { clean, isSong, type ListenSong } from "./listen";
 
-/*
- * One playback session per account (#192), like Spotify Connect: every open player of yours joins it, one of them plays
- * and the rest are remotes showing the same queue. A device that starts playing takes over; the old one stops.
- */
-
-/** A song as a device hands it on: what the bar shows, plus what playing it well needs. */
 export interface DeviceSong extends ListenSong {
   artistId?: string;
   track?: number;
@@ -16,9 +10,7 @@ export interface DeviceSong extends ListenSong {
 }
 
 export interface DeviceState {
-  /** The current song first, then what plays after it. */
   songs: DeviceSong[];
-  /** Seconds into the current song when the state was sent. */
   position: number;
   playing: boolean;
 }
@@ -48,9 +40,7 @@ export type DeviceServerMessage =
   | { t: "devices"; devices: Device[] }
   | { t: "state"; state: DeviceState; stamped: number; now: number }
   | { t: "command"; command: DeviceCommand }
-  /** Play here from this state (null: nothing played yet). */
   | { t: "take"; state: DeviceState | null; stamped: number; now: number }
-  /** Another device took over: stop. */
   | { t: "yield" };
 
 /** A queue is relayed this far ahead; a play command (a whole playlist) up to `MAX_PLAY_SONGS`. */
@@ -127,7 +117,6 @@ function command(value: unknown): DeviceCommand | null {
   }
 }
 
-/** Parse what a device sent; null for anything malformed or oversized. */
 export function parseDeviceMessage(raw: string): DeviceClientMessage | null {
   if (raw.length > MAX_DEVICE_MESSAGE_BYTES) return null;
   let value: unknown;

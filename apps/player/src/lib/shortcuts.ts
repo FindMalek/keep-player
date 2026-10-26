@@ -1,24 +1,14 @@
 import { useEffect, useRef, useSyncExternalStore } from "react";
 
-/*
- * Every keyboard shortcut lives here: one registry that the key listener, the cheat sheet, the command palette and the
- * tooltips all read, so nothing is written down twice.
- *
- * Keys are written like "space", "shift+arrowright", "mod+k" (⌘ on macOS, Ctrl elsewhere) or "g h" (a chord: g, then h
- * within a second). Letters and digits match the physical key (`event.code`), so shortcuts stay put on AZERTY & co.
- */
+// One registry read by the key listener, cheat sheet, palette and tooltips. Letters and digits match the physical
+// key (`event.code`), so shortcuts stay put on AZERTY.
 
 export type ShortcutGroup = "playback" | "navigation" | "panels" | "lists";
 
-/**
- * Where a shortcut works. Global ones never fire while typing or inside a dialog, menu or the command palette; the
- * component that owns a narrower scope (a focused list, a dialog) registers its own and they win.
- */
 type Scope = "global" | "list" | "modal";
 
 export interface Shortcut {
   id: string;
-  /** Default bindings; the first is the one shown in hints. */
   keys: string[];
   label: string;
   group: ShortcutGroup;
@@ -26,7 +16,6 @@ export interface Shortcut {
   /** Return `false` when it doesn't apply right now, so the next matching shortcut (e.g. the global one) runs. */
   // biome-ignore lint/suspicious/noConfusingVoidType: most handlers return nothing; only list handlers say "not mine"
   run: (event: KeyboardEvent) => void | boolean;
-  /** Shown in the cheat sheet but handled elsewhere (e.g. ⌘B by the sidebar itself). */
   passive?: boolean;
 }
 
@@ -35,7 +24,6 @@ const OVERRIDES_KEY = "keep-player:shortcuts";
 
 const IS_MAC = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
 
-/** "shift+mod+k" → "mod+shift+k": one spelling per combination. */
 export function normalize(binding: string): string {
   return binding
     .toLowerCase()
@@ -70,7 +58,6 @@ const NAMED: Record<string, string> = {
   Equal: "=",
 };
 
-/** The binding a key event produces, e.g. "mod+shift+k", or null for a bare modifier press. */
 export function eventBinding(event: Pick<KeyboardEvent, "code" | "key" | "metaKey" | "ctrlKey" | "altKey" | "shiftKey">): string | null {
   let key: string | undefined;
   if (event.code.startsWith("Key")) key = event.code.slice(3).toLowerCase();
@@ -109,14 +96,12 @@ const SYMBOLS: Record<string, string> = {
   delete: "del",
 };
 
-/** How a binding is drawn: one array per chord step, one string per key, e.g. "g h" → [["g"], ["h"]]. */
 export function displayKeys(binding: string): string[][] {
   return normalize(binding)
     .split(" ")
     .map((step) => step.split("+").map((part) => layoutLabels.get(part) ?? SYMBOLS[part] ?? part));
 }
 
-/** On layouts like AZERTY, show the character printed on the physical key we match. */
 const layoutLabels = new Map<string, string>();
 type KeyboardWithLayout = { getLayoutMap?: () => Promise<Map<string, string>> };
 void (navigator as unknown as { keyboard?: KeyboardWithLayout }).keyboard
@@ -128,7 +113,6 @@ void (navigator as unknown as { keyboard?: KeyboardWithLayout }).keyboard
   })
   .catch(() => undefined);
 
-/** Bindings that collide within a scope (same key, two actions). A unit test keeps the defaults free of them. */
 export function findConflicts(shortcuts: Pick<Shortcut, "id" | "keys" | "scope">[]): [string, string, string][] {
   const seen = new Map<string, string>();
   const conflicts: [string, string, string][] = [];
@@ -141,8 +125,6 @@ export function findConflicts(shortcuts: Pick<Shortcut, "id" | "keys" | "scope">
     }
   return conflicts;
 }
-
-// --- registry ---
 
 const registry = new Map<string, Shortcut>();
 const listeners = new Set<() => void>();
@@ -163,7 +145,6 @@ function readOverrides(): Record<string, string[]> {
 
 let overrides = readOverrides();
 
-/** The bindings in effect for a shortcut: the user's own if rebound, else the defaults. */
 export function bindingsOf(shortcut: Pick<Shortcut, "id" | "keys">): string[] {
   return overrides[shortcut.id] ?? shortcut.keys;
 }
@@ -181,7 +162,6 @@ export function allShortcuts(): Shortcut[] {
   return [...registry.values()];
 }
 
-/** Re-renders when shortcuts or bindings change; returns the registry contents. */
 export function useShortcutList(): Shortcut[] {
   useSyncExternalStore(
     (listener) => {
@@ -193,7 +173,6 @@ export function useShortcutList(): Shortcut[] {
   return allShortcuts();
 }
 
-/** The keys to show next to a control for shortcut `id` (first binding), or undefined. */
 export function useHintKeys(id: string): string[] | undefined {
   const shortcut = useShortcutList().find((item) => item.id === id);
   const binding = shortcut && bindingsOf(shortcut)[0];
@@ -213,7 +192,6 @@ export function resetBindings(id?: string): void {
   saveOverrides();
 }
 
-/** The user's rebinds as JSON, for backup or moving to another browser. */
 export function exportBindings(): string {
   return JSON.stringify(overrides, null, 2);
 }
@@ -221,16 +199,10 @@ export function exportBindings(): string {
 function saveOverrides(): void {
   try {
     localStorage.setItem(OVERRIDES_KEY, JSON.stringify(overrides));
-  } catch {
-    // Kept for this session only.
-  }
+  } catch {}
   emit();
 }
 
-/**
- * Register shortcuts from a component for as long as it's mounted. `make` may close over props and state: the
- * registered handlers always call the latest version, so this never re-registers on render.
- */
 export function useShortcuts(make: () => Shortcut[]): void {
   const latest = useRef(make);
   latest.current = make;
@@ -251,9 +223,6 @@ export function useShortcuts(make: () => Shortcut[]): void {
   }, []);
 }
 
-// --- the one listener ---
-
-/** A chord's first key while it waits for the second, for the little "g…" hint. */
 let pending: string | null = null;
 let pendingTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -278,7 +247,6 @@ function isTyping(target: EventTarget | null): boolean {
   return target instanceof HTMLElement && (target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName));
 }
 
-/** Inside a dialog, menu, select or the palette only that layer's own shortcuts apply (our own lists aren't layers). */
 function inLayer(target: EventTarget | null): boolean {
   if (!(target instanceof Element)) return false;
   if (target.closest("[role=dialog],[role=alertdialog],[role=menu]")) return true;
@@ -327,7 +295,6 @@ function handleKey(event: KeyboardEvent): void {
 
 let installed = false;
 
-/** Mount the single key listener (once, for the app's lifetime). */
 export function installShortcuts(): void {
   if (installed) return;
   installed = true;

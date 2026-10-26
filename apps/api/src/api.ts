@@ -31,7 +31,6 @@ import { MAX_UPLOAD_BYTES, saveUpload, uploadPath } from "./upload";
 
 const COOKIE = "kp_session";
 const FOLDERS_TTL_MS = 10 * 60_000;
-/** Token sign-ins, by what they're for (shown under sessions). */
 const REMOTE_AGENT = "terminal · now playing";
 const API_AGENT = "api token";
 /** Requests that change or read data must carry this header. Cross-site pages can't set it without a CORS preflight. */
@@ -115,7 +114,6 @@ function sessionCookie(request: Request, value: string, maxAgeSeconds: number): 
   return `${COOKIE}=${value}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAgeSeconds}${secure(request) ? "; Secure" : ""}`;
 }
 
-/** Subsonic token auth: md5(password + salt). */
 function tokenFor(password: string): { token: string; salt: string } {
   const salt = randomBytes(8).toString("hex");
   return {
@@ -130,38 +128,25 @@ export interface ApiOptions {
   upstreams: Upstream[];
   covers: CoverCache;
   lyrics: LyricsService;
-  /** Search index sync per upstream id. */
   indexes: Map<string, IndexSync>;
-  /** library.db: lyrics cache and search index. */
   library: Database;
   sessions: SessionStore;
   limiter: LoginLimiter;
   idleSeconds: number;
   trustProxy: boolean;
-  /** Release check for admins (off unless `UPDATE_CHECK=on`). */
   updates?: UpdateCheck;
-  /** Lyrics backfill per upstream id (absent when `LYRICS_BACKFILL=off`). */
   backfills?: Map<string, { restart(): void }>;
-  /** The .lrc sidecar writer, when `LYRICS_WRITE_LRC=on`. */
   lrc?: { count(server: string): number; undoAll(server: string): { removed: number; kept: number } } | null;
-  /** Where uploads land; null or missing turns them off. */
   uploadDir?: string | null;
-  /** Lyterion's API for the import page; null or missing turns it off. */
   lyterion?: { url: string; token: string } | null;
-  /** Listen-together rooms (#65). */
   rooms?: ListenRooms;
-  /** One playback session per account (#192); null turns it off. */
   devices?: DeviceHub | null;
-  /** Feedback as GitHub issues (#182); null turns it off. */
   feedback?: FeedbackTarget | null;
   cache?: Cache;
-  /** Playlists from a prompt (#57); null turns them off. */
   groq?: { key: string; model: string; url: string } | null;
-  /** Stands in for Groq in tests. */
   fetcher?: typeof fetch;
 }
 
-/** What a listen socket carries from the upgrade to its handlers. */
 interface ListenSocketData {
   kind: "listen";
   code: string;
@@ -171,7 +156,6 @@ interface ListenSocketData {
   peer?: Peer;
 }
 
-/** A device socket (#192): the account it belongs to and this player's id and name. */
 interface DeviceSocketData {
   kind: "devices";
   account: string;
@@ -208,7 +192,7 @@ export function createApi({
 }: ApiOptions) {
   const upstreamFor = (id: string) => upstreams.find((upstream) => upstream.id === id);
 
-  // The music folders (libraries) each session may see, asked as that user so Navidrome decides. Ten minutes.
+  // Asked as that user, so Navidrome decides which music folders they see. Ten minutes.
   const folderCache = new Map<string, { folders: string[]; at: number }>();
   async function foldersFor(session: Session, upstream: Upstream): Promise<string[]> {
     const cached = folderCache.get(session.id);
@@ -229,23 +213,18 @@ export function createApi({
     return response;
   };
 
-  /** The signed-in browser. Tokens made for the terminal or for integrations are sessions too, but never count as the cookie. */
+  /** Tokens made for the terminal or integrations are sessions too, but never count as the cookie. */
   const browserSession = (request: Request) => {
     const session = sessions.get(cookieValue(request));
     return session?.agent === REMOTE_AGENT || session?.agent === API_AGENT ? null : session;
   };
 
-  /** `/api/rpc/*`: the oRPC procedures (`@keep/orpc`) for the player. Same CSRF header as every other call. */
   async function rpc(request: Request): Promise<Response> {
     if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
     return secured(await rpcHandler.rpc(request, browserSession(request)));
   }
 
-  /**
-   * `/api/*` (what no older route claims): the same procedures as plain HTTP, the reference at `/api`, the spec at
-   * `/api/spec.json`. Integrations send a Bearer token (a session of their own, made in settings); a browser's cookie
-   * counts only with the CSRF header, so another site can't call it on someone's behalf.
-   */
+  /** Integrations send a Bearer token; a browser cookie counts only with the CSRF header, so another site can't call it. */
   async function http(request: Request): Promise<Response> {
     const bearer = request.headers.get("authorization")?.match(/^Bearer (\S+)$/)?.[1];
     const session = bearer ? sessions.get(bearer) : request.headers.get(CSRF_HEADER) === "1" ? browserSession(request) : null;
@@ -253,7 +232,6 @@ export function createApi({
     return secured(await rpcHandler.http(request, session?.agent === REMOTE_AGENT ? null : session));
   }
 
-  // Each session's liked ids (songs, albums, artists) for search; dropped whenever it stars or unstars something.
   const likesCache = new Map<string, { liked: Set<string>; at: number }>();
   async function likesFor(session: Session, upstream: Upstream): Promise<Set<string>> {
     const cached = likesCache.get(session.id);
@@ -305,7 +283,6 @@ export function createApi({
       return json({ error: "wrong username or password", reason: "credentials" }, 401);
     }
     limiter.succeed(keys);
-    // Admins' sessions can run the background jobs (lyrics backfill, search index) when no service account is set.
     const profile = await subsonic<{ user?: { adminRole?: boolean } }>(upstream, { user, token, salt }, "getUser", { username: user });
     const cookie = sessions.create({
       server: upstream.id,
@@ -357,7 +334,6 @@ export function createApi({
     return json({ ok: true });
   }
 
-  /** Subsonic calls with the session's credentials added upstream. Keeps Range so audio can seek. */
   async function proxy(request: Request): Promise<Response> {
     const url = new URL(request.url);
     const endpoint = /^\/rest\/(\w+?)(?:\.view)?$/.exec(url.pathname)?.[1];
@@ -398,7 +374,6 @@ export function createApi({
     ).catch(() => null);
     if (!response) return json({ error: "server unreachable" }, 502);
     const out = new Headers(SECURITY_HEADERS);
-    // content-disposition: a download keeps the file's own name.
     for (const name of [
       "content-type",
       "content-length",
@@ -414,16 +389,12 @@ export function createApi({
     }
     // Responses depend on the session cookie, so shared caches must keep them per user.
     out.set("vary", "cookie");
-    // Time to Navidrome's first byte, visible in the browser's network panel.
     out.set("server-timing", `upstream;dur=${(performance.now() - started).toFixed(1)}`);
     if (endpoint === "star" || endpoint === "unstar") likesCache.delete(session.id);
     return new Response(response.body, { status: response.status, headers: out });
   }
 
-  /**
-   * `/cover/:id/:size`: credential-free and size-snapped, so the URL is stable and the browser can keep it forever.
-   * Navidrome's cover ids change when the art does, which is what makes `immutable` safe.
-   */
+  /** Navidrome's cover ids change when the art does, which is what makes `immutable` safe. */
   async function cover(request: Request & { params: { id: string; size: string } }): Promise<Response> {
     const session = browserSession(request);
     if (!session) return json({ error: "signed out" }, 401);
@@ -453,7 +424,6 @@ export function createApi({
     });
   }
 
-  /** `/api/lyrics/:songId`: one shape whatever the source (Navidrome, LRCLIB), cached server-side. */
   async function songLyrics(request: Request & { params: { songId: string } }): Promise<Response> {
     if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
     const session = browserSession(request);
@@ -464,7 +434,6 @@ export function createApi({
     return json(result, 200, { "cache-control": "private, no-cache" });
   }
 
-  /** `/api/lyrics/coverage`: how much of what this user may see has lyrics, and the albums missing the most. */
   async function lyricsCoverageRoute(request: Request): Promise<Response> {
     if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
     const session = browserSession(request);
@@ -476,7 +445,6 @@ export function createApi({
     return json(report, 200, { "cache-control": "private, no-cache" });
   }
 
-  /** `/api/doctor`: checks over the indexed library (covers, tags, duplicates…). Admins only. */
   async function doctorRoute(request: Request): Promise<Response> {
     if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
     const session = browserSession(request);
@@ -488,7 +456,6 @@ export function createApi({
     return json(runChecks(songs, albums), 200, { "cache-control": "private, no-cache" });
   }
 
-  /** `POST /api/listen`: start a listening session hosted by this browser session. Returns its code. */
   async function listenCreate(request: Request): Promise<Response> {
     if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
     const session = browserSession(request);
@@ -498,7 +465,6 @@ export function createApi({
     return code ? json({ code }) : json({ error: "too many sessions" }, 429);
   }
 
-  /** `GET /api/listen/:code` as a WebSocket: join (or, for its host, rejoin) the session. Same origin only. */
   function listenSocket(request: Request & { params: { code: string } }, srv: Server<SocketData>): Response | undefined {
     const session = browserSession(request);
     if (!session) return json({ error: "signed out" }, 401);
@@ -511,7 +477,6 @@ export function createApi({
     return srv.upgrade(request, { data }) ? undefined : json({ error: "upgrade failed" }, 400);
   }
 
-  /** `GET /api/devices?id=&name=` as a WebSocket: this player joins its account's playback session. Same origin only. */
   function devicesSocket(request: Request, srv: Server<SocketData>): Response | undefined {
     if (!devices) return json({ error: "one session is off" }, 404);
     const session = browserSession(request);
@@ -531,8 +496,6 @@ export function createApi({
     return srv.upgrade(request, { data }) ? undefined : json({ error: "upgrade failed" }, 400);
   }
 
-  /** `POST /api/remote/token`: a sign-in for a terminal's now-playing mod. Listed (and signed out) with the sessions. */
-  /** A sign-in of its own, made by a signed-in browser: listed under sessions as `agent`, signed out there. */
   function mintToken(request: Request, agent: string): Response {
     if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
     const session = browserSession(request);
@@ -541,16 +504,13 @@ export function createApi({
     return json({ token });
   }
 
-  /** `POST /api/remote/token`: for the now-playing mod; it only reaches `/api/remote/*`. */
   const remoteToken = (request: Request) => mintToken(request, REMOTE_AGENT);
-  /** `POST /auth/api-token`: for your own scripts and apps; it reaches everything under `/api`. */
   const apiToken = (request: Request) => mintToken(request, API_AGENT);
 
   /** The remote signs in with `Authorization: Bearer <token>`, never a cookie, so a page can't ride on it. */
   const remoteSession = (request: Request) => sessions.get(request.headers.get("authorization")?.match(/^Bearer (\S+)$/)?.[1]);
   const accountOf = (session: Session) => `${session.server}\u0000${session.user}`;
 
-  /** `GET /api/remote/now`: the song, playhead and lyric line, from the playing player or else Navidrome's now playing. */
   async function remoteNow(request: Request): Promise<Response> {
     const session = remoteSession(request);
     if (!session) return json({ error: "signed out" }, 401);
@@ -579,7 +539,6 @@ export function createApi({
     return json(now, 200, { "cache-control": "no-store" });
   }
 
-  /** `POST /api/remote/:action` (`toggle`, `next`, `previous`): sent to the playing player. 409 when none of ours plays. */
   function remoteAction(request: Request & { params: { action: string } }): Response {
     const session = remoteSession(request);
     if (!session) return json({ error: "signed out" }, 401);
@@ -595,7 +554,6 @@ export function createApi({
     return devices?.command(account, command) ? json({ ok: true }) : json({ error: "nothing of ours is playing" }, 409);
   }
 
-  /** `POST /api/ai/playlist` `{ prompt }`: a playlist from your own songs for a description. Not saved: the page reviews it first. */
   async function aiPlaylist(request: Request): Promise<Response> {
     if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
     const session = browserSession(request);
@@ -617,7 +575,6 @@ export function createApi({
   const feedbackSent = new Map<string, number[]>();
   const FEEDBACK_PER_HOUR = 5;
 
-  /** `POST /api/feedback` `{ kind, text, page, screenshot? }`: filed as a GitHub issue; answers its URL. */
   async function sendFeedback(request: Request): Promise<Response> {
     if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
     const session = browserSession(request);
@@ -689,7 +646,6 @@ export function createApi({
     },
   };
 
-  /** `/api/lyrics/missing?offset=&limit=`: songs nobody found lyrics for, a page at a time. */
   async function lyricsMissing(request: Request): Promise<Response> {
     if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
     const session = browserSession(request);
@@ -703,7 +659,6 @@ export function createApi({
     return json({ songs }, 200, { "cache-control": "private, no-cache" });
   }
 
-  /** `POST /api/lyrics/refetch`: forget the misses and walk the library again now. Admins only. */
   async function lyricsRefetch(request: Request): Promise<Response> {
     if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
     const session = browserSession(request);
@@ -715,10 +670,6 @@ export function createApi({
     return json({ forgotten, backfill: Boolean(backfill) });
   }
 
-  /**
-   * `/api/upload`: whether uploads are on (GET), or one file into the upload folder (PUT, the raw bytes as the body,
-   * `?path=Artist/Album/01 Song.flac`). Admins only; the importer or Navidrome's scan takes it from there.
-   */
   async function upload(request: Request): Promise<Response> {
     if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
     const session = browserSession(request);
@@ -735,10 +686,6 @@ export function createApi({
     return json({ saved: saved.slice(uploadDir.length + 1) });
   }
 
-  /**
-   * `GET /api/lyterion`: Lyterion's view of your Spotify library (each playlist and liked songs: how much is in
-   * Navidrome, what's missing). 404 when Lyterion isn't set up. The token stays on the server.
-   */
   async function lyterionSummary(request: Request): Promise<Response> {
     if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
     if (!browserSession(request)) return json({ error: "signed out" }, 401);
@@ -754,11 +701,6 @@ export function createApi({
   const wishlistSent = new Map<string, number[]>();
   const WISHLIST_PER_HOUR = 30;
 
-  /**
-   * `POST /api/wishlist/preview|add|status`: add a song to the library through Lyterion from a YouTube, SoundCloud
-   * or Deezer link or a plain name. Admins only (it downloads onto the server); the token stays on the server.
-   * `preview` says what the input is, `add` starts it, `status` `{ recordingId }` follows it.
-   */
   async function wishlist(request: Request & { params: { step: string } }): Promise<Response> {
     const step = request.params.step;
     if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
@@ -813,7 +755,6 @@ export function createApi({
     }
   }
 
-  /** `DELETE /api/lyrics/written`: remove every .lrc keep music wrote that is still as written. Admins only. */
   async function lyricsWritten(request: Request): Promise<Response> {
     if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
     const session = browserSession(request);
@@ -823,7 +764,6 @@ export function createApi({
     return json(lrc.undoAll(session.server));
   }
 
-  /** `/api/index`: the search index's counts and last sync (GET), or a rebuild now (POST). Admins only. */
   async function searchIndex(request: Request): Promise<Response> {
     if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
     const session = browserSession(request);
@@ -831,12 +771,10 @@ export function createApi({
     if (!session.admin) return json({ error: "admins only" }, 403);
     const index = indexes.get(session.server);
     if (!index) return json({ error: "no index for this server" }, 404);
-    // Runs in the background; the client polls the status while `building`.
     if (request.method === "POST") void index.rebuild().catch(() => undefined);
     return json(index.status());
   }
 
-  /** `/api/search/lyrics?q=`: songs by their words, in the folders this user may see, plus how much is indexed. */
   async function searchLyrics(request: Request): Promise<Response> {
     if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
     const session = browserSession(request);
@@ -849,7 +787,6 @@ export function createApi({
     return json(body, 200, { "cache-control": "private, no-cache" });
   }
 
-  /** `/api/search?q=`: ranked songs, albums and artists with operators, limited to what this user may see. */
   async function searchLibrary(request: Request): Promise<Response> {
     if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
     const session = browserSession(request);
@@ -864,7 +801,6 @@ export function createApi({
     return json(search(library, upstream.id, query, { folders, liked, moments }, limit), 200, { "cache-control": "private, no-cache" });
   }
 
-  /** `/api/import/match`: POST up to 200 tracks from a Spotify export; each comes back with its best library match. */
   async function importMatch(request: Request): Promise<Response> {
     if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
     const session = browserSession(request);

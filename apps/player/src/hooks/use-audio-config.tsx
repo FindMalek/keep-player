@@ -31,7 +31,6 @@ interface AudioConfigProviderProps {
   children: ReactNode;
 }
 
-/** Merges `value` over any config from a parent provider. */
 const AudioConfigProvider = ({
   value,
   children,
@@ -79,5 +78,4 @@ const AudioConfigProvider = ({
   );
 };
 
-/** The config from the nearest mixer or channel strip, or `{}`. */
 export const useAudioConfig = (): AudioConfig => useContext(AudioConfigContext);

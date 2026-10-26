@@ -82,7 +82,6 @@ test("the bar folds its rarely used controls into a menu as the window narrows",
   await expect(page.getByRole("menuitemcheckbox", { name: "song info" })).toBeVisible();
   await page.getByRole("menuitem", { name: "sleep timer" }).hover();
   await page.getByRole("menuitemradio", { name: "30 minutes" }).click();
-  // The timer is set: the menu's button shows its "on" state.
   await expect(bar.getByRole("button", { name: "more controls" })).toHaveAttribute("aria-pressed", "true");
   await page.keyboard.press("Escape");
 

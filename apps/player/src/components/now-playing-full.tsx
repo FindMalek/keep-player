@@ -32,12 +32,10 @@ function useIdle(active: boolean): [boolean, () => void] {
   return [idle, wake];
 }
 
-/** ⇧F: the cover large and the lyrics big, for across the room, with what's next and the three buttons. Esc closes. */
 export function NowPlayingFull({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const song = usePlayer(currentSong);
   const playing = usePlayer((state) => state.playing);
   const next = usePlayer((state) => peekUpcoming(state.queue, 3), sameSongs);
-  // The aura of what's playing from: the playlist (or album) the queue came from.
   const from = usePlayer((state) => state.queue.context.source?.href ?? state.queue.current?.song.albumId ?? "");
   const contextSongs = usePlayer((state) => state.queue.context.songs.slice(0, 200), sameSongs);
   const [idle, wake] = useIdle(open);

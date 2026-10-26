@@ -23,13 +23,11 @@ export interface Song {
   bitRate?: number;
   /** OpenSubsonic: bits per sample and sampling rate in Hz (lossless files mostly). */
   bitDepth?: number;
-  /** OpenSubsonic: beats per minute from the tags, when there are any. */
   bpm?: number;
   samplingRate?: number;
   suffix?: string;
   size?: number;
   starred?: string;
-  /** When the file was added to the library. */
   created?: string;
   userRating?: number;
   playCount?: number;
@@ -52,7 +50,6 @@ export interface Album {
   starred?: string;
   recordLabels?: { name: string }[];
   musicBrainzId?: string;
-  /** OpenSubsonic: "album", "ep", "single", "live", "compilation"… (lowercase, any number). */
   releaseTypes?: string[];
   isCompilation?: boolean;
   song?: Song[];

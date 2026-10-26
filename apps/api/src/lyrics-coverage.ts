@@ -1,10 +1,7 @@
 import type { Database } from "bun:sqlite";
 import type { LyricsCoverage } from "@keep/shared/lyrics";
 
-/*
- * How much of the library has lyrics, from the search index (every song, with its folder for access) joined with the
- * lyrics cache. Songs the backfill hasn't reached yet count as "unchecked", not "missing".
- */
+// Songs the backfill hasn't reached yet count as "unchecked", not "missing".
 
 const STATUSES = ["synced", "plain", "instrumental", "missing"] as const;
 
@@ -42,7 +39,6 @@ export function lyricsCoverageReport(db: Database, server: string, folders: stri
   return { total: counts.reduce((sum, row) => sum + row.n, 0), ...totals, albums };
 }
 
-/** Songs whose lyrics were looked for and not found, a page at a time (for the coverage page's list). */
 export function missingLyrics(
   db: Database,
   server: string,
@@ -62,7 +58,6 @@ export function missingLyrics(
     .map((row) => JSON.parse(row.data) as Record<string, unknown>);
 }
 
-/** Forget this server's misses, so the backfill asks LRCLIB about them again now rather than in 30 days. */
 export function forgetMisses(db: Database, server: string): number {
   return db.query("delete from lyrics where song_id like ? and status = 'missing'").run(`${server}:%`).changes;
 }

@@ -4,11 +4,7 @@ import { keyOf, type Listening, type Mix, seeded, shuffle } from "./mixes";
 import { type Groq, topArtistNames, weeklyAnswer } from "./mood-mixes";
 import { genresOf, type StatsSong as Song } from "./stats";
 
-/*
- * Weekly playlists (#202), after Sonaraem: it classifies every track and clusters them into named playlists. Here that
- * is one Groq call a week per account: the artists you play (with their genres and eras) grouped by shared vibe into
- * a few named playlists, each filled from your own songs with no artist taking over.
- */
+// One Groq call a week per account groups the artists you play into named playlists, filled from your own songs.
 
 const ARTISTS_ASKED = 120;
 const MAX_PLAYLISTS = 5;
@@ -20,7 +16,6 @@ Make 3 to 5 playlists of 4 to 15 artists each. An artist can be in two playlists
 
 type Answer = { playlists?: { name?: unknown; description?: unknown; artists?: unknown }[] };
 
-/** Every artist gets a fair share: at most ceil(size / artists) + 1 songs each, half you play when there are some. */
 function diverse(l: Listening, artists: string[], size: number, random: () => number): Song[] {
   const cap = Math.ceil(size / artists.length) + 1;
   const picked = artists.flatMap((artist) => {
@@ -39,7 +34,6 @@ function catalogLine(l: Listening, name: string): string {
   return [name, genres.join("/"), years.length ? `${Math.min(...years)}–${Math.max(...years)}` : ""].filter(Boolean).join(" · ");
 }
 
-/** This week's playlists for an account; none without Groq or enough listening. */
 export async function weeklyPlaylists(
   db: Database,
   groq: Groq | null,

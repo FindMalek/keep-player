@@ -1,9 +1,6 @@
 import { deflateSync } from "node:zlib";
 
-/*
- * The installable app (#53): a web manifest and a monochrome icon set, drawn here so there are no binary files to keep
- * in sync with the brand: the favicon's dark square with a light play triangle.
- */
+// Icons are drawn here so there are no binary files to keep in sync with the brand.
 
 const DARK = [0x10, 0x10, 0x10] as const;
 const LIGHT = [0xeb, 0xeb, 0xeb] as const;
@@ -39,7 +36,6 @@ function chunk(type: string, data: Uint8Array): Uint8Array {
   return out;
 }
 
-/** A square RGB PNG of the icon, 4× supersampled so the triangle's edges are smooth. */
 export function iconPng(size: number, maskable = false): Uint8Array<ArrayBuffer> {
   const scale = maskable ? 0.7 : 1;
   const raw = new Uint8Array(size * (size * 3 + 1));

@@ -7,8 +7,6 @@ import { HEADERS } from "./subsonic";
 import type { Song } from "./types";
 import { done } from "./undo";
 
-/** Changing the rules (#62): menus, shortcuts and the settings list all come through here, each undoable. */
-
 export type SongChange = {
   trimStart?: number | null;
   trimEnd?: number | null;
@@ -37,7 +35,6 @@ const summary = (song: Song) => ({
   duration: song.duration,
 });
 
-/** What the song's rules were, as a change that puts them back. */
 function snapshot(id: string): Required<SongChange> {
   const pref = songPref(id);
   return { trimStart: pref?.trimStart ?? null, trimEnd: pref?.trimEnd ?? null, never: pref?.never ?? false, hidden: pref?.hidden ?? false };

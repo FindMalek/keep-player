@@ -54,7 +54,6 @@ async function filesFrom(entry: FileSystemEntry, prefix = ""): Promise<Item[]> {
   return nested.flat();
 }
 
-/** Upload your own music (admins): files or whole folders go to the server's upload folder, one at a time. */
 export function UploadPage() {
   const status = useQuery({
     queryKey: ["upload"],

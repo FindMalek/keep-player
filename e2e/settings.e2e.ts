@@ -4,7 +4,6 @@ test("settings has every section, links to each tab, and changes apply at once",
   await signedIn.getByRole("button", { name: /demo$/ }).click();
   await page.getByRole("menuitem", { name: "settings" }).click();
   await expect(page).toHaveURL(/\/settings$/);
-  // A dialog over the page you were on; closing it takes you back there.
   await expect(page.getByRole("dialog", { name: "settings" })).toBeVisible();
   for (const tab of ["playback", "appearance", "sync", "storage", "lyrics", "shortcuts", "account", "about"])
     await expect(page.getByRole("tab", { name: tab })).toBeVisible();
@@ -19,7 +18,6 @@ test("settings has every section, links to each tab, and changes apply at once",
   await expect(page.getByRole("dialog", { name: "settings" })).toBeHidden();
   await expect(page).toHaveURL(/\/$/);
 
-  // A link to a tab opens it.
   await page.goto("/settings/shortcuts");
   await page.getByRole("tabpanel").getByRole("button", { name: "show" }).click();
   await expect(page.getByRole("dialog", { name: "keyboard shortcuts" })).toBeVisible();
@@ -75,13 +73,11 @@ test("the notifications setting hides plain confirmations but never errors or th
     await page.getByRole("group", { name: "notifications" }).getByRole("button", { name, exact: true }).click();
   };
 
-  // At "errors" the confirmation doesn't pop up.
   await level("errors");
   await addToQueue();
   await page.waitForTimeout(800);
   await expect(page.getByText(`added ${titles[3]} to the queue`)).toHaveCount(0);
 
-  // Back at "all" it does.
   await level("all");
   await addToQueue();
   await expect(page.getByText(`added ${titles[3]} to the queue`)).toBeVisible();

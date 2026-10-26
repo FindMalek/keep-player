@@ -1,10 +1,6 @@
 import { notify } from "./notify";
 import { allShortcuts, bindingsOf, displayKeys } from "./shortcuts";
 
-/*
- * Gentle shortcut teaching: a first-run tip about "?", and after you click a control with the mouse three times, one
- * toast with its shortcut. Each tip shows once; all of it can be turned off.
- */
 const KEY = "keep-player:tips";
 
 interface TipState {
@@ -38,7 +34,6 @@ export function setTipsEnabled(enabled: boolean): void {
   write({ ...read(), off: !enabled });
 }
 
-/** A mouse click on a control that has shortcut `id`; the third one shows its keys once. */
 export function noteMouseUse(id: string): void {
   const state = read();
   if (state.off || state.shown.includes(id)) return;
@@ -55,7 +50,6 @@ export function noteMouseUse(id: string): void {
   } else write({ ...state, clicks: { ...state.clicks, [id]: count } });
 }
 
-/** Once per browser: point at the cheat sheet. */
 export function welcomeTip(openCheatSheet: () => void): void {
   const state = read();
   if (state.welcomed || state.off) return;
@@ -67,7 +61,6 @@ export function welcomeTip(openCheatSheet: () => void): void {
 
 const ONBOARDED_KEY = "keep-player:onboarded";
 
-/** Whether this browser went through (or skipped) the first-run setup. */
 export function isOnboarded(): boolean {
   try {
     return localStorage.getItem(ONBOARDED_KEY) !== null;
@@ -80,8 +73,6 @@ export function isOnboarded(): boolean {
 export function markOnboarded(): void {
   try {
     localStorage.setItem(ONBOARDED_KEY, String(Date.now()));
-  } catch {
-    // Shown again next time; harmless.
-  }
+  } catch {}
   write({ ...read(), welcomed: true });
 }

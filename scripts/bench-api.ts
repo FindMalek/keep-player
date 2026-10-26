@@ -1,8 +1,5 @@
-/**
- * The API's heavy calls against a running server (the mock's 10k-song library): median time and bytes on the wire,
- * the way a browser asks (brotli/gzip accepted). `bun scripts/bench-api.ts [url]`, default http://127.0.0.1:8088,
- * signs in as demo/demo. Used for the before/after tables in performance PRs.
- */
+// Median time and bytes on the wire (brotli/gzip accepted) for the API's heavy calls, for perf PR tables.
+// `bun scripts/bench-api.ts [url]`, default http://127.0.0.1:8088, signs in as demo/demo.
 const base = process.argv[2] ?? "http://127.0.0.1:8088";
 const RUNS = 15;
 

@@ -34,11 +34,6 @@ const tick = (nowMs: number) => {
   }
 };
 
-/**
- * Runs sources in the update phase, then renderers in the default paint phase.
- * One loop serves the whole page and stops when nothing is subscribed.
- * The browser pauses it while the tab is hidden.
- */
 export const subscribeFrame = (
   listener: FrameListener,
   phase: FramePhase = "paint"
@@ -60,21 +55,15 @@ export const subscribeFrame = (
   };
 };
 
-/** One frame of a task. Return true while the task needs another frame. */
 type FrameTaskStep = (nowMs: number) => boolean;
 
 interface FrameTask {
-  /** Runs the step again from the next frame, if the task is asleep. */
   wake: () => void;
   /** Stops the task for good. A stopped task ignores `wake`. */
   stop: () => void;
 }
 
-/**
- * Runs `step` on the shared loop for as long as it returns true. When it
- * returns false the task sleeps and requests no frames until `wake()`, so a
- * settled, silent or hidden painter costs nothing. The task starts awake.
- */
+// A task that returns false sleeps and requests no frames until `wake()`, so a settled or hidden painter costs nothing.
 const createFrameTask = (step: FrameTaskStep): FrameTask => {
   let stopped = false;
   let unsubscribe: (() => void) | null = null;
@@ -107,14 +96,9 @@ const createFrameTask = (step: FrameTaskStep): FrameTask => {
   };
 };
 
-/** The longest step a painter clock takes, so waking never jumps. */
 const MAX_FRAME_GAP_MS = 100;
 
-/**
- * A clock that follows the frames but never advances more than
- * `MAX_FRAME_GAP_MS` at once. A painter that slept, or ran in a hidden tab,
- * resumes its ballistics where they were instead of jumping to the end.
- */
+// Never advances more than MAX_FRAME_GAP_MS at once, so a painter that slept resumes instead of jumping to the end.
 const createPainterClock = (): ((nowMs: number) => number) => {
   let lastMs: number | null = null;
   let clockMs = 0;

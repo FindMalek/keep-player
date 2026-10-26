@@ -1,7 +1,4 @@
-/*
- * Listen together (#65): one host plays, listeners on the same server follow. The host sends its playback state; the
- * server stamps it with its own clock so a listener can place the playhead without trusting two machines' clocks.
- */
+// The server stamps the host's state with its own clock, so listeners never trust two machines' clocks.
 
 export interface ListenSong {
   id: string;
@@ -15,17 +12,14 @@ export interface ListenSong {
 
 export interface HostState {
   song: ListenSong | null;
-  /** Seconds into the song when the state was sent. */
   position: number;
   playing: boolean;
 }
 
-/** Client → server. */
 export type ClientMessage =
   | { t: "state"; state: HostState }
   | { t: "add"; song: ListenSong }
   | { t: "skip" }
-  /** Play or pause the host: the host, or anyone in party mode when anyone can skip. */
   | { t: "toggle" }
   | { t: "setting"; anyoneCanSkip?: boolean; partyMode?: boolean }
   | { t: "end" };
@@ -35,14 +29,12 @@ export interface Member {
   host: boolean;
 }
 
-/** Server → client. `now` is the server clock in ms when the message was sent. */
 export type ServerMessage =
   | {
       t: "hello";
       code: string;
       role: "host" | "listener";
       anyoneCanSkip: boolean;
-      /** Only the host's device plays; listeners are remotes for it. */
       partyMode: boolean;
       members: Member[];
       state: HostState | null;
@@ -58,7 +50,6 @@ export type ServerMessage =
   | { t: "ended" };
 
 export const MAX_MESSAGE_BYTES = 8192;
-/** A listener corrects its playhead once it is this far (seconds) from where the host should be. */
 export const DRIFT_SECONDS = 0.25;
 
 /** Where the host's playhead is now, on the listener's own clock. `offset` is server time − local time (ms). */
@@ -72,7 +63,6 @@ export const clockOffset = (serverNow: number, localNow: number): number => serv
 
 export type Correction = { kind: "none" } | { kind: "seek"; to: number };
 
-/** Leave small differences alone (a seek is audible); seek when the gap passes `DRIFT_SECONDS`. */
 export function correction(actual: number, expected: number): Correction {
   return Math.abs(actual - expected) > DRIFT_SECONDS ? { kind: "seek", to: Math.max(0, expected) } : { kind: "none" };
 }
@@ -93,7 +83,6 @@ export const clean = (song: ListenSong): ListenSong => ({
   ...(typeof song.duration === "number" && Number.isFinite(song.duration) ? { duration: song.duration } : {}),
 });
 
-/** Parse what a client sent; null for anything malformed or oversized. Songs are trimmed to the fields we relay. */
 export function parseClientMessage(raw: string): ClientMessage | null {
   if (raw.length > MAX_MESSAGE_BYTES) return null;
   let value: unknown;

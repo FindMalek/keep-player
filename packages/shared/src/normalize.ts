@@ -1,7 +1,4 @@
-/**
- * Text as search compares it: lowercase, no accents, "&" = "and", no "feat./ft." credits, punctuation as spaces,
- * no leading "the". "Beyoncé" → "beyonce", "AC/DC" → "ac dc", "The Beatles" → "beatles", "Don't" → "dont".
- */
+/** "Beyoncé" → "beyonce", "AC/DC" → "ac dc", "The Beatles" → "beatles", "Don't" → "dont". */
 export function normalize(text: string): string {
   return text
     .normalize("NFKD")
@@ -15,7 +12,6 @@ export function normalize(text: string): string {
     .replace(/^the\s+/, "");
 }
 
-/** Overlapping 3-letter pieces of the text with its spaces removed: what the typo-tolerant match compares. */
 export function trigrams(text: string): Set<string> {
   const compact = ` ${normalize(text).replace(/\s+/g, "")} `;
   const grams = new Set<string>();
@@ -23,7 +19,6 @@ export function trigrams(text: string): Set<string> {
   return grams;
 }
 
-/** Share of the query's trigrams the candidate also has (0..1). */
 export function similarity(query: string, candidate: string): number {
   const wanted = trigrams(query);
   if (!wanted.size) return 0;
