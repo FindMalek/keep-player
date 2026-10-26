@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.8.0](https://github.com/FindMalek/keep-player/compare/v1.7.0...v1.8.0) (2026-10-26)
+
+
+### Features
+
+* **ui:** type tokens, no arbitrary values ([42abbd3](https://github.com/FindMalek/keep-player/commit/42abbd3e87a05c07f526f0db79ac624438cbb06d))
+
+
+### Bug Fixes
+
+* **player:** lookup step, unknown length ([#364](https://github.com/FindMalek/keep-player/issues/364)) ([8705c18](https://github.com/FindMalek/keep-player/commit/8705c18f5b20b7fa8cb9b523f821cfbcb8e9fd26))
+* **search:** new results start at top ([5615208](https://github.com/FindMalek/keep-player/commit/5615208dce3ddcbfece7529e6d52d6ef26891829))
+
+
+### Performance Improvements
+
+* **player:** panels open without throttle ([5964070](https://github.com/FindMalek/keep-player/commit/5964070aad33402d83d03ec3c6393bc57d0c369c))
+
 ## [1.7.0](https://github.com/FindMalek/keep-player/compare/v1.6.1...v1.7.0) (2026-10-26)
 
 
