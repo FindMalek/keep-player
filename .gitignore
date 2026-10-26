@@ -8,3 +8,5 @@ data
 .turbo
 .next
 next-env.d.ts
+.source
+apps/web/content/docs

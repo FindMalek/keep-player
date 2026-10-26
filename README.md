@@ -183,6 +183,7 @@ Setting them up together: [lyterion](docs/lyterion.md).
 
 | | |
 |---|---|
+| [start to finish](docs/start-to-finish.md) | the whole route: stack, address, music, Lyterion, every device |
 | [self-hosting](docs/self-hosting.md) | the whole stack, step by step, agent-friendly |
 | [getting started](docs/getting-started.md) | run it next to Navidrome, sign in, first run |
 | [configuration](docs/configuration.md) | every setting (generated from the code) |

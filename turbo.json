@@ -4,7 +4,15 @@
   "tasks": {
     "typecheck": {
       "dependsOn": ["^typecheck"],
-      "inputs": ["src/**", "tsconfig.json", "package.json", "../../packages/config/tsconfig.base.json"]
+      "inputs": [
+        "src/**",
+        "tsconfig.json",
+        "package.json",
+        "../../packages/config/tsconfig.base.json",
+        "scripts/**",
+        "source.config.ts",
+        "../../docs/**"
+      ]
     },
     "test": {
       "dependsOn": ["^typecheck"],
@@ -12,7 +20,17 @@
     },
     "build": {
       "dependsOn": ["^typecheck"],
-      "inputs": ["src/**", "public/**", "next.config.ts", "postcss.config.mjs", "package.json", "../../packages/ui/src/**"],
+      "inputs": [
+        "src/**",
+        "public/**",
+        "scripts/**",
+        "next.config.ts",
+        "source.config.ts",
+        "postcss.config.mjs",
+        "package.json",
+        "../../packages/ui/src/**",
+        "../../docs/**"
+      ],
       "outputs": [".next/**", "!.next/cache/**"],
       "env": ["SITE_URL"]
     },

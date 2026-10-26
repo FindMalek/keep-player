@@ -1,4 +1,5 @@
 import { fileURLToPath } from "node:url";
+import { createMDX } from "fumadocs-mdx/next";
 import type { NextConfig } from "next";
 
 const config: NextConfig = {
@@ -11,4 +12,4 @@ const config: NextConfig = {
   images: { formats: ["image/avif", "image/webp"] },
 };
 
-export default config;
+export default createMDX()(config);
