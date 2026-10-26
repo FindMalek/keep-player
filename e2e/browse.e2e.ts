@@ -30,6 +30,26 @@ test("albums: sort, list view and genre filter, remembered after a reload", asyn
   await page.evaluate(() => localStorage.removeItem("keep-player:view:albums"));
 });
 
+test("songs: sort by duration over the whole library, remembered after a reload", async ({ page, signedIn }) => {
+  await signedIn.goto("/songs");
+  const duration = page.getByRole("group", { name: "sort" }).getByRole("button", { name: "duration" });
+  await duration.click();
+  const seconds = () =>
+    page.locator("[aria-label=tracks] tbody tr[data-index] td.text-right").evaluateAll((cells) =>
+      cells.slice(0, 10).map((cell) => {
+        const [minutes = 0, rest = 0] = (cell.textContent ?? "").split(":").map(Number);
+        return minutes * 60 + rest;
+      }),
+    );
+  // The mock's longest songs (359 s) are spread over the 10k, so only a full-library sort puts ten of them first.
+  await expect.poll(seconds).toEqual(Array(10).fill(359));
+
+  await page.reload();
+  await expect(duration).toHaveAttribute("aria-pressed", "true");
+  await expect.poll(seconds).toEqual(Array(10).fill(359));
+  await page.evaluate(() => localStorage.removeItem("keep-player:view:songs"));
+});
+
 test("artist page groups albums by release type and offers a radio", async ({ page, signedIn }) => {
   // al-1 is an EP; its artist page has an EPs section.
   await signedIn.goto("/album/al-1");

@@ -37,6 +37,7 @@ export const shouldPersist = (query: Query) =>
 
 /** Long lists load this many items at a time, the next page fetched when the reader is 80% down. */
 export const PAGE_SIZE = 200;
+const ALL_SONGS_PAGE = 500;
 
 export interface IndexEntry {
   name: string;
@@ -81,6 +82,26 @@ export const queries = {
         }).then((response) => response.searchResult3.song ?? []),
       initialPageParam: 0,
       getNextPageParam: (last, _pages, offset) => (last.length === PAGE_SIZE ? offset + PAGE_SIZE : undefined),
+    }),
+  /** Every song at once, for sorts Subsonic can't do server-side (the songs page loads it only once a sort is picked). */
+  allSongs: () =>
+    queryOptions({
+      queryKey: ["allSongs"],
+      queryFn: async () => {
+        const songs: Song[] = [];
+        for (;;) {
+          const page = await api<{ searchResult3: { song?: Song[] } }>("search3", {
+            query: "",
+            songCount: ALL_SONGS_PAGE,
+            songOffset: songs.length,
+            artistCount: 0,
+            albumCount: 0,
+          }).then((response) => response.searchResult3.song ?? []);
+          // Servers may cap a page below what was asked, so only an empty page means the end.
+          if (!page.length) return songs;
+          songs.push(...page);
+        }
+      },
     }),
   /** Library size, for headers before the lists finish loading. Albums are summed from the (cached) artist index. */
   totals: () =>
