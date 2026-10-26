@@ -41,7 +41,7 @@ export function HeroSkeleton() {
   return (
     <Delayed>
       <header aria-hidden className="flex items-end gap-5 border-b px-5 pt-[18px] pb-4">
-        <Skeleton className="aspect-square w-[152px] shrink-0" />
+        <Skeleton className="aspect-square w-[152px] shrink-0 short:w-[88px]" />
         <div className="flex min-w-0 flex-1 flex-col gap-1.5">
           <Skeleton className="h-[18px] w-14" />
           <Skeleton className="h-7 w-2/5" />

@@ -217,11 +217,12 @@ export function prefetchPath(path: string): void {
 }
 
 /**
- * The home page's rows, requested as soon as we know who is signed in: the page's code is still downloading then, and
- * waiting for it to render would start the lists (and so the first covers) several hundred milliseconds later.
+ * The home page's rows (24 each, `SHELF_SIZE` in browse.tsx), requested as soon as we know who is signed in: the page's
+ * code is still downloading then, and waiting for it to render would start the lists (and so the first covers) several
+ * hundred milliseconds later.
  */
 export function prefetchHome(): void {
-  for (const type of ["newest", "recent", "frequent", "random"] as const) void queryClient.prefetchQuery(queries.albumList(type, 12));
+  for (const type of ["newest", "recent", "frequent", "random"] as const) void queryClient.prefetchQuery(queries.albumList(type, 24));
 }
 
 // Logout or a different account: forget everything the previous one loaded, in memory and on disk.

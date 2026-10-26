@@ -23,6 +23,26 @@ import type { Album, Artist, Song } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useColumns, usePageVirtualizer } from "@/lib/virtual";
 
+/** Shelves fetch this many, and show as many full rows as fit: two, or one on screens wide enough for a dozen. */
+const SHELF_SIZE = 24;
+
+/** How many cards fill whole rows at this width (cards are at least 136 px with 12 px gaps, as in `AlbumGrid`). */
+function useShelfCount(): [(element: HTMLDivElement | null) => void, number] {
+  const [count, setCount] = useState(12);
+  const ref = useCallback((element: HTMLDivElement | null) => {
+    if (!element) return;
+    const fit = () => {
+      const columns = Math.max(1, Math.floor((element.clientWidth + 12) / (136 + 12)));
+      setCount(columns * (columns >= 12 ? 1 : 2));
+    };
+    fit();
+    const observer = new ResizeObserver(fit);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+  return [ref, count];
+}
+
 /** A home row: skeleton cards while loading (so nothing below moves when it arrives), hidden only once known empty. */
 function AlbumRow({
   title,
@@ -35,6 +55,7 @@ function AlbumRow({
   action?: ReactNode;
   priority?: number;
 }) {
+  const [measure, count] = useShelfCount();
   // A failing row says so in place, with a retry; the other rows carry on.
   if (query.isError && !query.data)
     return (
@@ -52,16 +73,18 @@ function AlbumRow({
   if (!query.isPending && !query.data?.length) return null;
   return (
     <Section title={title} action={action}>
-      {query.data ? <AlbumGrid albums={query.data} priority={priority} /> : <AlbumGridSkeleton count={12} />}
+      <div ref={measure}>
+        {query.data ? <AlbumGrid albums={query.data.slice(0, count)} priority={priority} /> : <AlbumGridSkeleton count={count} />}
+      </div>
     </Section>
   );
 }
 
 export function HomePage() {
-  const newest = useQuery(queries.albumList("newest", 12));
-  const recent = useQuery(queries.albumList("recent", 12));
-  const frequent = useQuery(queries.albumList("frequent", 12));
-  const random = useQuery(queries.albumList("random", 12));
+  const newest = useQuery(queries.albumList("newest", SHELF_SIZE));
+  const recent = useQuery(queries.albumList("recent", SHELF_SIZE));
+  const frequent = useQuery(queries.albumList("frequent", SHELF_SIZE));
+  const random = useQuery(queries.albumList("random", SHELF_SIZE));
   const nothing = [newest, recent, frequent].every((query) => query.data && query.data.length === 0);
 
   return (
@@ -363,6 +386,8 @@ export function LikedPage() {
           variant="outline"
           size="sm"
           aria-label="sort"
+          // Wraps on narrow windows instead of running off the edge.
+          className="flex-wrap"
           value={[sort]}
           disabled={grouped}
           onValueChange={(value: string[]) => {
