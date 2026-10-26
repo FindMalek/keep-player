@@ -36,6 +36,14 @@
   }
 }
 
+/* The desktop behind the notch: light or dark with the page; the island itself stays black like the real notch. */
+.island-screen {
+  background: radial-gradient(120% 90% at 30% 110%, #ffffff 0%, #e4e4e4 50%, #d2d2d2 100%);
+}
+.dark .island-screen {
+  background: radial-gradient(120% 90% at 30% 110%, #3a3a3a 0%, #151515 55%, #0b0b0b 100%);
+}
+
 /* The island's level bars. */
 @keyframes island-bar {
   0%,

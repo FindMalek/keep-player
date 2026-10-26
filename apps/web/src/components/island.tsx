@@ -66,11 +66,8 @@ export function Island() {
 
   return (
     // A laptop screen's top edge with the notch in the middle, over a quiet wallpaper.
-    <div
-      className="relative mx-auto h-[230px] w-full max-w-[560px] overflow-hidden border border-b-0 sm:h-[280px]"
-      style={{ background: "radial-gradient(120% 90% at 30% 110%, #3a3a3a 0%, #151515 55%, #0b0b0b 100%)" }}
-    >
-      <div className="absolute inset-x-0 top-0 flex h-7 items-center justify-between px-3 font-mono text-[10px] text-white/60">
+    <div className="island-screen relative mx-auto h-[230px] w-full max-w-[560px] overflow-hidden border border-b-0 sm:h-[280px]">
+      <div className="absolute inset-x-0 top-0 flex h-7 items-center justify-between px-3 font-mono text-[10px] text-foreground/60">
         <span>keep music</span>
         <span>{new Date(0, 0, 1, 9, 41).toLocaleTimeString("en", { hour: "numeric", minute: "2-digit" })}</span>
       </div>
@@ -125,7 +122,7 @@ export function Island() {
           </button>
         )}
       </div>
-      <p className="absolute inset-x-0 bottom-4 text-center font-mono text-[11px] text-white/45">hover the notch</p>
+      <p className="absolute inset-x-0 bottom-4 text-center font-mono text-[11px] text-foreground/45">hover the notch</p>
     </div>
   );
 }
