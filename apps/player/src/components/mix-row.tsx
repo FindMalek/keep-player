@@ -74,6 +74,8 @@ export function MixRow() {
       input: { day, hour, tz },
       // An empty answer (no plays yet, or the index still building) is asked again on the next visit, never kept.
       staleTime: (query) => (query.state.data?.mixes.length ? 60 * 60_000 : 0),
+      // Mixes change with the day and hour (the key), not while you're in another tab.
+      refetchOnWindowFocus: false,
       select: (result) => result.mixes as Mix[],
     }),
   );
@@ -87,6 +89,22 @@ export function MixRow() {
         queryClient.setQueryData(queries.playlists().queryKey, (current?: Playlist[]) => (current ? [...current, ...created] : current));
     });
   }, [data, day, slot]);
+  // The cached list can predate the mixes being saved (playlists stay fresh for 30 s): add just the missing ones.
+  const missing = playlists && data?.filter((mix) => !playlists.some((item) => item.name === mix.name && item.owner === getUser()));
+  const missingNames = missing?.map((mix) => mix.name).join("\n") ?? "";
+  useEffect(() => {
+    if (!missingNames) return;
+    const names = missingNames.split("\n");
+    void api<{ playlists?: { playlist?: Playlist[] } }>("getPlaylists")
+      .then((response) => {
+        const found = (response.playlists?.playlist ?? []).filter((item) => names.includes(item.name) && item.owner === getUser());
+        if (!found.length) return;
+        queryClient.setQueryData(queries.playlists().queryKey, (current?: Playlist[]) =>
+          current ? [...current, ...found.filter((item) => !current.some((known) => known.id === item.id))] : current,
+        );
+      })
+      .catch(() => undefined);
+  }, [missingNames]);
   if (!data?.length) return null;
   return (
     <Section title="made for you">

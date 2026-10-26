@@ -164,15 +164,17 @@ export const queries = {
     queryOptions({
       queryKey: ["playlists"],
       queryFn: () => api<{ playlists: { playlist?: Playlist[] } }>("getPlaylists").then((response) => response.playlists.playlist ?? []),
-      // Cheap and edited from every device: painted from cache, checked again whenever it's shown anew.
-      staleTime: 0,
+      // Edited from every device: painted from cache, checked again when shown anew after 30 s. Not 0: the sidebar
+      // always shows it, so every alt-tab refetched it.
+      staleTime: 30_000,
     }),
   playlist: (id: string) =>
     queryOptions({
       queryKey: ["playlist", id],
       queryFn: () => api<{ playlist: Playlist }>("getPlaylist", { id }).then((response) => response.playlist),
-      // Edited here and on other devices: shown from cache at once, always checked when the page opens.
-      staleTime: 0,
+      // Edited here and on other devices: shown from cache at once, checked when the page opens after 30 s. Edits made
+      // here read it fresh (playlists.ts) and update the cache themselves.
+      staleTime: 30_000,
     }),
   folders: () =>
     queryOptions({
