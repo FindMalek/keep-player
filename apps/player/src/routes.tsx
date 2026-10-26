@@ -1,8 +1,12 @@
-import { lazy } from "react";
+import { type ComponentType, createElement, use } from "react";
 
 /*
  * Each page group is its own chunk, loaded on first visit and preloaded on link intent (hover / focus), so most clicks
  * open an already-loaded page. The shell, sidebar and player bar stay in the main chunk.
+ *
+ * Pages aren't React.lazy: a lazy component suspends on its first render even when its chunk is already loaded, and
+ * React then holds the reveal for its 300 ms suspense throttle, so every first visit to a page waited ~300 ms doing
+ * nothing. `page()` renders straight away once the chunk is in and only suspends when it really isn't.
  */
 const chunks = {
   browse: () => import("@/pages/browse"),
@@ -46,39 +50,67 @@ const SECTIONS: Record<string, keyof typeof chunks> = {
   song: "moments",
 };
 
+type Chunk = keyof typeof chunks;
+type Module<C extends Chunk> = Awaited<ReturnType<(typeof chunks)[C]>>;
+
+const modules = new Map<Chunk, unknown>();
+const loading = new Map<Chunk, Promise<unknown>>();
+
+/** One promise per chunk (what `use` suspends on), and the module kept once it's in. */
+function load(chunk: Chunk): Promise<unknown> {
+  let promise = loading.get(chunk);
+  if (!promise) {
+    promise = chunks[chunk]().then((module) => {
+      modules.set(chunk, module);
+      return module;
+    });
+    loading.set(chunk, promise);
+  }
+  return promise;
+}
+
+function page<C extends Chunk, K extends keyof Module<C>>(chunk: C, name: K): Module<C>[K] {
+  function Page(props: object) {
+    const module = (modules.get(chunk) ?? use(load(chunk))) as Module<C>;
+    return createElement(module[name] as ComponentType<object>, props);
+  }
+  return Page as Module<C>[K];
+}
+
 export function preloadRoute(path: string): void {
   const chunk = SECTIONS[path.split("/")[1] ?? ""];
-  if (chunk) void chunks[chunk]();
+  if (chunk) void load(chunk);
 }
 
 /** After the first page is up, fetch the remaining chunks (plus any `extra` ones) while the browser is idle. */
 export function preloadAllRoutes(extra: (() => Promise<unknown>)[] = []): void {
   const run = () => {
-    for (const load of [...Object.values(chunks), ...extra]) void load();
+    for (const chunk of Object.keys(chunks) as Chunk[]) void load(chunk);
+    for (const more of extra) void more();
   };
   if ("requestIdleCallback" in window) requestIdleCallback(run, { timeout: 3000 });
   else setTimeout(run, 1000);
 }
 
-export const HomePage = lazy(() => chunks.browse().then((module) => ({ default: module.HomePage })));
-export const AlbumsPage = lazy(() => chunks.albums().then((module) => ({ default: module.AlbumsPage })));
-export const ArtistsPage = lazy(() => chunks.browse().then((module) => ({ default: module.ArtistsPage })));
-export const SongsPage = lazy(() => chunks.browse().then((module) => ({ default: module.SongsPage })));
-export const LikedPage = lazy(() => chunks.browse().then((module) => ({ default: module.LikedPage })));
-export const GenresPage = lazy(() => chunks.browse().then((module) => ({ default: module.GenresPage })));
-export const AlbumPage = lazy(() => chunks.detail().then((module) => ({ default: module.AlbumPage })));
-export const ArtistPage = lazy(() => chunks.detail().then((module) => ({ default: module.ArtistPage })));
-export const GenrePage = lazy(() => chunks.detail().then((module) => ({ default: module.GenrePage })));
-export const PlaylistPage = lazy(() => chunks.detail().then((module) => ({ default: module.PlaylistPage })));
-export const FoldersPage = lazy(() => chunks.folders().then((module) => ({ default: module.FoldersPage })));
-export const SearchPage = lazy(() => chunks.search().then((module) => ({ default: module.SearchPage })));
-export const HistoryPage = lazy(() => chunks.history().then((module) => ({ default: module.HistoryPage })));
-export const StatsPage = lazy(() => chunks.stats().then((module) => ({ default: module.StatsPage })));
-export const LyricsPage = lazy(() => chunks.lyrics().then((module) => ({ default: module.LyricsPage })));
-export const SettingsPage = lazy(() => chunks.settings().then((module) => ({ default: module.SettingsPage })));
-export const ImportPage = lazy(() => chunks.import().then((module) => ({ default: module.ImportPage })));
-export const DoctorPage = lazy(() => chunks.doctor().then((module) => ({ default: module.DoctorPage })));
-export const UploadPage = lazy(() => chunks.upload().then((module) => ({ default: module.UploadPage })));
-export const ListenPage = lazy(() => chunks.listen().then((module) => ({ default: module.ListenPage })));
-export const MomentsPage = lazy(() => chunks.moments().then((module) => ({ default: module.MomentsPage })));
-export const SongLink = lazy(() => chunks.moments().then((module) => ({ default: module.SongLink })));
+export const HomePage = page("browse", "HomePage");
+export const AlbumsPage = page("albums", "AlbumsPage");
+export const ArtistsPage = page("browse", "ArtistsPage");
+export const SongsPage = page("browse", "SongsPage");
+export const LikedPage = page("browse", "LikedPage");
+export const GenresPage = page("browse", "GenresPage");
+export const AlbumPage = page("detail", "AlbumPage");
+export const ArtistPage = page("detail", "ArtistPage");
+export const GenrePage = page("detail", "GenrePage");
+export const PlaylistPage = page("detail", "PlaylistPage");
+export const FoldersPage = page("folders", "FoldersPage");
+export const SearchPage = page("search", "SearchPage");
+export const HistoryPage = page("history", "HistoryPage");
+export const StatsPage = page("stats", "StatsPage");
+export const LyricsPage = page("lyrics", "LyricsPage");
+export const SettingsPage = page("settings", "SettingsPage");
+export const ImportPage = page("import", "ImportPage");
+export const DoctorPage = page("doctor", "DoctorPage");
+export const UploadPage = page("upload", "UploadPage");
+export const ListenPage = page("listen", "ListenPage");
+export const MomentsPage = page("moments", "MomentsPage");
+export const SongLink = page("moments", "SongLink");

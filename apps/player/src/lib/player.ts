@@ -705,6 +705,8 @@ export const player = {
   /** End of the buffered range around the playhead, in seconds. */
   getBuffered: (): number => decks.buffered(),
   element: (): HTMLAudioElement => decks.element,
+  /** Bass-to-treble levels of what's playing right now (the macOS app's bars). */
+  levels: (): number[] | null => decks.levels(),
   /** Sleep timer: minutes from now, "track" (stop after this song), "album", or null to cancel. */
   setSleep(option: number | "track" | "album" | null): void {
     const sleep: Sleep =

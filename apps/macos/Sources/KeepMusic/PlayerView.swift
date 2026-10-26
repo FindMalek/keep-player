@@ -7,6 +7,8 @@ import WebKit
     let webView: WKWebView
     private let server: URL
     private let nowPlaying: NowPlaying
+    /// Set by the page's first message after each load: the bridge exists from then on.
+    private var pageReady = false
 
     init(server: URL, nowPlaying: NowPlaying) {
         self.server = server
@@ -24,14 +26,30 @@ import WebKit
         webView.navigationDelegate = self
         webView.uiDelegate = self
         webView.allowsBackForwardNavigationGestures = true
+        // Until the page paints, the window's own background shows (dark in dark mode) instead of a white flash.
+        webView.setValue(false, forKey: "drawsBackground")
         nowPlaying.bridge = self
+        LevelMeter.shared.bridge = self
         webView.load(URLRequest(url: server))
     }
 
     nonisolated func userContentController(_ controller: WKUserContentController, didReceive message: WKScriptMessage) {
         // WebKit calls this on the main thread.
         MainActor.assumeIsolated {
-            if let body = message.body as? [String: Any] { nowPlaying.apply(body) }
+            guard let body = message.body as? [String: Any] else { return }
+            #if DEBUG
+            if let debug = body["debug"] as? String { print("page:", debug); return }
+            if body["levels"] == nil { print("now playing:", body["title"] ?? "nil", "playing:", body["playing"] ?? "nil") }
+            #endif
+            if !pageReady {
+                pageReady = true
+                LevelMeter.shared.resync()
+            }
+            if let levels = body["levels"] as? [Double] {
+                LevelMeter.shared.push(levels)
+            } else {
+                nowPlaying.apply(body)
+            }
         }
     }
 
@@ -43,6 +61,39 @@ import WebKit
         try? await webView.callAsyncJavaScript(
             "return window.keepNative ? await window.keepNative.\(js) : null", contentWorld: .page)
     }
+
+    func webView(_ webView: WKWebView, didCommit navigation: WKNavigation!) {
+        pageReady = false
+    }
+
+    #if DEBUG
+    /// Debug builds only: `KEEP_TEST_LOGIN=user:password` signs in and starts an album, for hands-free performance runs.
+    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        guard let login = ProcessInfo.processInfo.environment["KEEP_TEST_LOGIN"], let colon = login.firstIndex(of: ":") else { return }
+        let user = String(login[..<colon]), password = String(login[login.index(after: colon)...])
+        let script = """
+        (async () => {
+          const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+          const say = (text) => webkit.messageHandlers.keep.postMessage({ debug: text });
+          const field = (label) => document.querySelector(`input[aria-label="${label}"], #${label}`) ?? [...document.querySelectorAll("label")].find((l) => l.textContent.trim() === label)?.control;
+          const fill = (el, value) => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set.call(el, value); el.dispatchEvent(new Event("input", { bubbles: true })); };
+          for (let i = 0; i < 50 && !field("username") && !document.querySelector('a[href="/albums"]'); i++) await wait(100);
+          if (field("username")) {
+            fill(field("username"), \(String(reflecting: user))); fill(field("password"), \(String(reflecting: password)));
+            [...document.querySelectorAll("button")].find((b) => b.textContent.trim() === "sign in")?.click();
+            for (let i = 0; i < 50 && !document.querySelector('a[href="/albums"]'); i++) await wait(100);
+            say("signed in: " + !!document.querySelector('a[href="/albums"]'));
+          }
+          history.pushState({}, "", "/album/al-3"); dispatchEvent(new Event("keep:navigate"));
+          for (let i = 0; i < 50 && ![...document.querySelectorAll("button")].some((b) => (b.getAttribute("aria-label") ?? b.textContent ?? "").trim() === "play"); i++) await wait(100);
+          const play = [...document.querySelectorAll("button")].find((b) => (b.getAttribute("aria-label") ?? b.textContent ?? "").trim() === "play");
+          say("play button: " + !!play + " at " + location.pathname);
+          play?.click();
+        })().catch((e) => say("error: " + e));
+        """
+        webView.evaluateJavaScript(script)
+    }
+    #endif
 
     func webView(_ webView: WKWebView, decidePolicyFor action: WKNavigationAction) async -> WKNavigationActionPolicy {
         if action.navigationType == .linkActivated, let url = action.request.url, url.host != server.host {

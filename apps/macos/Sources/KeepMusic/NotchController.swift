@@ -41,6 +41,7 @@ import SwiftUI
 
     private func update() {
         let wanted = preferences.notch && nowPlaying.hasSong && (nowPlaying.playing || preferences.notchWhilePaused)
+        LevelMeter.shared.want("island", wanted && nowPlaying.playing && notchScreen != nil)
         guard wanted, let screen = notchScreen else {
             panel?.orderOut(nil)
             state.mode = .compact

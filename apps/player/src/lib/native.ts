@@ -57,6 +57,7 @@ function upcoming(limit = 25) {
 }
 
 let started = false;
+let levelsTimer: ReturnType<typeof setInterval> | undefined;
 
 export function startNativeBridge(): void {
   const native = handler();
@@ -104,6 +105,16 @@ export function startNativeBridge(): void {
       const { queue } = player.getState();
       const entry = [...queue.upNext, ...Q.contextUpcoming(queue)].find((item) => item.uid === uid);
       if (entry) player.jumpTo(entry);
+    },
+    /** The app shows bars (the island is up): send the music's levels ~15 times a second while a song plays. */
+    levels: (on: boolean) => {
+      clearInterval(levelsTimer);
+      if (!on) return;
+      levelsTimer = setInterval(() => {
+        if (!player.getState().playing) return;
+        const levels = player.levels();
+        if (levels) native.postMessage({ levels: levels.map((level) => Math.round(level * 100) / 100) });
+      }, 66);
     },
     /** Synced lines (ms) for the song playing, or plain ones with no times. */
     lyrics: async () => {

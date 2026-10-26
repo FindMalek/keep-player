@@ -77,11 +77,13 @@ import SwiftUI
     @objc func toggleMini() {
         if let mini, mini.isVisible {
             mini.orderOut(nil)
+            LevelMeter.shared.want("mini", false)
             return
         }
         let panel = mini ?? MiniPlayer.panel(nowPlaying: nowPlaying)
         mini = panel
         panel.orderFrontRegardless()
+        LevelMeter.shared.want("mini", true)
     }
 
     @objc func changeServer() { askForServer() }

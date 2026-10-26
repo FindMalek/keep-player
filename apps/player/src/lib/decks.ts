@@ -7,7 +7,7 @@ import { BANDS, FLAT, headroom } from "./eq";
  * clicks) and the decks swap roles. The engine (player.ts) only talks songs; this module owns elements and the graph:
  *
  *   deck A ─ MediaElementSource ─ gain (ReplayGain) ─┐
- *   deck B ─ MediaElementSource ─ gain (ReplayGain) ─┴─ bus ─ 10 EQ filters ─ master (volume) ─ destination
+ *   deck B ─ MediaElementSource ─ gain (ReplayGain) ─┴─ bus ─ 10 EQ filters ─ analyser ─ master (volume) ─ destination
  *
  * With a crossfade the idle deck starts `fade` seconds early and the two gains follow equal-power curves; a manual
  * skip fades the old song out over 300 ms instead.
@@ -66,6 +66,8 @@ export class Decks {
   private readonly decks: [Deck, Deck];
   private active = 0;
   private context: AudioContext | null = null;
+  private analyser: AnalyserNode | null = null;
+  private spectrum: Uint8Array<ArrayBuffer> | null = null;
   private master: GainNode | null = null;
   /** Where both decks meet, ahead of the equalizer: takes the loudest boost off so boosted bands don't clip. */
   private bus: GainNode | null = null;
@@ -127,6 +129,23 @@ export class Decks {
     return this.playing.element;
   }
 
+  /**
+   * Four levels (0–1) from bass to treble, for bars that move with the music; null before the graph exists. Bins are
+   * 172 Hz wide (44.1 kHz / 256): bass under 350 Hz, then low mids, high mids, and treble from 4 kHz.
+   */
+  levels(): number[] | null {
+    if (!this.analyser) return null;
+    this.spectrum ??= new Uint8Array(this.analyser.frequencyBinCount);
+    this.analyser.getByteFrequencyData(this.spectrum);
+    const spectrum = this.spectrum;
+    const band = (from: number, to: number) => {
+      let sum = 0;
+      for (let i = from; i < to; i++) sum += spectrum[i] ?? 0;
+      return sum / (to - from) / 255;
+    };
+    return [band(0, 2), band(2, 6), band(6, 23), band(23, 70)];
+  }
+
   /** Builds the Web Audio graph; browsers only allow it after a user gesture, so call this from play. */
   ensureGraph(): void {
     markPlaybackSession();
@@ -146,12 +165,18 @@ export class Decks {
       });
       this.bus = bus;
       bus.connect(this.filters[0] as BiquadFilterNode);
+      // In line before the volume: it passes the sound through untouched and only costs anything when read.
+      const analyser = context.createAnalyser();
+      analyser.fftSize = 256;
+      analyser.smoothingTimeConstant = 0.55;
       this.filters
         .reduce((from, to) => {
           from.connect(to);
           return to;
         })
+        .connect(analyser)
         .connect(master);
+      this.analyser = analyser;
       for (const deck of this.decks) {
         deck.gain = context.createGain();
         context.createMediaElementSource(deck.element).connect(deck.gain).connect(bus);

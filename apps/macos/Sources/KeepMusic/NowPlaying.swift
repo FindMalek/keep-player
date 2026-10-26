@@ -1,4 +1,5 @@
 import AppKit
+import ImageIO
 import Observation
 
 struct QueueItem: Identifiable, Equatable {
@@ -50,39 +51,55 @@ struct LyricLine: Identifiable, Equatable {
         return min(duration, reported + date.timeIntervalSince(reportedAt))
     }
 
+    /// Every message carries the whole state; only what changed is written, since each write wakes the views reading it.
     func apply(_ message: [String: Any]) {
         let newID = message["id"] as? String
         if newID != id {
+            id = newID
             lyrics = []
             lyricsSynced = false
+            queue = []
         }
-        id = newID
-        title = message["title"] as? String
-        artist = message["artist"] as? String ?? ""
-        album = message["album"] as? String ?? ""
-        playing = message["playing"] as? Bool ?? false
-        liked = message["liked"] as? Bool ?? false
-        duration = message["duration"] as? Double ?? 0
+        set(\.title, message["title"] as? String)
+        set(\.artist, message["artist"] as? String ?? "")
+        set(\.album, message["album"] as? String ?? "")
+        set(\.playing, message["playing"] as? Bool ?? false)
+        set(\.liked, message["liked"] as? Bool ?? false)
+        set(\.duration, message["duration"] as? Double ?? 0)
         reported = message["position"] as? Double ?? 0
-        if let at = message["at"] as? Double {
-            reportedAt = Date(timeIntervalSince1970: at / 1000)
-        } else {
-            reportedAt = Date()
-        }
+        reportedAt = (message["at"] as? Double).map { Date(timeIntervalSince1970: $0 / 1000) } ?? Date()
         let data = message["cover"] as? String ?? ""
-        // The same cover arrives with every message: decode it once per song.
+        if data.isEmpty {
+            coverKey = ""
+            set(\.cover, nil)
+            return
+        }
+        // The same cover arrives with every message: decode it once per song, off the main thread, at the size shown.
         let key = "\(newID ?? "")|\(data.count)"
-        if key != coverKey {
-            coverKey = key
-            cover = Self.image(dataURL: data)
+        guard key != coverKey else { return }
+        coverKey = key
+        Task.detached(priority: .userInitiated) {
+            let image = Self.image(dataURL: data)
+            await MainActor.run { if self.coverKey == key { self.cover = image } }
         }
     }
 
-    private static func image(dataURL: String) -> NSImage? {
+    private func set<Value: Equatable>(_ path: ReferenceWritableKeyPath<NowPlaying, Value>, _ value: Value) {
+        if self[keyPath: path] != value { self[keyPath: path] = value }
+    }
+
+    /// Decoded straight to 128 px (the largest the island draws, at 2x): a small bitmap, not the full cover in memory.
+    nonisolated private static func image(dataURL: String) -> NSImage? {
         guard let comma = dataURL.firstIndex(of: ","),
-              let data = Data(base64Encoded: String(dataURL[dataURL.index(after: comma)...]))
+              let data = Data(base64Encoded: String(dataURL[dataURL.index(after: comma)...])),
+              let source = CGImageSourceCreateWithData(data as CFData, nil),
+              let thumbnail = CGImageSourceCreateThumbnailAtIndex(source, 0, [
+                  kCGImageSourceCreateThumbnailFromImageAlways: true,
+                  kCGImageSourceThumbnailMaxPixelSize: 128,
+                  kCGImageSourceCreateThumbnailWithTransform: true,
+              ] as CFDictionary)
         else { return nil }
-        return NSImage(data: data)
+        return NSImage(cgImage: thumbnail, size: CGSize(width: 64, height: 64))
     }
 
     // Commands, to the web player.
