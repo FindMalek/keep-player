@@ -34,6 +34,8 @@ export const apiQueries = {
           oneSession?: boolean;
           ai?: boolean;
           feedback?: boolean;
+          /** Admin, with Lyterion connected: songs can be added from a link or a name. */
+          lyterionAdd?: boolean;
         };
       },
       staleTime: Number.POSITIVE_INFINITY,

@@ -119,6 +119,7 @@ const server = Bun.serve({
     "/api/lyrics/written": { DELETE: api.lyricsWritten },
     "/api/upload": { GET: api.upload, PUT: api.upload },
     "/api/lyterion": { GET: api.lyterionSummary },
+    "/api/wishlist/:step": { POST: api.wishlist },
     "/api/lyrics/:songId": { GET: api.songLyrics },
     "/api/index": { GET: api.searchIndex, POST: api.searchIndex },
     "/api/search": { GET: api.searchLibrary },

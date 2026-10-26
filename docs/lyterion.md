@@ -8,6 +8,7 @@ folder. keep music plays what it places and talks to it in three places.
 |---|---|
 | **import** (settings → library → import from spotify) | every Spotify playlist with how much of it is in your library, a progress bar each, and the songs still missing |
 | **library doctor** | **fix** on a problem (a low-quality file, a fake FLAC) and **fix all shown** hand the songs to Lyterion's `⇪ Upgrade` playlist; it looks for a better copy and replaces the file |
+| **add a song** | ⌘K, then paste a YouTube, SoundCloud or Deezer link, or type a song name (admins only). keep music shows what it understood, Lyterion finds a good copy across its sources, checks and places it, and you can play it when it lands |
 | **playlists** | Lyterion pushes its playlists into Navidrome as normal playlists, so you can edit them in keep music (and every Subsonic app) |
 
 ## Setting them up together
