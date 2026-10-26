@@ -1,12 +1,5 @@
-import { createCn } from "cn/config";
+import { createCn } from "cn/engine";
+import tables from "./cn-tables";
 
-// The theme's own sizes, shadow and easing, so merging `text-body` with `text-muted-foreground` keeps both.
-export const cn = createCn({
-  extend: {
-    classGroups: {
-      "font-size": [{ text: ["label", "meta", "small", "body", "lead", "title"] }],
-      shadow: [{ shadow: ["float"] }],
-      ease: [{ ease: ["spring"] }],
-    },
-  },
-});
+// Tables built from theme.css (`bun run cn-tables` in packages/ui), so `text-body` merges as a size, not a color.
+export const cn = createCn(tables);

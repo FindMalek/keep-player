@@ -63,7 +63,8 @@
     "apps/macos/**",
     "**/*.d.ts",
     "**/components/ui/**",
-    "packages/ui/src/components/**"
+    "packages/ui/src/components/**",
+    "packages/ui/src/lib/cn-tables.ts"
   ],
   "overrides": [
     {
