@@ -73,3 +73,13 @@ test("neither token counts as the browser cookie", async () => {
     expect(api.apiToken(new Request("http://app/token", { method: "POST", headers })).status).toBe(401);
   }
 });
+
+test("an integration lifts a radio ban with the song id in the path", async () => {
+  const headers = { "x-keep-player": "1", cookie: `kp_session=${cookie}`, "content-type": "application/json" };
+  const call = (method: string, path: string, body?: unknown) =>
+    api.http(new Request(`http://app${path}`, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) }));
+  await call("POST", "/api/radio/bans", { song: { id: "so-1", title: "one" } });
+  const lifted = await call("DELETE", "/api/radio/bans/so-1");
+  expect(lifted.status).toBe(200);
+  expect(await lifted.json()).toEqual({ songs: [] });
+});

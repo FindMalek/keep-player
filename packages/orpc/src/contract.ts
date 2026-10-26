@@ -210,7 +210,7 @@ export const contract = {
       .input(z.object({ song: songRef }))
       .output(bansSchema),
     unban: oc
-      .route({ method: "DELETE", path: "/radio/bans", summary: "Let a song back into radios", tags: ["Radio"] })
+      .route({ method: "DELETE", path: "/radio/bans/{id}", summary: "Let a song back into radios", tags: ["Radio"] })
       .input(z.object({ id: z.string().min(1) }))
       .output(bansSchema),
   },
