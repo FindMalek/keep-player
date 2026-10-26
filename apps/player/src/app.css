@@ -5,6 +5,8 @@
 @source "../../../packages/ui/src";
 
 @custom-variant dark (&:is(.dark *));
+/* Short windows (the mac app made small, a laptop with the dock up): headers get compact. */
+@custom-variant short (@media (max-height: 560px));
 
 @theme inline {
   --font-sans: "IBM Plex Sans Variable", ui-sans-serif, system-ui, sans-serif;

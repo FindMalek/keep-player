@@ -73,14 +73,16 @@ function Hero({
   backdrop?: ReactNode;
 }) {
   return (
-    <header className="relative isolate flex flex-wrap items-start gap-x-5 sm:items-end gap-y-3 border-b px-5 pt-[18px] pb-4">
+    <header className="relative isolate flex flex-wrap items-start gap-x-5 gap-y-3 border-b px-5 pt-[18px] pb-4 sm:items-end short:py-3">
       {backdrop && <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden opacity-20">{backdrop}</div>}
       <div className="shrink-0">
-        <Cover id={cover} size={160} className="w-[104px] sm:w-[152px]" priority />
+        <Cover id={cover} size={160} className="w-[104px] sm:w-[152px] short:w-[88px]" priority />
       </div>
       <div className="flex min-w-0 flex-1 basis-56 flex-col gap-1.5">
-        <div className="self-start">{kind}</div>
-        <h1 className="font-medium text-[26px] leading-[1.1] tracking-tight [overflow-wrap:anywhere]">{titleSlot ?? title}</h1>
+        <div className="self-start short:hidden">{kind}</div>
+        <h1 className="font-medium text-[26px] leading-[1.1] tracking-tight [overflow-wrap:anywhere] short:text-xl">
+          {titleSlot ?? title}
+        </h1>
         <div className="flex flex-col gap-0.5">{children}</div>
         <div className="mt-1 flex flex-wrap gap-1.5">
           <Button onClick={onPlay}>play</Button>
