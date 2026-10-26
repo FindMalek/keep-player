@@ -3,6 +3,7 @@ import { MAX_DEVICE_MESSAGE_BYTES } from "@keep/shared/devices";
 import { LEVELS_WORKLET_SOURCE } from "@keep/shared/levels-worklet";
 import { createApi } from "./api";
 import { LyricsBackfill, serviceAccount } from "./backfill";
+import { compressed } from "./compress";
 import { config } from "./config";
 import { CoverCache } from "./covers";
 import { openLibraryDb } from "./db";
@@ -84,7 +85,7 @@ const server = Bun.serve({
   // Uploads are one file per request; a long hi-res track is over Bun's 128 MB default.
   maxRequestBodySize: MAX_UPLOAD_BYTES,
   websocket: { ...api.sockets, maxPayloadLength: MAX_DEVICE_MESSAGE_BYTES },
-  routes: {
+  routes: compressed({
     // Liveness (the container's healthcheck): the process answers. Readiness, with Navidrome: /api/health.
     "/healthz": () => new Response("ok"),
     "/worklets/levels.js": () =>
@@ -93,7 +94,7 @@ const server = Bun.serve({
     "/api/rpc/*": api.rpc,
     "/api": api.http,
     "/api/*": api.http,
-    "/auth/login": { POST: (request, srv) => api.login(request, srv) },
+    "/auth/login": { POST: api.login },
     "/auth/logout": { POST: api.logout },
     "/auth/session": { GET: api.current },
     "/auth/sessions": { GET: api.listSessions },
@@ -101,8 +102,8 @@ const server = Bun.serve({
     "/rest/*": api.proxy,
     "/cover/:id/:size": api.cover,
     "/api/listen": { POST: api.listenCreate },
-    "/api/listen/:code": { GET: (request, srv) => api.listenSocket(request, srv) },
-    "/api/devices": { GET: (request, srv) => api.devicesSocket(request, srv) },
+    "/api/listen/:code": { GET: api.listenSocket },
+    "/api/devices": { GET: api.devicesSocket },
     "/api/remote/token": { POST: api.remoteToken },
     "/api/ai/playlist": { POST: api.aiPlaylist },
     "/api/feedback": { POST: api.sendFeedback },
@@ -132,7 +133,7 @@ const server = Bun.serve({
     "/fonts/:name": font,
     ...pwaRoutes,
     ...webRoutes,
-  },
+  }),
 });
 
 console.log(

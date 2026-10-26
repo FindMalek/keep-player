@@ -90,6 +90,7 @@ test("a preview is deployed, tied to the demo navidrome, and one sticky comment 
   expect(comments[0]?.body).toContain("<!-- keep-player-preview -->");
   expect(comments[0]?.body).toContain("✅ Ready");
   expect(comments[0]?.body).toContain("[Visit Preview](https://player-pr-7.preview.example.test)");
+  expect(comments[0]?.body).toContain("[API reference](https://player-pr-7.preview.example.test/api)");
 });
 
 test("a second push edits the same comment instead of adding one", async () => {
