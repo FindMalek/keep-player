@@ -25,7 +25,7 @@ export default async function Page({ params }: Props) {
       <div className="flex flex-wrap items-center gap-2 border-b pb-6">
         <MarkdownCopyButton markdownUrl={markdownUrl(page.url)} />
         <ViewOptionsPopover markdownUrl={markdownUrl(page.url)} githubUrl={`${REPO}/blob/main/${page.data.source}`} />
-        {updated && <span className="ml-auto font-mono text-fd-muted-foreground text-xs">updated {DATE.format(new Date(updated))}</span>}
+        {updated && <span className="ml-auto font-mono text-muted-foreground text-xs">updated {DATE.format(new Date(updated))}</span>}
       </div>
       <DocsBody>
         <Body components={defaultMdxComponents} />
