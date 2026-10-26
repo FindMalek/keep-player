@@ -371,8 +371,3 @@ export function setShuffle(queue: Queue, shuffle: boolean, random: Random = Math
   const current = queue.current?.from === "context" ? { ...queue.current, orderIndex: at } : queue.current;
   return { ...queue, shuffle, current, context: { ...queue.context, order: natural, cursor: at } };
 }
-
-/** Everything in play order: history, current, your queue, then the context. */
-export function flatten(queue: Queue): Entry[] {
-  return [...queue.history, ...(queue.current ? [queue.current] : []), ...queue.upNext, ...contextUpcoming(queue)];
-}

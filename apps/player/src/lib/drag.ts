@@ -18,7 +18,7 @@ export const leftTarget = (event: { currentTarget: EventTarget; relatedTarget: E
  * rows, cards and queue entries are drag sources; playlists in the sidebar, the queue panel and the player bar are drop
  * targets. What's being dragged lives here, in this tab; the custom type only marks the drag as ours.
  */
-export const DRAG_TYPE = "application/x-keep-music";
+const DRAG_TYPE = "application/x-keep-music";
 
 interface Dragging {
   target: MenuTarget;

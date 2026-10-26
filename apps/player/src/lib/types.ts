@@ -1,4 +1,4 @@
-export interface ReplayGain {
+interface ReplayGain {
   trackGain?: number;
   albumGain?: number;
   trackPeak?: number;
@@ -95,7 +95,7 @@ export interface Genre {
   albumCount: number;
 }
 
-export interface DirectoryChild extends Song {
+interface DirectoryChild extends Song {
   isDir: boolean;
   parent?: string;
 }

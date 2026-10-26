@@ -62,7 +62,3 @@ export function matchTrack(db: Database, server: string, folders: string[] | nul
   if (!best || best.confidence < REVIEW_FROM - 0.25) return { best: null, alternatives: [] };
   return { best: best.confidence >= REVIEW_FROM ? best : null, alternatives: (best.confidence >= REVIEW_FROM ? rest : scored).slice(0, 4) };
 }
-
-export function matchTracks(db: Database, server: string, folders: string[] | null, tracks: ImportTrack[]): ImportMatch[] {
-  return tracks.map((track) => matchTrack(db, server, folders, track));
-}

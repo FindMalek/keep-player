@@ -9,14 +9,14 @@ export interface Upstream {
   url: string;
 }
 
-export interface Setting {
+interface Setting {
   name: string;
   /** Shown in the docs; also the value used when the variable is unset. */
   fallback: string;
   description: string;
 }
 
-export const SETTINGS = [
+const SETTINGS = [
   {
     name: "NAVIDROME_URL",
     fallback: "http://navidrome:4533",

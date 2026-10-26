@@ -13,7 +13,7 @@ const USER_KEY = "keep-player:user";
 const ACCOUNT_KEY = "keep-player:account";
 /** Must match the server's CSRF check (apps/api/src/api.ts). */
 /** A stable id for this browser: its Subsonic client name is `keep-player@<id>` (see queue-sync). */
-export const CLIENT_ID = (() => {
+const CLIENT_ID = (() => {
   try {
     let id = localStorage.getItem("keep-player:client");
     if (!id) {
@@ -29,7 +29,7 @@ export const CLIENT_NAME = `keep-player@${CLIENT_ID}`;
 
 export const HEADERS = { "x-keep-player": "1", "x-keep-client": CLIENT_ID };
 
-export class ApiError extends Error {
+class ApiError extends Error {
   constructor(
     public readonly code: number,
     message: string,

@@ -12,7 +12,7 @@ import { dirname, isAbsolute, join, normalize, relative, sep } from "node:path";
  * there. Every write is logged with a hash of what was written, so "undo" removes only files nobody changed since.
  */
 
-export interface Written {
+interface Written {
   path: string;
   hash: string;
 }

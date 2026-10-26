@@ -60,7 +60,7 @@ export const wishlist = {
 };
 
 /** The song once Navidrome has scanned it in, matched the way the search index would. */
-export async function findAdded(meta: Pick<WishPreview, "title" | "artists">): Promise<Song | null> {
+async function findAdded(meta: Pick<WishPreview, "title" | "artists">): Promise<Song | null> {
   const query = `${meta.artists[0] ?? ""} ${meta.title}`.trim();
   const response = await fetch(`/api/search?${new URLSearchParams({ q: query, limit: "5" })}`, { headers: HEADERS });
   if (!response.ok) return null;

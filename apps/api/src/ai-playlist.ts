@@ -58,7 +58,7 @@ export function libraryArtists(db: Database, server: string, account: string): {
 const yearOf = (song: Song) => (typeof song.year === "number" && song.year > 0 ? song.year : null);
 
 /** One line per artist for the model: the ones you play most first, then the biggest. */
-export function catalog(artists: Map<string, Artist>, limit = MAX_CATALOG): string {
+function catalog(artists: Map<string, Artist>, limit = MAX_CATALOG): string {
   return [...artists.values()]
     .sort((a, b) => b.plays - a.plays || b.songs.length - a.songs.length)
     .slice(0, limit)

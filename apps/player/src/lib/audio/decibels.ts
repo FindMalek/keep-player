@@ -1,8 +1,8 @@
-export const DEFAULT_MIN_DB = -60;
+const DEFAULT_MIN_DB = -60;
 /** Default top of a meter's range, in dBFS. */
-export const DEFAULT_MAX_DB = 0;
+const DEFAULT_MAX_DB = 0;
 /** Digital silence. */
-export const SILENCE_DB = Number.NEGATIVE_INFINITY;
+const SILENCE_DB = Number.NEGATIVE_INFINITY;
 
 const AMPLITUDE_DB_FACTOR = 20;
 const MINUS_SIGN = "−";
@@ -28,7 +28,7 @@ export const gainToDb = (gain: number): number => {
 };
 
 /** dBFS to a 0..1 level, linear in dB over `minDb..maxDb`, clamped. */
-export const dbToLevel = (
+const dbToLevel = (
   db: number,
   minDb: number = DEFAULT_MIN_DB,
   maxDb: number = DEFAULT_MAX_DB
@@ -40,7 +40,7 @@ export const dbToLevel = (
 };
 
 /** A 0..1 level back to dBFS over `minDb..maxDb`. The inverse of `dbToLevel`. */
-export const levelToDb = (
+const levelToDb = (
   level: number,
   minDb: number = DEFAULT_MIN_DB,
   maxDb: number = DEFAULT_MAX_DB
@@ -50,7 +50,7 @@ export const levelToDb = (
  * Clamps a dB value to a range. With `allowSilence`, `-Infinity` passes
  * through instead of becoming `minDb`.
  */
-export const clampDb = (
+const clampDb = (
   db: number,
   minDb: number,
   maxDb: number,
@@ -65,7 +65,7 @@ export const clampDb = (
   return clamp(db, minDb, maxDb);
 };
 
-export interface FormatDbOptions {
+interface FormatDbOptions {
   /** Digits after the decimal point. Default 1. */
   decimals?: number;
   /** Append " dB". Default true. */
@@ -80,7 +80,7 @@ export interface FormatDbOptions {
 }
 
 /** Formats decibels for display: "−12.3 dB", "+3.0 dB", "−∞ dB". */
-export const formatDb = (db: number, options: FormatDbOptions = {}): string => {
+const formatDb = (db: number, options: FormatDbOptions = {}): string => {
   const {
     decimals = 1,
     unit = true,
@@ -113,7 +113,7 @@ export const formatDb = (db: number, options: FormatDbOptions = {}): string => {
 };
 
 /** Sample peak of a block of samples, in dBFS. */
-export const peakDb = (samples: Iterable<number>): number => {
+const peakDb = (samples: Iterable<number>): number => {
   let peak = 0;
   for (const sample of samples) {
     const magnitude = Math.abs(sample);
@@ -125,7 +125,7 @@ export const peakDb = (samples: Iterable<number>): number => {
 };
 
 /** RMS level of a block of samples, in dBFS. */
-export const rmsDb = (samples: Iterable<number>): number => {
+const rmsDb = (samples: Iterable<number>): number => {
   let sumOfSquares = 0;
   let count = 0;
   for (const sample of samples) {

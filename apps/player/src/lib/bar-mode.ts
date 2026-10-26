@@ -7,9 +7,9 @@ import { useSyncExternalStore } from "react";
  */
 export type BarMode = "full" | "laptop" | "compact" | "mobile";
 
-export const FULL_FROM = 1600;
-export const LAPTOP_FROM = 1000;
-export const COMPACT_FROM = 640;
+const FULL_FROM = 1600;
+const LAPTOP_FROM = 1000;
+const COMPACT_FROM = 640;
 
 export function barModeFor(width: number): BarMode {
   return width >= FULL_FROM ? "full" : width >= LAPTOP_FROM ? "laptop" : width >= COMPACT_FROM ? "compact" : "mobile";

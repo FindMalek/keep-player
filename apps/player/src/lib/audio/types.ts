@@ -1,4 +1,4 @@
-export interface ChannelLevel {
+interface ChannelLevel {
   /** Sample peak in dBFS. `-Infinity` is digital silence. */
   peakDb: number;
   /** RMS level in dBFS, when the source measures it. */
@@ -6,12 +6,12 @@ export interface ChannelLevel {
 }
 
 /** One metering update: one entry per channel (1 = mono, 2 = stereo). */
-export interface MeterFrame {
+interface MeterFrame {
   channels: ChannelLevel[];
 }
 
 /** One visualisation update from an analyser. */
-export interface VisualFrame {
+interface VisualFrame {
   /** Frequency bands, 0..1 each, low to high. */
   bands: Float32Array;
   /** Ring buffer of recent broadband levels, 0..1 each. */
@@ -37,7 +37,7 @@ export interface FrameSource<T> {
   subscribe: (listener: (frame: T) => void) => () => void;
 }
 
-export type MeterZoneName = "ok" | "warn" | "clip";
+type MeterZoneName = "ok" | "warn" | "clip";
 
 /** A colour zone of a meter, starting at `fromDb` and running to the next zone. */
 export interface MeterZone {
@@ -46,7 +46,7 @@ export interface MeterZone {
 }
 
 /** Maps a value (usually dB) to a 0..1 position on a control, and back. */
-export interface Taper {
+interface Taper {
   toPosition: (value: number) => number;
   toValue: (position: number) => number;
 }

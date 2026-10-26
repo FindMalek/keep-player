@@ -72,12 +72,10 @@ export function done(action: Undoable): void {
   notify({ message: action.label, action: { label: "undo", onClick: () => void undo(action) } });
 }
 
-/** For tests and sign-out: a new account starts with an empty history. */
-export function clearHistory(): void {
+/** A new account starts with an empty history. */
+function clearHistory(): void {
   past.length = 0;
   future.length = 0;
 }
 
 onAccountChange(clearHistory);
-
-export const history = { past: () => [...past], future: () => [...future] };

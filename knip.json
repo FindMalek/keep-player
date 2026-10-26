@@ -1,0 +1,16 @@
+{
+  "$schema": "https://unpkg.com/knip@6.41.0/schema.json",
+  "ignoreFiles": ["integrations/**"],
+  "ignoreIssues": {
+    "apps/player/src/components/ui/**": ["exports", "types"],
+    "packages/ui/src/components/**": ["exports", "types"]
+  },
+  "workspaces": {
+    ".": {
+      "entry": ["scripts/**/*.ts"]
+    },
+    "apps/player": {
+      "entry": ["src/main.tsx", "src/app.css"]
+    }
+  }
+}

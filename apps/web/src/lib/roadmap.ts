@@ -9,7 +9,7 @@ export interface Item {
   url: string;
 }
 
-export interface Release {
+interface Release {
   tag: string;
   date: string;
   url: string;

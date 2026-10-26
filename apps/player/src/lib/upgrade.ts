@@ -4,7 +4,7 @@ import { api } from "./subsonic";
 import type { Playlist } from "./types";
 
 /** Lyterion's editable playlist: a song added there gets re-searched for a better copy, tags and cover included. */
-export const UPGRADE_PLAYLIST = "⇪ Upgrade";
+const UPGRADE_PLAYLIST = "⇪ Upgrade";
 
 export function upgradePlaylist(playlists: Playlist[] | undefined): Playlist | undefined {
   return playlists?.find((playlist) => playlist.name === UPGRADE_PLAYLIST);

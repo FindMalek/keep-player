@@ -33,7 +33,7 @@ export interface Mix {
 }
 
 /** Parts of the day for the daylist, by local hour. */
-export const SLOTS = [
+const SLOTS = [
   ["morning", 5, 12],
   ["afternoon", 12, 17],
   ["evening", 17, 22],
@@ -48,9 +48,9 @@ export function slotOf(hour: number): Slot {
 
 const WEEKDAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
 /** Day 0 (1970-01-01) was a Thursday. */
-export const weekdayOf = (day: number) => (day + 4) % 7;
+const weekdayOf = (day: number) => (day + 4) % 7;
 /** The last Friday on or before `day`: Discover Weekly turns over then. */
-export const lastFriday = (day: number) => day - ((weekdayOf(day) - 5 + 7) % 7);
+const lastFriday = (day: number) => day - ((weekdayOf(day) - 5 + 7) % 7);
 
 /** A small seeded PRNG, so a day's mixes are the same on every device and every reload. */
 export function seeded(seed: string): () => number {

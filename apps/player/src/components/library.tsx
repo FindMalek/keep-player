@@ -68,7 +68,7 @@ export function EmptyState({ children }: { children: ReactNode }) {
   );
 }
 
-export async function playAlbum(id: string, shuffle = false): Promise<void> {
+async function playAlbum(id: string, shuffle = false): Promise<void> {
   const { album } = await api<{ album: Album }>("getAlbum", { id });
   player.play(album.song ?? [], shuffle ? -1 : 0, {
     album: true,
