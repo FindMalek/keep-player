@@ -1,32 +1,42 @@
-/** One row of a top list: a song, artist, album or genre, with counted plays (skips excluded) and minutes. */
-export interface StatItem {
-  id: string;
-  name: string;
-  plays: number;
-  minutes: number;
-  /** The artist, for songs and albums. */
-  detail?: string;
-  /** Songs only: the song as it was played, to play it again. */
-  song?: { id: string } & Record<string, unknown>;
-}
+import { z } from "zod";
+import { songSchema } from "./library";
 
-/** `/api/stats?from=&to=&tz=`: your listening in a range. */
-export interface ListeningStats {
-  from: number;
-  to: number;
-  minutes: number;
+/** One row of a top list: a song, artist, album or genre, with counted plays (skips excluded) and minutes. */
+export const statItemSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  plays: z.number(),
+  minutes: z.number(),
+  /** The artist, for songs and albums. */
+  detail: z.string().optional(),
+  /** Songs only: the song as it was played, to play it again. */
+  song: songSchema.optional(),
+});
+export type StatItem = z.infer<typeof statItemSchema>;
+
+/** Your listening in a range. */
+export const listeningStatsSchema = z.object({
+  from: z.number(),
+  to: z.number(),
+  minutes: z.number(),
   /** Counted plays (not skips). */
-  plays: number;
-  skips: number;
+  plays: z.number(),
+  skips: z.number(),
   /** Different songs played. */
-  songs: number;
+  songs: z.number(),
   /** Of those, first heard in this range vs heard before it. */
-  discovery: { fresh: number; familiar: number };
+  discovery: z.object({ fresh: z.number(), familiar: z.number() }),
   /** Days in a row with a play, all time. */
-  streaks: { current: number; longest: number };
-  top: { songs: StatItem[]; artists: StatItem[]; albums: StatItem[]; genres: StatItem[] };
+  streaks: z.object({ current: z.number(), longest: z.number() }),
+  top: z.object({
+    songs: z.array(statItemSchema),
+    artists: z.array(statItemSchema),
+    albums: z.array(statItemSchema),
+    genres: z.array(statItemSchema),
+  }),
   /** Minutes by weekday (0 = Sunday) × hour, local time. */
-  clock: number[][];
+  clock: z.array(z.array(z.number())),
   /** Minutes per local day (YYYY-MM-DD) across the range. */
-  days: { day: string; minutes: number }[];
-}
+  days: z.array(z.object({ day: z.string(), minutes: z.number() })),
+});
+export type ListeningStats = z.infer<typeof listeningStatsSchema>;

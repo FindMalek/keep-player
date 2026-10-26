@@ -1,0 +1,22 @@
+{
+  "name": "@keep/orpc",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./client": "./src/client.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p ."
+  },
+  "dependencies": {
+    "@keep/shared": "workspace:*",
+    "@orpc/client": "1.15.6",
+    "@orpc/contract": "1.15.6",
+    "zod": "4.6.6"
+  },
+  "devDependencies": {
+    "@keep/config": "workspace:*"
+  }
+}

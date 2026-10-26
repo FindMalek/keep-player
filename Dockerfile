@@ -10,6 +10,7 @@ COPY apps/api/package.json apps/api/
 COPY packages/shared/package.json packages/shared/
 COPY packages/config/package.json packages/config/
 COPY packages/ui/package.json packages/ui/
+COPY packages/orpc/package.json packages/orpc/
 RUN bun install --frozen-lockfile
 COPY . .
 RUN BUN_TARGET="bun-linux-$([ "$TARGETARCH" = arm64 ] && echo arm64 || echo x64)-musl" bun scripts/build.ts

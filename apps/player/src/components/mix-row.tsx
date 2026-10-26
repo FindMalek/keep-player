@@ -7,7 +7,8 @@ import { Section } from "@/components/library";
 import { Link } from "@/components/link";
 import { player } from "@/lib/player";
 import { queries, queryClient } from "@/lib/queries";
-import { api, getUser, HEADERS } from "@/lib/subsonic";
+import { rpc } from "@/lib/rpc";
+import { api, getUser } from "@/lib/subsonic";
 import type { Playlist, Song } from "@/lib/types";
 
 interface Mix {
@@ -68,16 +69,14 @@ async function saveAsPlaylists(stamp: string, mixes: Mix[]): Promise<Playlist[]>
 /** "made for you": daily mixes, Discover Weekly and the daylist on the home page; each card opens its playlist. */
 export function MixRow() {
   const { day, hour, tz, slot } = now();
-  const { data } = useQuery({
-    queryKey: ["mixes", day, slot],
-    queryFn: async () => {
-      const params = new URLSearchParams({ day: String(day), hour: String(hour), tz: String(tz) });
-      const response = await fetch(`/api/mixes?${params}`, { headers: HEADERS });
-      return response.ok ? ((await response.json()) as { mixes: Mix[] }).mixes : [];
-    },
-    // An empty answer (no plays yet, or the index still building) is asked again on the next visit, never kept.
-    staleTime: (query) => (query.state.data?.length ? 60 * 60_000 : 0),
-  });
+  const { data } = useQuery(
+    rpc.mixes.queryOptions({
+      input: { day, hour, tz },
+      // An empty answer (no plays yet, or the index still building) is asked again on the next visit, never kept.
+      staleTime: (query) => (query.state.data?.mixes.length ? 60 * 60_000 : 0),
+      select: (result) => result.mixes as Mix[],
+    }),
+  );
   // Read what the sidebar already has: mounting must not refetch it (that would bring back a playlist mid-undo).
   const playlists = useQuery({ ...queries.playlists(), refetchOnMount: false }).data;
   useEffect(() => {

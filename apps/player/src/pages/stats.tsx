@@ -15,6 +15,7 @@ import { plural } from "@/lib/format";
 import { player } from "@/lib/player";
 import { createPlaylist } from "@/lib/playlists";
 import { go } from "@/lib/router";
+import { rpc } from "@/lib/rpc";
 import { api, getUser, HEADERS } from "@/lib/subsonic";
 import type { Song } from "@/lib/types";
 
@@ -145,15 +146,9 @@ export function StatsPage() {
   const from = range === "custom" ? custom.from : today - (days - 1) * DAY;
   const to = range === "custom" ? custom.to + DAY : today + DAY;
   const stats = useQuery(statsQuery(from, to));
-  const forgotten = useQuery({
-    queryKey: ["forgotten"],
-    queryFn: async (): Promise<Song[]> => {
-      const response = await fetch("/api/stats/forgotten?days=60", { headers: HEADERS });
-      if (!response.ok) throw new Error(`forgotten: ${response.status}`);
-      return ((await response.json()) as { songs: Song[] }).songs;
-    },
-    staleTime: 60_000,
-  });
+  const forgotten = useQuery(
+    rpc.stats.forgotten.queryOptions({ input: { days: 60 }, staleTime: 60_000, select: (result) => result.songs as Song[] }),
+  );
   const scrobbling = useQuery({
     queryKey: ["scrobbling"],
     queryFn: async () =>

@@ -12,5 +12,8 @@
   },
   "devDependencies": {
     "@keep/config": "workspace:*"
+  },
+  "dependencies": {
+    "zod": "4.6.6"
   }
 }
