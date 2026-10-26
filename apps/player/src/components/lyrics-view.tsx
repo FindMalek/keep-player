@@ -80,10 +80,12 @@ const Line = memo(function Line({
         type="button"
         title={`${clock((line.start + offset) / 1000)} · click to play from here`}
         className={cn(
-          "flex-1 text-left hover:text-foreground",
-          // The line being sung stands out; what's been sung and what's coming are equally quiet around it.
-          state !== "active" && "text-faint",
-          state === "active" && "font-semibold text-foreground",
+          // One weight for every line: a bolder active line rewraps as it moves and makes the lines around it jump.
+          // It stands out by opacity and size instead (a transform, so nothing reflows); what's coming reads clearer
+          // than what's been sung; 60% still clears 4.5:1 contrast in both themes.
+          "flex-1 origin-left text-left text-foreground transition-[opacity,transform] duration-300 ease-out hover:opacity-100 motion-reduce:transition-none",
+          state === "future" && "scale-[0.97] opacity-80",
+          state === "past" && "scale-[0.97] opacity-60",
         )}
         onClick={() => player.seek((line.start + offset) / 1000)}
       >
@@ -182,9 +184,15 @@ export function LyricsView({ song, size }: { song: Song; size: Size }) {
     clearTimeout(resume.current);
     resume.current = setTimeout(() => setFollowing(true), RESUME_SCROLL_MS);
   };
+  // The first jump (opening mid-song) is instant, then it glides from line to line.
+  const placed = useRef(false);
   // biome-ignore lint/correctness/useExhaustiveDependencies: scroll when the line or following changes
   useEffect(() => {
-    if (following) activeElement.current?.scrollIntoView({ block: "center" });
+    const element = activeElement.current;
+    if (!following || !element) return;
+    const smooth = placed.current && !matchMedia("(prefers-reduced-motion: reduce)").matches;
+    element.scrollIntoView({ block: "center", behavior: smooth ? "smooth" : "instant" });
+    placed.current = true;
   }, [active, following]);
 
   if (isPending) return <LoadingLines />;
@@ -215,7 +223,8 @@ export function LyricsView({ song, size }: { song: Song; size: Size }) {
       </div>
     );
 
-  const text = size === "full" ? "text-4xl leading-[1.25] gap-6" : "text-xl leading-[1.3] gap-3";
+  const panelFades = Boolean(synced) && size === "panel";
+  const text = size === "full" ? "text-4xl leading-[1.2] gap-7" : "text-lg leading-snug gap-4";
   return (
     <div className="relative flex flex-col">
       <div className="flex items-center gap-1.5 px-2 pt-2">
@@ -249,7 +258,15 @@ export function LyricsView({ song, size }: { song: Song; size: Size }) {
           </Hint>
         ) : null}
       </div>
-      <div className={cn("flex flex-col px-2 py-3 font-medium tracking-tight", text)} onWheel={userScrolled} onTouchMove={userScrolled}>
+      {/* In the panel, lines fade out under the top edge and above the footer instead of being cut off (full screen
+          masks its scroller instead: its aura shows through, so a solid fade would show as a band). */}
+      {panelFades && <div aria-hidden className="pointer-events-none sticky top-0 z-10 -mb-10 h-10 bg-linear-to-b from-background" />}
+      <div
+        // Room under the last line so it can still reach the middle. Plain lyrics are all "active", so lighter.
+        className={cn("flex flex-col px-2 py-3 tracking-tight", synced ? "pb-[30vh] font-semibold" : "font-medium", text)}
+        onWheel={userScrolled}
+        onTouchMove={userScrolled}
+      >
         {lyrics.lines.map((line, index) => (
           <Line
             // Lines repeat (choruses), so the position is the identity.
@@ -265,8 +282,16 @@ export function LyricsView({ song, size }: { song: Song; size: Size }) {
           />
         ))}
       </div>
+      {panelFades && <div aria-hidden className="pointer-events-none sticky bottom-8 z-10 -mt-12 h-12 bg-linear-to-t from-background" />}
       {synced && (
-        <footer className="sticky bottom-0 flex flex-wrap items-center gap-x-3 gap-y-1 border-t bg-background/95 px-2 py-1.5 font-mono text-[11px] text-muted-foreground">
+        <footer
+          className={cn(
+            "z-10",
+            // Full screen: after the last line, so nothing solid sits over the aura.
+            panelFades && "sticky bottom-0 bg-background",
+            "flex flex-wrap items-center gap-x-3 gap-y-1 border-t px-2 py-1.5 font-mono text-[11px] text-muted-foreground",
+          )}
+        >
           <span className="flex items-center gap-1">
             timing <KeyCombo binding="[" /> <KeyCombo binding="]" />{" "}
             {offset ? `${offset > 0 ? "+" : ""}${(offset / 1000).toFixed(2)} s` : ""}
@@ -287,7 +312,8 @@ export function LyricsView({ song, size }: { song: Song; size: Size }) {
         <Button
           size="sm"
           variant="outline"
-          className="sticky bottom-10 mx-auto bg-background"
+          // Above the fades: full screen fades its bottom 15%.
+          className={cn("sticky z-20 mx-auto bg-background", panelFades ? "bottom-10" : "bottom-[18%]")}
           onClick={() => {
             clearTimeout(resume.current);
             setFollowing(true);
