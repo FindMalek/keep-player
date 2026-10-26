@@ -14,15 +14,12 @@ import type { DeviceHub, DevicePeer } from "./devices";
 import { libraryItems } from "./doctor";
 import { type FeedbackTarget, fileFeedback, MAX_SCREENSHOT_BYTES } from "./feedback";
 import { UpdateCheck } from "./health";
-import { type NewPlay, readPlays, recordPlay } from "./history";
 import { matchTrack } from "./import-match";
 import { ListenRooms, type Peer } from "./listen";
 import type { LyricsService } from "./lyrics";
 import { forgetMisses, lyricsCoverageReport, missingLyrics } from "./lyrics-coverage";
 import { lyricsCoverage, queryLyrics } from "./lyrics-search";
-import { addMoment, deleteMoment, listMoments, momentNotes, updateMoment } from "./moments";
-import { changeAlbum, changeSong, readPrefs } from "./prefs";
-import { ban, listBans, unban } from "./radio";
+import { momentNotes } from "./moments";
 import type { LoginLimiter } from "./rate-limit";
 import { latestFor, lineAt, NOTHING, type NowPlayingEntry, type RemoteNow, remoteSong } from "./remote";
 import { createRpc } from "./rpc";
@@ -222,7 +219,7 @@ export function createApi({
     return folders;
   }
 
-  const rpcHandler = createRpc({ library, updates, groq, fetcher, upstreamFor, foldersFor, cache });
+  const rpcHandler = createRpc({ library, updates, groq, fetcher, upstreamFor, foldersFor, cache, lyrics });
 
   const secured = (response: Response) => {
     for (const [name, value] of Object.entries(SECURITY_HEADERS)) response.headers.set(name, value);
@@ -456,19 +453,6 @@ export function createApi({
     if (!upstream) return json({ error: "server removed from config" }, 401);
     const result = await lyrics.get(upstream, session, request.params.songId);
     return json(result, 200, { "cache-control": "private, no-cache" });
-  }
-
-  /** `/api/lyrics/:songId/offset`: this user's timing nudge (ms), GET and PUT `{ offset }`; it follows them everywhere. */
-  async function lyricsOffset(request: Request & { params: { songId: string } }): Promise<Response> {
-    if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
-    const session = sessions.get(cookieValue(request));
-    if (!session) return json({ error: "signed out" }, 401);
-    if (request.method === "GET") return json({ offset: lyrics.offset(`${session.server}:${session.user}`, request.params.songId) });
-    const body = (await request.json().catch(() => null)) as { offset?: unknown } | null;
-    if (typeof body?.offset !== "number" || !Number.isFinite(body.offset) || Math.abs(body.offset) > 60_000)
-      return json({ error: "offset in ms" }, 400);
-    lyrics.setOffset(`${session.server}:${session.user}`, request.params.songId, body.offset);
-    return json({ ok: true });
   }
 
   /** `/api/lyrics/coverage`: how much of what this user may see has lyrics, and the albums missing the most. */
@@ -824,186 +808,9 @@ export function createApi({
     return json({ matches }, 200, { "cache-control": "private, no-store" });
   }
 
-  /** `/api/history`: GET your plays (newest first, `?before=` to page back), POST one that just ended. */
-  async function history(request: Request): Promise<Response> {
-    if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
-    const session = sessions.get(cookieValue(request));
-    if (!session) return json({ error: "signed out" }, 401);
-    const account = `${session.server}:${session.user}`;
-    if (request.method === "GET") {
-      const params = new URL(request.url).searchParams;
-      const before = Number(params.get("before")) || Date.now() + 1;
-      const limit = Math.min(500, Math.max(1, Number(params.get("limit")) || 200));
-      return json({ plays: readPlays(library, account, before, limit) }, 200, { "cache-control": "private, no-cache" });
-    }
-    const body = (await request.json().catch(() => null)) as Partial<NewPlay> | null;
-    const valid =
-      body &&
-      typeof body.song?.id === "string" &&
-      typeof body.started === "number" &&
-      typeof body.listened === "number" &&
-      body.listened >= 0 &&
-      body.listened < 86_400;
-    if (!valid) return json({ error: "song, started, listened" }, 400);
-    recordPlay(library, account, request.headers.get(CLIENT_HEADER) ?? "", { ...(body as NewPlay), finished: Boolean(body.finished) });
-    return json({ ok: true });
-  }
-
-  /** `/api/moments`: your moments (GET, `?song=` for one song's), or save one (POST `{ song, at, note }`). */
-  async function moments(request: Request): Promise<Response> {
-    if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
-    const session = sessions.get(cookieValue(request));
-    if (!session) return json({ error: "signed out" }, 401);
-    const account = `${session.server}:${session.user}`;
-    if (request.method === "GET")
-      return json({ moments: listMoments(library, account, new URL(request.url).searchParams.get("song") ?? undefined) }, 200, {
-        "cache-control": "private, no-cache",
-      });
-    const body = (await request.json().catch(() => null)) as { song?: { id?: unknown }; at?: unknown; note?: unknown } | null;
-    if (typeof body?.song?.id !== "string" || typeof body.at !== "number" || !Number.isFinite(body.at) || body.at < 0 || body.at > 86_400)
-      return json({ error: "song, at" }, 400);
-    const moment = addMoment(library, account, body.song as { id: string }, body.at, typeof body.note === "string" ? body.note : "");
-    return json(moment, 201);
-  }
-
-  /** `/api/moments/:id`: change its note (PATCH `{ note }`) or delete it. */
-  async function moment(request: Request & { params: { id: string } }): Promise<Response> {
-    if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
-    const session = sessions.get(cookieValue(request));
-    if (!session) return json({ error: "signed out" }, 401);
-    const account = `${session.server}:${session.user}`;
-    const id = Number(request.params.id);
-    if (!Number.isInteger(id)) return json({ error: "not found" }, 404);
-    if (request.method === "DELETE") return deleteMoment(library, account, id) ? json({ ok: true }) : json({ error: "not found" }, 404);
-    const body = (await request.json().catch(() => null)) as { note?: unknown } | null;
-    if (typeof body?.note !== "string") return json({ error: "note" }, 400);
-    return updateMoment(library, account, id, body.note) ? json({ ok: true }) : json({ error: "not found" }, 404);
-  }
-
-  /** `/api/settings`: your synced preferences (GET), or replace them (PUT, a JSON object under 8 KB). */
-  async function userSettings(request: Request): Promise<Response> {
-    if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
-    const session = sessions.get(cookieValue(request));
-    if (!session) return json({ error: "signed out" }, 401);
-    const account = `${session.server}:${session.user}`;
-    if (request.method === "PUT") {
-      const text = await request.text();
-      if (text.length > 8192) return json({ error: "too large" }, 413);
-      const body = (() => {
-        try {
-          return JSON.parse(text) as unknown;
-        } catch {
-          return null;
-        }
-      })();
-      if (!body || typeof body !== "object" || Array.isArray(body)) return json({ error: "an object" }, 400);
-      library
-        .query("insert or replace into user_settings (account, body, updated) values (?, ?, ?)")
-        .run(account, JSON.stringify(body), Date.now());
-    }
-    const row = library
-      .query<{ body: string; updated: number }, [string]>("select body, updated from user_settings where account = ?")
-      .get(account);
-    return json(row ? { settings: JSON.parse(row.body), updated: row.updated } : { settings: null, updated: 0 }, 200, {
-      "cache-control": "private, no-cache",
-    });
-  }
-
-  /** `/api/prefs`: your per-song and per-album playback rules (trims, never in shuffle, keep in order, hidden). */
-  async function prefs(request: Request): Promise<Response> {
-    if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
-    const session = sessions.get(cookieValue(request));
-    if (!session) return json({ error: "signed out" }, 401);
-    return json(readPrefs(library, `${session.server}:${session.user}`), 200, { "cache-control": "private, no-cache" });
-  }
-
-  /** `PUT /api/prefs/songs/:id` or `/albums/:id`: change the fields sent (null clears a trim). */
-  async function setPref(request: Request & { params: { kind: string; id: string } }): Promise<Response> {
-    if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
-    const session = sessions.get(cookieValue(request));
-    if (!session) return json({ error: "signed out" }, 401);
-    const account = `${session.server}:${session.user}`;
-    const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
-    if (!body || typeof body !== "object") return json({ error: "an object" }, 400);
-    const flag = (value: unknown) => (typeof value === "boolean" ? value : undefined);
-    if (request.params.kind === "songs") {
-      const song =
-        body.song && typeof (body.song as { id?: unknown }).id === "string"
-          ? (body.song as { id: string } & Record<string, unknown>)
-          : undefined;
-      const ok = changeSong(library, account, request.params.id, {
-        ...(song ? { song } : {}),
-        ...("trimStart" in body ? { trimStart: body.trimStart as number | null } : {}),
-        ...("trimEnd" in body ? { trimEnd: body.trimEnd as number | null } : {}),
-        never: flag(body.never),
-        hidden: flag(body.hidden),
-      });
-      if (!ok) return json({ error: "invalid trim" }, 400);
-    } else if (request.params.kind === "albums") {
-      changeAlbum(library, account, request.params.id, {
-        name: typeof body.name === "string" ? body.name : undefined,
-        keepOrder: flag(body.keepOrder),
-        never: flag(body.never),
-      });
-    } else return json({ error: "not found" }, 404);
-    return json(readPrefs(library, account));
-  }
-
-  /** `/api/radio/bans`: songs no radio plays for you (GET), ban one (POST `{ song }`), or lift one (DELETE `?id=`). */
-  async function radioBans(request: Request): Promise<Response> {
-    if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
-    const session = sessions.get(cookieValue(request));
-    if (!session) return json({ error: "signed out" }, 401);
-    const account = `${session.server}:${session.user}`;
-    if (request.method === "POST") {
-      const body = (await request.json().catch(() => null)) as { song?: { id?: unknown } & Record<string, unknown> } | null;
-      if (typeof body?.song?.id !== "string") return json({ error: "song" }, 400);
-      ban(library, account, body.song as { id: string } & Record<string, unknown>);
-    } else if (request.method === "DELETE") {
-      const id = new URL(request.url).searchParams.get("id");
-      if (!id) return json({ error: "id" }, 400);
-      unban(library, account, id);
-    }
-    return json({ songs: listBans(library, account) }, 200, { "cache-control": "private, no-cache" });
-  }
-
-  /** `/api/playlists/:id/hidden`: the songs you hid in a playlist (GET), hide or show one (PUT `{ songId, hidden }`). */
-  async function playlistHidden(request: Request & { params: { id: string } }): Promise<Response> {
-    if (request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
-    const session = sessions.get(cookieValue(request));
-    if (!session) return json({ error: "signed out" }, 401);
-    const account = `${session.server}:${session.user}`;
-    const playlist = request.params.id;
-    if (request.method === "PUT") {
-      const body = (await request.json().catch(() => null)) as { songId?: unknown; hidden?: unknown } | null;
-      if (typeof body?.songId !== "string" || typeof body.hidden !== "boolean") return json({ error: "songId, hidden" }, 400);
-      if (body.hidden)
-        library
-          .query("insert or ignore into playlist_hidden (account, playlist_id, song_id) values (?, ?, ?)")
-          .run(account, playlist, body.songId);
-      else
-        library
-          .query("delete from playlist_hidden where account = ? and playlist_id = ? and song_id = ?")
-          .run(account, playlist, body.songId);
-    }
-    const songs = library
-      .query<{ song_id: string }, [string, string]>("select song_id from playlist_hidden where account = ? and playlist_id = ?")
-      .all(account, playlist)
-      .map((row) => row.song_id);
-    return json({ songs }, 200, { "cache-control": "private, no-cache" });
-  }
-
   return {
     rpc,
     http,
-    history,
-    radioBans,
-    prefs,
-    setPref,
-    userSettings,
-    moments,
-    moment,
-    playlistHidden,
     login,
     logout,
     current,
@@ -1012,7 +819,6 @@ export function createApi({
     proxy,
     cover,
     songLyrics,
-    lyricsOffset,
     lyricsCoverage: lyricsCoverageRoute,
     lyricsMissing,
     doctor: doctorRoute,

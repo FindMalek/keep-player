@@ -5,7 +5,7 @@ import { Input } from "@keep/ui/components/input";
 import { Skeleton } from "@keep/ui/components/skeleton";
 import { ToggleGroup, ToggleGroupItem } from "@keep/ui/components/toggle-group";
 import { CheckIcon, RefreshCwIcon, XIcon } from "lucide-react";
-import { type FormEvent, useCallback, useEffect, useState } from "react";
+import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { login } from "@/lib/subsonic";
 import { BrandMark } from "./brand";
 
@@ -19,6 +19,27 @@ interface ServerHealth {
 }
 
 const DOCS = "https://github.com/FindMalek/keep-player/blob/main/docs/deploy/README.md";
+const PREVIEW_TAPS = 4;
+const PREVIEW_TAPS_MS = 1500;
+
+/** In the desktop app, four quick taps on the background open its preview menu: a PR's preview instead of this server. */
+function usePreviewTaps(background: React.RefObject<HTMLElement | null>): void {
+  useEffect(() => {
+    const native = (window as unknown as { webkit?: { messageHandlers?: { keep?: { postMessage(message: unknown): void } } } }).webkit
+      ?.messageHandlers?.keep;
+    if (!native) return;
+    let taps: number[] = [];
+    const tap = (event: PointerEvent) => {
+      if (event.target !== background.current) return;
+      taps = [...taps.filter((at) => event.timeStamp - at < PREVIEW_TAPS_MS), event.timeStamp];
+      if (taps.length < PREVIEW_TAPS) return;
+      taps = [];
+      native.postMessage({ preview: true });
+    };
+    document.addEventListener("pointerdown", tap);
+    return () => document.removeEventListener("pointerdown", tap);
+  }, [background]);
+}
 
 /**
  * Sign-in, with the server check up front: which Navidrome this instance talks to, whether it answers, and what to fix
@@ -32,6 +53,8 @@ export function Login() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const background = useRef<HTMLElement>(null);
+  usePreviewTaps(background);
 
   const check = useCallback(async () => {
     setCheckFailed(false);
@@ -63,7 +86,7 @@ export function Login() {
 
   const selected = servers?.find((item) => item.id === server);
   return (
-    <main className="fixed inset-0 grid place-items-center p-4">
+    <main ref={background} className="fixed inset-0 grid place-items-center p-4">
       <Card className="w-full max-w-88">
         <CardHeader>
           <CardTitle>

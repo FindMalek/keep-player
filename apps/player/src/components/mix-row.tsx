@@ -74,6 +74,8 @@ export function MixRow() {
       input: { day, hour, tz },
       // An empty answer (no plays yet, or the index still building) is asked again on the next visit, never kept.
       staleTime: (query) => (query.state.data?.mixes.length ? 60 * 60_000 : 0),
+      // Mixes change with the day and hour (the key), not while you're in another tab.
+      refetchOnWindowFocus: false,
       select: (result) => result.mixes as Mix[],
     }),
   );

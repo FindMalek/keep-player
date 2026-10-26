@@ -4,7 +4,7 @@ import { App } from "./app";
 import "./lib/install";
 import "./lib/motion";
 import { registerServiceWorker } from "./lib/offline";
-import { CACHE_MAX_AGE, CACHE_VERSION, persister, queryClient, shouldPersist } from "./lib/queries";
+import { CACHE_MAX_AGE, CACHE_VERSION, persister, queries, queryClient, shouldPersist } from "./lib/queries";
 
 const root = document.getElementById("root");
 if (root)
@@ -17,6 +17,8 @@ if (root)
         buster: CACHE_VERSION,
         dehydrateOptions: { shouldDehydrateQuery: shouldPersist },
       }}
+      // A reload means "show me what's there now": playlists made on other devices in the last 30 s count too.
+      onSuccess={() => void queryClient.invalidateQueries({ queryKey: queries.playlists().queryKey })}
     >
       <App />
     </PersistQueryClientProvider>,
