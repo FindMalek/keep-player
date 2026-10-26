@@ -11,7 +11,11 @@ async function requestsOnFocus(page: Page): Promise<string[]> {
     if (/^\/(rest|api)\//.test(pathname)) seen.push(pathname);
   };
   page.on("request", listen);
-  await page.evaluate(() => window.dispatchEvent(new Event("visibilitychange")));
+  // A real alt-tab fires both.
+  await page.evaluate(() => {
+    window.dispatchEvent(new Event("visibilitychange"));
+    window.dispatchEvent(new Event("focus"));
+  });
   await page.waitForTimeout(1000);
   page.off("request", listen);
   return seen;

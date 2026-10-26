@@ -60,10 +60,17 @@ const loading = new Map<Chunk, Promise<unknown>>();
 function load(chunk: Chunk): Promise<unknown> {
   let promise = loading.get(chunk);
   if (!promise) {
-    promise = chunks[chunk]().then((module) => {
-      modules.set(chunk, module);
-      return module;
-    });
+    promise = chunks[chunk]().then(
+      (module) => {
+        modules.set(chunk, module);
+        return module;
+      },
+      (error: unknown) => {
+        // A failed load (offline, or a deploy removed the old chunk) is tried again on the next visit.
+        loading.delete(chunk);
+        throw error;
+      },
+    );
     loading.set(chunk, promise);
   }
   return promise;
