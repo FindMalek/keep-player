@@ -19,7 +19,8 @@ import SwiftUI
         buildMenu()
         #if DEBUG
         // Performance runs point the app at a local server without touching the saved one.
-        if let test = ProcessInfo.processInfo.environment["KEEP_TEST_SERVER"].flatMap(URL.init(string:)) {
+        if let test = ProcessInfo.processInfo.environment["KEEP_TEST_SERVER"].flatMap(URL.init(string:)),
+           test.scheme == "https" || test.scheme == "http", test.host != nil {
             open(test)
         } else if let server = preferences.server { open(server) } else { askForServer() }
         #else

@@ -510,9 +510,11 @@ function started(song: Song | undefined): void {
   persist();
   if (song && !remote) scrobble(song.id, false);
   preloadNext();
-  // Lyrics for this song (when it was started directly, not reached from the queue) and the next two, so the panel
-  // opens with them already there.
-  for (const next of [...(song ? [song] : []), ...Q.peekUpcoming(state.queue, 2)]) void queryClient.prefetchQuery(queries.lyrics(next.id));
+  // Lyrics for this song and the next two, so the panel opens with them already there. The queue's current song too
+  // when it was loaded paused (`started(undefined)`): playing it later doesn't come through here again.
+  const playing = song ?? current();
+  for (const next of [...(playing ? [playing] : []), ...Q.peekUpcoming(state.queue, 2)])
+    void queryClient.prefetchQuery(queries.lyrics(next.id));
 }
 
 /** Load the queue's current song; plays it when `autoplay`. A song already preloaded starts instantly. */

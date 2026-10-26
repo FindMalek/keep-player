@@ -123,9 +123,13 @@ import WebKit
             const frames = [];
             await new Promise((done) => {
               let last = performance.now();
+              // Down, and back up at the end: a frame where nothing scrolls would flatter the numbers.
+              let direction = 40;
               const step = (t) => {
                 frames.push(t - last); last = t;
-                scroller.scrollBy(0, 40);
+                const before = scroller.scrollTop;
+                scroller.scrollBy(0, direction);
+                if (scroller.scrollTop === before) { direction = -direction; scroller.scrollBy(0, direction); }
                 frames.length < 180 ? requestAnimationFrame(step) : done();
               };
               requestAnimationFrame(step);
