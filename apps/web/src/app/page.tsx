@@ -132,18 +132,23 @@ function Section({ id, title, intro, children }: { id: string; title: ReactNode;
   );
 }
 
-function Shot({ src, alt, className, priority }: { src: string; alt: string; className?: string; priority?: boolean }) {
+/** A screenshot in the page's theme: `name.png` in dark mode, `name-light.png` in light mode. */
+function Shot({ name, alt, className, priority }: { name: string; alt: string; className?: string; priority?: boolean }) {
+  const image = (src: string, visibility: string) => (
+    <Image
+      src={src}
+      alt={alt}
+      width={2880}
+      height={1800}
+      priority={priority}
+      sizes="(min-width: 1152px) 1100px, 100vw"
+      className={cn("h-auto w-full", visibility)}
+    />
+  );
   return (
     <div className={cn("overflow-hidden border bg-card", className)}>
-      <Image
-        src={src}
-        alt={alt}
-        width={2880}
-        height={1800}
-        priority={priority}
-        sizes="(min-width: 1152px) 1100px, 100vw"
-        className="h-auto w-full"
-      />
+      {image(`/shots/${name}-light.png`, "dark:hidden")}
+      {image(`/shots/${name}.png`, "hidden dark:block")}
     </div>
   );
 }
@@ -195,12 +200,7 @@ export default async function Home() {
               <Island />
             </div>
           </div>
-          <Shot
-            src="/shots/album-lyrics.png"
-            alt="an album in keep music with its synced lyrics open beside it"
-            className="reveal mt-16"
-            priority
-          />
+          <Shot name="album-lyrics" alt="an album in keep music with its synced lyrics open beside it" className="reveal mt-16" priority />
         </section>
 
         <Section
@@ -335,16 +335,16 @@ export default async function Home() {
 
           <div className="mt-12 grid gap-4 sm:grid-cols-3">
             {[
-              { src: "/shots/search.png", alt: "⌘K search with songs, albums and artists", caption: "⌘K, ranked the way you listen" },
+              { name: "search", alt: "⌘K search with songs, albums and artists", caption: "⌘K, ranked the way you listen" },
               {
-                src: "/shots/stats.png",
+                name: "stats",
                 alt: "listening stats: minutes, top artists and a listening clock",
                 caption: "stats from your own plays",
               },
-              { src: "/shots/queue.png", alt: "the queue panel, with up next and history", caption: "a queue you can actually shape" },
+              { name: "queue", alt: "the queue panel, with up next and history", caption: "a queue you can actually shape" },
             ].map((shot) => (
-              <figure key={shot.src} className="reveal">
-                <Shot src={shot.src} alt={shot.alt} />
+              <figure key={shot.name} className="reveal">
+                <Shot name={shot.name} alt={shot.alt} />
                 <figcaption className="mt-3 text-muted-foreground text-sm">{shot.caption}</figcaption>
               </figure>
             ))}
@@ -413,23 +413,17 @@ export default async function Home() {
           </div>
         </Section>
 
-        <section className="border-t bg-foreground text-background">
+        <section className="border-t bg-card">
           <div className="mx-auto flex max-w-6xl flex-col items-start gap-8 px-4 py-20 sm:flex-row sm:items-end sm:justify-between sm:px-6">
             <div>
               <h2 className="font-medium text-3xl tracking-tight sm:text-5xl">bring your library.</h2>
-              <p className="mt-3 opacity-70">one container next to navidrome, a few minutes with the guide.</p>
+              <p className="mt-3 text-muted-foreground">one container next to navidrome, a few minutes with the guide.</p>
             </div>
             <div className="flex flex-wrap gap-3">
-              <a href={SELF_HOSTING} className={cn(buttonVariants({ size: "lg" }), "bg-background text-foreground hover:bg-background/85")}>
+              <a href={SELF_HOSTING} className={buttonVariants({ size: "lg" })}>
                 self-host it
               </a>
-              <a
-                href={DOCS}
-                className={cn(
-                  buttonVariants({ variant: "outline", size: "lg" }),
-                  "border-background/30 bg-transparent text-background hover:bg-background/10",
-                )}
-              >
+              <a href={DOCS} className={buttonVariants({ variant: "outline", size: "lg" })}>
                 read the docs
               </a>
             </div>
