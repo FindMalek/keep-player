@@ -83,3 +83,26 @@
     animation: none;
   }
 }
+
+/* Docs: section labels in the sidebar as small mono labels, like the app's own sidebar. */
+#nd-sidebar p.inline-flex {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  color: var(--muted-foreground);
+}
+/* Notes in the docs ("for coding agents", warnings) read as callouts, not quotations. */
+.prose blockquote {
+  font-style: normal;
+  quotes: none;
+  border-inline-start: 2px solid var(--foreground);
+  background: var(--card);
+  padding: 0.75rem 1rem;
+}
+.prose blockquote p::before,
+.prose blockquote p::after {
+  content: none;
+}
+.prose blockquote p {
+  margin-block: 0.25rem;
+}
