@@ -1,3 +1,16 @@
+import { Button } from "@keep/ui/components/button";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@keep/ui/components/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from "@keep/ui/components/dropdown-menu";
+import { Slider } from "@keep/ui/components/slider";
+import { Switch } from "@keep/ui/components/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@keep/ui/components/tabs";
+import { ToggleGroup, ToggleGroupItem } from "@keep/ui/components/toggle-group";
 import { useQuery } from "@tanstack/react-query";
 import {
   ChevronDownIcon,
@@ -12,19 +25,6 @@ import { lazy, type ReactNode, Suspense, useState } from "react";
 import { LibraryRules } from "@/components/library-rules";
 import { Link } from "@/components/link";
 import { OutputDevice } from "@/components/output-device";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Slider } from "@/components/ui/slider";
-import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { apiQueries } from "@/lib/api-queries";
 import { MAX_CROSSFADE } from "@/lib/crossfade";
 import { doctorQuery } from "@/lib/doctor-query";

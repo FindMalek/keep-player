@@ -1,11 +1,11 @@
 import type { Check } from "@keep/shared/doctor";
+import { Button } from "@keep/ui/components/button";
+import { Progress, ProgressLabel, ProgressValue } from "@keep/ui/components/progress";
+import { Table, TableBody, TableCell, TableRow } from "@keep/ui/components/table";
 import { useQuery } from "@tanstack/react-query";
 import { Content, EmptyState, PageHeader, Section } from "@/components/library";
 import { Link } from "@/components/link";
 import { TrackListSkeleton } from "@/components/skeletons";
-import { Button } from "@/components/ui/button";
-import { Progress, ProgressLabel, ProgressValue } from "@/components/ui/progress";
-import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { apiQueries } from "@/lib/api-queries";
 import { doctorQuery } from "@/lib/doctor-query";
 import { plural } from "@/lib/format";

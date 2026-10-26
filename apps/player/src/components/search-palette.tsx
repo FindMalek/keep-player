@@ -1,10 +1,7 @@
 import { normalize } from "@keep/shared/normalize";
 import { parseQuery } from "@keep/shared/search-query";
-import { useQuery } from "@tanstack/react-query";
-import { ClockIcon, PlayIcon, XIcon } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Badge } from "@keep/ui/components/badge";
+import { Button } from "@keep/ui/components/button";
 import {
   Command,
   CommandDialog,
@@ -14,7 +11,10 @@ import {
   CommandItem,
   CommandList,
   CommandShortcut,
-} from "@/components/ui/command";
+} from "@keep/ui/components/command";
+import { useQuery } from "@tanstack/react-query";
+import { ClockIcon, PlayIcon, XIcon } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { apiQueries } from "@/lib/api-queries";
 import { player, usePlayer } from "@/lib/player";
 import { queries } from "@/lib/queries";

@@ -3,7 +3,7 @@
 import { createContext, useContext, useMemo, useState } from "react";
 import type { ComponentProps, ReactNode } from "react";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "./button";
 import {
   Select,
   SelectContent,
@@ -11,8 +11,8 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { cn } from "@/lib/utils";
+} from "./select";
+import { cn } from "../lib/utils";
 
 const NONE_VALUE = "__none__";
 

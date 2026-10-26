@@ -1,10 +1,10 @@
+import { Button } from "@keep/ui/components/button";
 import { useQuery } from "@tanstack/react-query";
 import { PlayIcon } from "lucide-react";
 import { useEffect } from "react";
 import { Aura } from "@/components/aura";
 import { Section } from "@/components/library";
 import { Link } from "@/components/link";
-import { Button } from "@/components/ui/button";
 import { player } from "@/lib/player";
 import { queries, queryClient } from "@/lib/queries";
 import { api, getUser, HEADERS } from "@/lib/subsonic";

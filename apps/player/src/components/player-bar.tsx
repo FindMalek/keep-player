@@ -1,3 +1,4 @@
+import { Button } from "@keep/ui/components/button";
 import {
   EllipsisIcon,
   InfoIcon,
@@ -25,7 +26,6 @@ import {
   AudioPlayerTime,
   AudioPlayerVolume,
 } from "@/components/ui/audio-player";
-import { Button } from "@/components/ui/button";
 import { VolumeControlMute, VolumeControlSlider } from "@/components/ui/volume-control";
 import { type BarMode, useBarMode } from "@/lib/bar-mode";
 import { dropTarget } from "@/lib/drag";

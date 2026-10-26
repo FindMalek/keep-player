@@ -5,11 +5,11 @@ import tailwind from "bun-plugin-tailwind";
 
 /*
  * 1. Bundle the web app (minified, code-split, hashed names) into dist/web and precompress every file (brotli + gzip).
- * 2. Generate apps/server/src/assets.generated.ts, which imports each file `with { type: "file" }` so it gets embedded.
+ * 2. Generate apps/api/src/assets.generated.ts, which imports each file `with { type: "file" }` so it gets embedded.
  * 3. Compile the server into one executable, then restore the empty manifest so the working tree stays clean.
  */
 const OUT = "dist/web";
-const MANIFEST = "apps/server/src/assets.generated.ts";
+const MANIFEST = "apps/api/src/assets.generated.ts";
 const define = { "process.env.NODE_ENV": '"production"' };
 
 function fail(logs: unknown[]): never {
@@ -59,7 +59,7 @@ for (const [index, output] of [...web.outputs, ...worker.outputs].entries()) {
   const bytes = new Uint8Array(await output.arrayBuffer());
   await Bun.write(`${output.path}.br`, brotliCompressSync(bytes, { params: { [constants.BROTLI_PARAM_QUALITY]: 11 } }));
   await Bun.write(`${output.path}.gz`, gzipSync(bytes, { level: 9 }));
-  const file = relative("apps/server/src", output.path);
+  const file = relative("apps/api/src", output.path);
   imports.push(
     `import a${index} from "${file}" with { type: "file" };`,
     `import a${index}br from "${file}.br" with { type: "file" };`,
@@ -75,7 +75,7 @@ await Bun.write(
 );
 try {
   const server = await Bun.build({
-    entrypoints: ["apps/server/src/server.ts"],
+    entrypoints: ["apps/api/src/server.ts"],
     // BUN_TARGET (e.g. bun-linux-arm64-musl) cross-compiles: the image builds every architecture on the CI's own CPU.
     compile: {
       outfile: "dist/keep-player",

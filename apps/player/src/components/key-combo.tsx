@@ -1,5 +1,5 @@
+import { Kbd, KbdGroup } from "@keep/ui/components/kbd";
 import { Fragment } from "react";
-import { Kbd, KbdGroup } from "@/components/ui/kbd";
 import { displayKeys } from "@/lib/shortcuts";
 import { cn } from "@/lib/utils";
 

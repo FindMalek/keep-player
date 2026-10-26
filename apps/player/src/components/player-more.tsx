@@ -1,16 +1,4 @@
 import {
-  EllipsisIcon,
-  InfoIcon,
-  MicVocalIcon,
-  MoonIcon,
-  PictureInPicture2Icon,
-  Repeat1Icon,
-  RepeatIcon,
-  ShuffleIcon,
-  SkipBackIcon,
-  SpeakerIcon,
-} from "lucide-react";
-import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
@@ -24,7 +12,19 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@keep/ui/components/dropdown-menu";
+import {
+  EllipsisIcon,
+  InfoIcon,
+  MicVocalIcon,
+  MoonIcon,
+  PictureInPicture2Icon,
+  Repeat1Icon,
+  RepeatIcon,
+  ShuffleIcon,
+  SkipBackIcon,
+  SpeakerIcon,
+} from "lucide-react";
 import type { BarMode } from "@/lib/bar-mode";
 import { MINI_PLAYER_SUPPORTED, openMiniPlayer } from "@/lib/mini-player";
 import { player, usePlayer } from "@/lib/player";

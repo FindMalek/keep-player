@@ -1,5 +1,5 @@
+import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput, InputGroupText } from "@keep/ui/components/input-group";
 import { SearchIcon, XIcon } from "lucide-react";
-import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput, InputGroupText } from "@/components/ui/input-group";
 import { closeListFilter, type FilterScope, setListFilter } from "@/lib/list-filter";
 import { Hint } from "./hint";
 

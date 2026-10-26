@@ -1,6 +1,6 @@
+import { Button } from "@keep/ui/components/button";
+import { Slider } from "@keep/ui/components/slider";
 import { BanIcon, CalendarRangeIcon, RadioIcon, SaveIcon, SquareIcon, ThumbsDownIcon, ThumbsUpIcon, UserIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Slider } from "@/components/ui/slider";
 import { currentSong, usePlayer } from "@/lib/player";
 import {
   banFromRadio,

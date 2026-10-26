@@ -1,6 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
-import { ListEndIcon, ListMusicIcon, ListStartIcon, MinusIcon, PlayIcon, PlusIcon, XIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@keep/ui/components/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -8,7 +6,9 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@keep/ui/components/dropdown-menu";
+import { useQuery } from "@tanstack/react-query";
+import { ListEndIcon, ListMusicIcon, ListStartIcon, MinusIcon, PlayIcon, PlusIcon, XIcon } from "lucide-react";
 import { player } from "@/lib/player";
 import { openPlaylistDialog } from "@/lib/playlist-dialogs";
 import { addToPlaylist, canEdit } from "@/lib/playlists";

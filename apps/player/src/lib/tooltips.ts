@@ -5,7 +5,7 @@ import { useSyncExternalStore } from "react";
  * idle, or on the first hover or focus of something that has one. Until then triggers render as plain markup.
  */
 
-type TooltipModule = typeof import("@/components/ui/tooltip");
+type TooltipModule = typeof import("@keep/ui/components/tooltip");
 
 let loaded: TooltipModule | null = null;
 let requested = false;
@@ -14,7 +14,7 @@ const listeners = new Set<() => void>();
 export function loadTooltips(): void {
   if (requested) return;
   requested = true;
-  void import("@/components/ui/tooltip").then((module) => {
+  void import("@keep/ui/components/tooltip").then((module) => {
     loaded = module;
     for (const listener of listeners) listener();
   });

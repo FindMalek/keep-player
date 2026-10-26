@@ -1,4 +1,3 @@
-import { MonitorSpeakerIcon } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -7,7 +6,8 @@ import {
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@keep/ui/components/dropdown-menu";
+import { MonitorSpeakerIcon } from "lucide-react";
 import { session } from "@/lib/session";
 import { useSession } from "@/lib/session-state";
 import { ToolButton } from "./tool-button";

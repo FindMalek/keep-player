@@ -1,4 +1,8 @@
 import type { StatItem } from "@keep/shared/stats";
+import { Button } from "@keep/ui/components/button";
+import { type ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@keep/ui/components/chart";
+import { Input } from "@keep/ui/components/input";
+import { ToggleGroup, ToggleGroupItem } from "@keep/ui/components/toggle-group";
 import { useQuery } from "@tanstack/react-query";
 import { ListPlusIcon, PlayIcon, SparklesIcon } from "lucide-react";
 import { lazy, Suspense, useMemo, useState } from "react";
@@ -7,10 +11,6 @@ import { Content, EmptyState, PageHeader, Section, TrackList } from "@/component
 import { Link } from "@/components/link";
 import { TrackListSkeleton } from "@/components/skeletons";
 import { statsQuery } from "@/components/stats-query";
-import { Button } from "@/components/ui/button";
-import { type ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { Input } from "@/components/ui/input";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { plural } from "@/lib/format";
 import { player } from "@/lib/player";
 import { createPlaylist } from "@/lib/playlists";

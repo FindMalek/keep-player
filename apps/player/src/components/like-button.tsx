@@ -1,5 +1,5 @@
+import { Button } from "@keep/ui/components/button";
 import { HeartIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { type LikeKind, toggleLiked, useLiked } from "@/lib/likes";
 import { cn } from "@/lib/utils";
 

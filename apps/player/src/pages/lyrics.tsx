@@ -1,14 +1,14 @@
 import type { LyricsCoverage } from "@keep/shared/lyrics";
+import { Button } from "@keep/ui/components/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@keep/ui/components/dialog";
+import { Progress, ProgressLabel, ProgressValue } from "@keep/ui/components/progress";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@keep/ui/components/table";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { RefreshCwIcon, Undo2Icon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Content, EmptyState, PageHeader, Section, TrackList } from "@/components/library";
 import { Link } from "@/components/link";
 import { TrackListSkeleton } from "@/components/skeletons";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Progress, ProgressLabel, ProgressValue } from "@/components/ui/progress";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { apiQueries } from "@/lib/api-queries";
 import { plural } from "@/lib/format";
 import { queryClient } from "@/lib/queries";

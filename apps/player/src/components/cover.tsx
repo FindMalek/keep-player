@@ -1,6 +1,6 @@
+import { Skeleton } from "@keep/ui/components/skeleton";
 import { Disc3Icon } from "lucide-react";
 import { useState } from "react";
-import { Skeleton } from "@/components/ui/skeleton";
 import { coverSrcSet, coverUrl } from "@/lib/subsonic";
 import { cn } from "@/lib/utils";
 

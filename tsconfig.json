@@ -1,19 +1,10 @@
 {
+  "extends": "./packages/config/tsconfig.base.json",
   "compilerOptions": {
-    "target": "ESNext",
-    "module": "Preserve",
-    "moduleResolution": "bundler",
-    "lib": ["ESNext", "DOM", "DOM.Iterable"],
-    "jsx": "react-jsx",
-    "strict": true,
-    "noUncheckedIndexedAccess": true,
-    "skipLibCheck": true,
-    "noEmit": true,
-    "types": ["bun"],
     "paths": {
-      "@/*": ["./apps/player/src/*"],
-      "@keep/shared/*": ["./packages/shared/src/*"]
+      "@/*": ["./apps/player/src/*"]
     }
   },
-  "include": ["apps", "packages", "test", "e2e", "scripts", "playwright.config.ts"]
+  "//": "The repo's own scripts, tests and e2e; each app and package has its own tsconfig.",
+  "include": ["test", "e2e", "scripts", "playwright.config.ts"]
 }

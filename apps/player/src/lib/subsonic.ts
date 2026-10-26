@@ -11,7 +11,7 @@ import { FALLBACK, type StreamQuality, streamParams } from "./stream-quality";
 const USER_KEY = "keep-player:user";
 /** "server/user" of the last session, so cached data from another account is never shown. */
 const ACCOUNT_KEY = "keep-player:account";
-/** Must match the server's CSRF check (apps/server/src/api.ts). */
+/** Must match the server's CSRF check (apps/api/src/api.ts). */
 /** A stable id for this browser: its Subsonic client name is `keep-player@<id>` (see queue-sync). */
 export const CLIENT_ID = (() => {
   try {

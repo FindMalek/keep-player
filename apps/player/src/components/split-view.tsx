@@ -1,6 +1,6 @@
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@keep/ui/components/resizable";
 import type { ReactNode } from "react";
 import { useDefaultLayout } from "react-resizable-panels";
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { PageSlot } from "./page-host";
 
 /** Page plus the queue / lyrics panel, resizable, width remembered. Its own chunk: only loaded once a panel opens. */

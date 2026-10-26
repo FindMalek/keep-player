@@ -1,10 +1,10 @@
 import type { LyricLine } from "@keep/shared/lyrics";
+import { Badge } from "@keep/ui/components/badge";
+import { Button } from "@keep/ui/components/button";
+import { Skeleton } from "@keep/ui/components/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { CopyIcon, ExternalLinkIcon, LanguagesIcon, LocateFixedIcon, Share2Icon } from "lucide-react";
 import { memo, useEffect, useRef, useState } from "react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import { apiQueries } from "@/lib/api-queries";
 import { clock } from "@/lib/format";
 import { notify } from "@/lib/notify";

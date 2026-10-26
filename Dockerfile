@@ -6,8 +6,10 @@ WORKDIR /app
 # The workspace manifests first, so the install layer is cached until a dependency changes.
 COPY package.json bun.lock ./
 COPY apps/player/package.json apps/player/
-COPY apps/server/package.json apps/server/
+COPY apps/api/package.json apps/api/
 COPY packages/shared/package.json packages/shared/
+COPY packages/config/package.json packages/config/
+COPY packages/ui/package.json packages/ui/
 RUN bun install --frozen-lockfile
 COPY . .
 RUN BUN_TARGET="bun-linux-$([ "$TARGETARCH" = arm64 ] && echo arm64 || echo x64)-musl" bun scripts/build.ts

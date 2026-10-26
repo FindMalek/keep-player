@@ -1,0 +1,27 @@
+{
+  "name": "@keep/ui",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./components/*": "./src/components/*.tsx",
+    "./lib/*": "./src/lib/*.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p ."
+  },
+  "dependencies": {
+    "@base-ui/react": "1.9.0",
+    "class-variance-authority": "0.7.1",
+    "cmdk": "^1.1.1",
+    "cn": "0.4.0",
+    "lucide-react": "1.56.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-resizable-panels": "^4.14.5",
+    "recharts": "2.15.4"
+  },
+  "devDependencies": {
+    "@keep/config": "workspace:*"
+  }
+}

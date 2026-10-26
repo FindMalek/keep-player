@@ -4,12 +4,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="dark light" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-J9LTeEV+A/a4Xsex7GfyHtukdRFDI37fgZ8drOZ6mio='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-G7DIBHAdkwYbbinThj9KqNo7wzgcgG0CwiH9SCPt1uM='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'" />
     <meta name="referrer" content="no-referrer" />
     <title>keep music</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23101010'/%3E%3Cpath d='M5 3.5v9l7-4.5z' fill='%23ebebeb'/%3E%3C/svg%3E" />
     <style>
-      /* Fonts are served by apps/server/src/fonts.ts at stable URLs. In app.css, Bun would inline them as base64. */
+      /* Fonts are served by apps/api/src/fonts.ts at stable URLs. In app.css, Bun would inline them as base64. */
       @font-face {
         font-family: "IBM Plex Sans Variable";
         font-style: normal;
@@ -48,7 +48,7 @@
     </style>
     <script>
       // Before first paint: pick the theme (no flash) and start the two font downloads. Kept inline on purpose;
-      // Bun's HTML bundler would try to resolve preload hrefs, and the fonts are served by apps/server/src/fonts.ts.
+      // Bun's HTML bundler would try to resolve preload hrefs, and the fonts are served by apps/api/src/fonts.ts.
       (() => {
         let theme = "system";
         try {

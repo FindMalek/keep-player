@@ -1,5 +1,5 @@
+import { Kbd, KbdGroup } from "@keep/ui/components/kbd";
 import { type ReactElement, type ReactNode, useLayoutEffect, useRef } from "react";
-import { Kbd, KbdGroup } from "@/components/ui/kbd";
 import { useHintKeys } from "@/lib/shortcuts";
 import { noteMouseUse } from "@/lib/tips";
 import { loadTooltips, tooltipClosed, useOpenDelay, useTooltips } from "@/lib/tooltips";

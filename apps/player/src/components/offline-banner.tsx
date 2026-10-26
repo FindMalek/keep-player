@@ -1,7 +1,7 @@
+import { Alert, AlertAction, AlertDescription, AlertTitle } from "@keep/ui/components/alert";
+import { Button } from "@keep/ui/components/button";
 import { WifiOffIcon } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Alert, AlertAction, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
 import { retryNow, useReachability } from "@/lib/reachability";
 
 /** Floats over the page (no layout shift) while the server doesn't answer; retries itself, or now on demand. */

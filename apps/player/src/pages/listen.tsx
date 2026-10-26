@@ -1,9 +1,9 @@
+import { Button } from "@keep/ui/components/button";
+import { Input } from "@keep/ui/components/input";
+import { Switch } from "@keep/ui/components/switch";
 import { CopyIcon, UsersIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Content, EmptyState, PageHeader, Section } from "@/components/library";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
 import { listen, useListen } from "@/lib/listen";
 import { HEADERS } from "@/lib/subsonic";
 import type { Song } from "@/lib/types";

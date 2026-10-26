@@ -1,7 +1,7 @@
+import { Button } from "@keep/ui/components/button";
 import { useQuery } from "@tanstack/react-query";
 import { PauseIcon, PlayIcon, SkipBackIcon, SkipForwardIcon } from "lucide-react";
 import { createPortal } from "react-dom";
-import { Button } from "@/components/ui/button";
 import { currentSong, player, usePlayer, usePosition } from "@/lib/player";
 import { queries } from "@/lib/queries";
 import { Cover } from "./cover";

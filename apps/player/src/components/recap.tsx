@@ -1,10 +1,10 @@
 import type { ListeningStats, StatItem } from "@keep/shared/stats";
+import { Button } from "@keep/ui/components/button";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@keep/ui/components/dialog";
+import { ToggleGroup, ToggleGroupItem } from "@keep/ui/components/toggle-group";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronLeftIcon, ChevronRightIcon, DownloadIcon, ListPlusIcon, PlayIcon } from "lucide-react";
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { plural } from "@/lib/format";
 import { notify } from "@/lib/notify";
 import { player } from "@/lib/player";

@@ -1,5 +1,5 @@
+import type { AudioDevice } from "@keep/ui/components/audio-device-select";
 import { useCallback, useEffect, useState } from "react";
-import type { AudioDevice } from "@/components/ui/audio-device-select";
 import { player } from "./player";
 
 type MediaDevicesWithOutput = MediaDevices & { selectAudioOutput?: () => Promise<MediaDeviceInfo> };

@@ -1,6 +1,8 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+/* The shared components live in packages/ui: scan their classes too. */
+@source "../../../packages/ui/src";
 
 @custom-variant dark (&:is(.dark *));
 

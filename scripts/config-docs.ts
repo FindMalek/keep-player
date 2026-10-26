@@ -1,4 +1,4 @@
-import { configDocs } from "../apps/server/src/settings";
+import { configDocs } from "../apps/api/src/settings";
 
 // Regenerates docs/configuration.md from the settings table; `--check` fails when the file is out of date (CI).
 const path = "docs/configuration.md";

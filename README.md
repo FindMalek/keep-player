@@ -217,8 +217,9 @@ never your files. The release check is off unless you set `UPDATE_CHECK=on`.
 
 ## Develop
 
-A Bun workspace: `apps/player` (the React app), `apps/server` (the Bun server that serves it and proxies Navidrome),
-`packages/shared` (types both sides use).
+A Bun workspace driven by Turbo: `apps/player` (the React app), `apps/api` (the Bun server that serves it and proxies
+Navidrome), `apps/macos` (the Mac app), `packages/ui` (the shared shadcn components), `packages/shared` (types both sides
+use) and `packages/config` (the shared tsconfig). `typecheck` and `test` run per package and are cached.
 
 ```sh
 bun install

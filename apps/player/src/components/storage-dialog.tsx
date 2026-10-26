@@ -1,7 +1,7 @@
+import { Button } from "@keep/ui/components/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@keep/ui/components/dialog";
+import { ToggleGroup, ToggleGroupItem } from "@keep/ui/components/toggle-group";
 import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { clearOfflineCache, setCacheCap, useOfflineStatus } from "@/lib/offline";
 
 const GB = 1024 ** 3;
