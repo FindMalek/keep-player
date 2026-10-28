@@ -10,13 +10,13 @@ import type { Song } from "./types";
 
 export type { Station };
 
-// Radio keeps 10 songs ahead, refilled from Navidrome (similar songs, top songs, genre and era), and learns: 👍 pulls
+// Radio keeps 30 songs ahead, refilled from Navidrome (similar songs, top songs, genre and era), and learns: 👍 pulls
 // in more like the song, 👎 or a skip under 30 s pushes its artist away, banned songs never come back.
 
 export type RadioSeed = MenuTarget | { kind: "genre"; genre: string } | { kind: "queue" };
 
-const AHEAD = 10;
-const REFILL_BELOW = 5;
+const AHEAD = 30;
+const REFILL_BELOW = 15;
 const SKIP_SECONDS = 30;
 const SOURCE_KIND = "radio";
 
@@ -166,40 +166,99 @@ function strike(songId: string): void {
   update({ disliked, artistStrikes });
 }
 
+export interface RadioPreview {
+  seed: RadioSeed;
+  station: Station;
+  songs: Song[];
+}
+
+let preview: RadioPreview | null = null;
+
+export function useRadioPreview(): RadioPreview | null {
+  return useSyncExternalStore(
+    (listener) => {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+    () => preview,
+  );
+}
+
+async function buildPreview(seed: RadioSeed): Promise<RadioPreview | null> {
+  const [{ songs, name }] = await Promise.all([seedSongs(seed), loadBans()]);
+  if (!songs.length) {
+    notify({ message: "nothing to start a radio from" });
+    return null;
+  }
+  const built: Station = {
+    name: `${name} radio`,
+    anchors: sample(songs, 20),
+    liked: new Set(),
+    disliked: new Set(),
+    artistStrikes: new Map(),
+    played: new Set(),
+    variety: 0.5,
+    eraLock: null,
+    artistLock: null,
+  };
+  const first = seed.kind === "songs" && songs[0] ? [songs[0]] : [];
+  const batch = pick(built, await candidates(built), AHEAD - first.length, bans);
+  const start = [...first, ...batch.filter((song) => song.id !== first[0]?.id)];
+  if (!start.length) {
+    notify({ message: "couldn't find songs for that radio" });
+    return null;
+  }
+  return { seed, station: built, songs: start };
+}
+
+/** Builds the first songs and shows them as a preview; nothing plays until `playRadio`. */
 export async function startRadio(seed: RadioSeed): Promise<void> {
   try {
-    const [{ songs, name }] = await Promise.all([seedSongs(seed), loadBans()]);
-    if (!songs.length) {
-      notify({ message: "nothing to start a radio from" });
-      return;
-    }
-    station = {
-      name: `${name} radio`,
-      anchors: sample(songs, 20),
-      liked: new Set(),
-      disliked: new Set(),
-      artistStrikes: new Map(),
-      played: new Set(),
-      variety: 0.5,
-      eraLock: null,
-      artistLock: null,
-    };
-    const first = seed.kind === "songs" && songs[0] ? [songs[0]] : [];
-    const batch = pick(station, await candidates(station), AHEAD - first.length, bans);
-    const start = [...first, ...batch.filter((song) => song.id !== first[0]?.id)];
-    if (!start.length) {
-      notify({ message: "couldn't find songs for that radio" });
-      station = null;
-      return;
-    }
-    for (const song of start) station.played.add(song.id);
-    player.play(start, 0, { shuffle: false, source: { kind: SOURCE_KIND, name: station.name, href: "/" } });
-    watching = { id: start[0]?.id ?? "", position: 0, duration: start[0]?.duration ?? 0 };
-    watch();
+    preview = await buildPreview(seed);
     emit();
   } catch {
     notify({ kind: "error", message: "couldn't start the radio" });
   }
+}
+
+export async function reshuffleRadio(): Promise<void> {
+  if (!preview) return;
+  try {
+    preview = (await buildPreview(preview.seed)) ?? preview;
+    emit();
+  } catch {
+    notify({ kind: "error", message: "couldn't reshuffle the radio" });
+  }
+}
+
+export function dropFromPreview(songId: string): void {
+  if (!preview) return;
+  preview = { ...preview, songs: preview.songs.filter((song) => song.id !== songId) };
+  emit();
+}
+
+export function cancelRadioPreview(): void {
+  preview = null;
+  emit();
+}
+
+export async function savePreview(): Promise<void> {
+  if (!preview) return;
+  const { createPlaylist } = await import("./playlists");
+  const name = `${preview.station.name} · ${new Date().toLocaleDateString(undefined, { day: "numeric", month: "short" }).toLowerCase()}`;
+  if (await createPlaylist(name, { songs: preview.songs })) notify({ message: `saved ${name}` });
+}
+
+export function playRadio(): void {
+  if (!preview?.songs.length) return;
+  const { station: built, songs } = preview;
+  preview = null;
+  station = built;
+  for (const song of songs) station.played.add(song.id);
+  player.play(songs, 0, { shuffle: false, source: { kind: SOURCE_KIND, name: station.name, href: "/" } });
+  watching = { id: songs[0]?.id ?? "", position: 0, duration: songs[0]?.duration ?? 0 };
+  watch();
+  emit();
 }
 
 export function stopRadio(): void {

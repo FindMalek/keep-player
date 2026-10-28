@@ -30,7 +30,7 @@ struct SettingsView: View {
             Section("Island") {
                 Toggle("Show the song around the notch", isOn: $preferences.notch)
                     .disabled(!Preferences.hasNotch)
-                Toggle("Keep showing while paused", isOn: $preferences.notchWhilePaused)
+                Toggle("Keep showing while paused (5 min)", isOn: $preferences.notchWhilePaused)
                     .disabled(!preferences.notch || !Preferences.hasNotch)
                 if !Preferences.hasNotch {
                     Text("This Mac has no notch: use the mini player (⇧⌘M) or the menu bar item.")

@@ -10,6 +10,9 @@ import SwiftUI
     private let preferences: Preferences
     private let state = IslandState()
     private var panel: NSPanel?
+    private var pauseTimeout: Task<Void, Never>?
+    private var pausedLong = false
+    private static let pauseLimit: Duration = .seconds(300)
     private let openPlayer: () -> Void
 
     init(nowPlaying: NowPlaying, preferences: Preferences, openPlayer: @escaping () -> Void) {
@@ -24,7 +27,7 @@ import SwiftUI
         watch()
     }
 
-    /// Re-run `update` whenever something it reads changes; no timers.
+    /// Re-run `update` whenever something it reads changes; the only timer is the one-shot pause limit.
     private func watch() {
         withObservationTracking {
             _ = (nowPlaying.hasSong, nowPlaying.playing, preferences.notch, preferences.notchWhilePaused)
@@ -39,8 +42,27 @@ import SwiftUI
 
     private var notchScreen: NSScreen? { NSScreen.screens.first { $0.safeAreaInsets.top > 0 } }
 
+    /// Paused for a while means nobody is listening: hide until it plays again or a new song loads.
+    private func armPauseTimeout() {
+        pauseTimeout?.cancel()
+        pauseTimeout = nil
+        guard nowPlaying.hasSong, !nowPlaying.playing else {
+            pausedLong = false
+            return
+        }
+        guard !pausedLong else { return }
+        pauseTimeout = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: Self.pauseLimit)
+            guard !Task.isCancelled else { return }
+            self?.pausedLong = true
+            self?.update()
+        }
+    }
+
     private func update() {
-        let wanted = preferences.notch && nowPlaying.hasSong && (nowPlaying.playing || preferences.notchWhilePaused)
+        armPauseTimeout()
+        let wanted = preferences.notch && nowPlaying.hasSong
+            && (nowPlaying.playing || (preferences.notchWhilePaused && !pausedLong))
         LevelMeter.shared.want("island", wanted && nowPlaying.playing && notchScreen != nil)
         guard wanted, let screen = notchScreen else {
             panel?.orderOut(nil)
