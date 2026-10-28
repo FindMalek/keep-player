@@ -1,6 +1,6 @@
 {
   "$schema": "https://unpkg.com/knip@6.41.0/schema.json",
-  "ignoreFiles": ["integrations/**"],
+  "ignoreFiles": ["integrations/**", ".agents/**"],
   "ignoreIssues": {
     "apps/player/src/components/ui/**": ["exports", "types"],
     "packages/ui/src/components/**": ["exports", "types"]

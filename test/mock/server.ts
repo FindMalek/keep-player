@@ -2,15 +2,21 @@ import { createHash } from "node:crypto";
 import type { Album, Song } from "../../apps/player/src/lib/types";
 import { createLibrary } from "./library";
 import { greyPng } from "./png";
+import { createShowcaseLibrary } from "./showcase";
 
 /** Subsonic/OpenSubsonic mock over a seeded library for e2e and perf budgets. Login demo/demo, audio is silence. */
 const PORT = Number(process.env.MOCK_PORT ?? 4599);
 const USER = "demo";
 const PASSWORD = "demo";
-const library = createLibrary(Number(process.env.MOCK_TRACKS ?? 10_000));
+// `MOCK_LIBRARY=showcase`: a small, believable library for screenshots and the promo film.
+const library =
+  process.env.MOCK_LIBRARY === "showcase" ? createShowcaseLibrary() : createLibrary(Number(process.env.MOCK_TRACKS ?? 10_000));
 const albumsById = new Map(library.albums.map((album) => [album.id, album]));
 const songsById = new Map(library.songs.map((song) => [song.id, song]));
 const starred = new Map<string, string>();
+if (process.env.MOCK_LIBRARY === "showcase")
+  for (const [index, song] of library.songs.entries())
+    if (index % 5 === 0) starred.set(song.id, new Date(Date.now() - index * 3_600_000).toISOString());
 const ratings = new Map<string, number>();
 const nowPlaying = new Map<string, { song: Song; at: number }>();
 let playQueue: { entry: Song[]; current?: string; position?: number; changed?: string; changedBy?: string } | null = null;
