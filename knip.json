@@ -12,6 +12,9 @@
     "apps/player": {
       "entry": ["src/main.tsx", "src/app.css"]
     },
+    "apps/video": {
+      "entry": ["src/index.ts", "remotion.config.ts"]
+    },
     "apps/web": {
       "ignoreDependencies": ["collections"]
     }
