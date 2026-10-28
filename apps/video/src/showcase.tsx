@@ -17,7 +17,7 @@ const SHOTS: Shot[] = [
   { image: "stats", text: "Your listening, counted.", from: { x: 760, y: 340, z: 1.5 }, to: { x: 1000, y: 330, z: 1.7 } },
 ];
 
-export const SHOT_LENGTH = 1.5;
+const SHOT_LENGTH = 1.5;
 const NOTCH_LENGTH = 3;
 export const SHOWCASE_LENGTH = SHOT_LENGTH * SHOTS.length + NOTCH_LENGTH;
 
