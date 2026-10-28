@@ -6,7 +6,7 @@ export const SITE_URL =
   process.env.SITE_URL ??
   (process.env.VERCEL_PROJECT_PRODUCTION_URL
     ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-    : "https://keepmusic.findmalek.engineer");
+    : "https://lodesong.findmalek.engineer");
 export const REPO = "https://github.com/FindMalek/lodesong";
 export const DOCS = "/docs";
 export const SELF_HOSTING = "/docs/self-hosting";
