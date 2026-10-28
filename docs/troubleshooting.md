@@ -50,7 +50,7 @@ per song.
 The server refuses to start and lists every bad variable:
 
 ```
-keep-player: can't start, fix the configuration (see docs/configuration.md):
+lodesong: can't start, fix the configuration (see docs/configuration.md):
   - PORT must be a whole number from 1 to 65535, got "eighty"
 ```
 

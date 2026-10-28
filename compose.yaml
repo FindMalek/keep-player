@@ -2,7 +2,7 @@
 # More setups (full stack, behind Caddy or Traefik, Dokploy): docs/deploy/.
 services:
   player:
-    image: ghcr.io/findmalek/keep-player:latest
+    image: ghcr.io/findmalek/lodesong:latest
     restart: unless-stopped
     environment:
       NAVIDROME_URL: http://navidrome:4533 # as this container reaches it; every option: docs/configuration.md

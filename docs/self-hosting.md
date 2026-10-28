@@ -58,7 +58,7 @@ services:
       - "4533:4533" # Navidrome's own UI, for the first admin; remove later if you like
 
   player:
-    image: ghcr.io/findmalek/keep-player:latest
+    image: ghcr.io/findmalek/lodesong:latest
     restart: unless-stopped
     depends_on: [navidrome]
     env_file: .env
@@ -193,7 +193,7 @@ curl -sI https://music.example.com/healthz     # HTTP/2 200
 
 ## 6. Keep it running
 
-- **Updates**: `docker compose pull && docker compose up -d`. Pin a version (`keep-player:1.2.0`) to update on your
+- **Updates**: `docker compose pull && docker compose up -d`. Pin a version (`lodesong:1.2.0`) to update on your
   own schedule; [releases](https://github.com/FindMalek/lodesong/releases) list what changed.
 - **Backups**: the music folder (your files), the `navidrome-data` volume (accounts, playlists, likes, play counts) and
   the `player-data` volume (sessions, listening history, lyrics cache, synced settings). Back up `.env` somewhere

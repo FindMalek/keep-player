@@ -93,10 +93,10 @@ export async function seedDemoHistory(db: Database, upstream: Upstream, user: st
     const songs = await demoSongs(upstream, user, password);
     if (songs.length > 0) {
       const written = seedHistory(db, account, songs);
-      if (written > 0) console.info(`keep-player: demo history seeded (${written} plays)`);
+      if (written > 0) console.info(`lodesong: demo history seeded (${written} plays)`);
       return;
     }
     await new Promise((resolve) => setTimeout(resolve, 15_000));
   }
-  console.warn("keep-player: demo history not seeded, the library never answered");
+  console.warn("lodesong: demo history not seeded, the library never answered");
 }

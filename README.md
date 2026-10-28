@@ -58,7 +58,7 @@ Next to your Navidrome:
 # compose.yaml
 services:
   player:
-    image: ghcr.io/findmalek/keep-player:latest   # amd64
+    image: ghcr.io/findmalek/lodesong:latest   # amd64
     restart: unless-stopped
     environment:
       NAVIDROME_URL: http://navidrome:4533        # as this container reaches Navidrome

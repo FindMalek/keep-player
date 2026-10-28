@@ -104,20 +104,20 @@ jobs:
         with:
           context: .
           load: true
-          tags: keep-player:test
+          tags: lodesong:test
           cache-from: type=gha
           cache-to: type=gha,mode=max
       - name: smoke test (read-only root, non-root user)
         run: |
           docker run -d --name kp --read-only --tmpfs /tmp -v kp-data:/data -p 8080:8080 \
-            -e NAVIDROME_URL=http://127.0.0.1:9 keep-player:test
+            -e NAVIDROME_URL=http://127.0.0.1:9 lodesong:test
           for i in $(seq 1 30); do curl -fsS http://127.0.0.1:8080/healthz && break; sleep 1; done
           curl -fsS http://127.0.0.1:8080/ | grep -q '<div id="root">'
           # Navidrome isn't there: readiness says so (503) without exposing its address.
           test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/api/health)" = 503
           test "$(docker exec kp id -u)" = 1000
           # A bad setting stops the server with a message naming it.
-          if docker run --rm -e PORT=eighty keep-player:test > bad.log 2>&1; then exit 1; fi
+          if docker run --rm -e PORT=eighty lodesong:test > bad.log 2>&1; then exit 1; fi
           grep "PORT must be" bad.log
 
   # Lighthouse runs alone on a quiet machine, and only for a release: it's slow and a score, not a correctness check.
