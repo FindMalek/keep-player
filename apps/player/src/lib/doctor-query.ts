@@ -1,4 +1,4 @@
-import type { DoctorReport } from "@keep/shared/doctor";
+import type { DoctorReport } from "@lodesong/shared/doctor";
 import { HEADERS } from "@/lib/subsonic";
 
 export const doctorQuery = {

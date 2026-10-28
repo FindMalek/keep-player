@@ -1,7 +1,7 @@
-import type { LyricLine } from "@keep/shared/lyrics";
-import { Badge } from "@keep/ui/components/badge";
-import { Button } from "@keep/ui/components/button";
-import { Skeleton } from "@keep/ui/components/skeleton";
+import type { LyricLine } from "@lodesong/shared/lyrics";
+import { Badge } from "@lodesong/ui/components/badge";
+import { Button } from "@lodesong/ui/components/button";
+import { Skeleton } from "@lodesong/ui/components/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { CopyIcon, ExternalLinkIcon, LanguagesIcon, LocateFixedIcon, Share2Icon } from "lucide-react";
 import { memo, useEffect, useRef, useState } from "react";
@@ -159,7 +159,7 @@ export function LyricsView({ song, size }: { song: Song; size: Size }) {
       save.current = setTimeout(() => {
         void fetch(`/api/lyrics/${encodeURIComponent(song.id)}/offset`, {
           method: "PUT",
-          headers: { "x-keep-player": "1", "content-type": "application/json" },
+          headers: { "x-lodesong": "1", "content-type": "application/json" },
           body: JSON.stringify({ offset: next }),
         });
       }, 600);

@@ -48,7 +48,7 @@ test("import a Spotify export: match, review, create the playlist once, list wha
     await expect(page.getByText(/1 playlist and 0 liked songs are in your library/)).toBeVisible();
   }
   const named = await page.evaluate(async (name) => {
-    const response = await fetch("/rest/getPlaylists?f=json", { headers: { "x-keep-player": "1" } });
+    const response = await fetch("/rest/getPlaylists?f=json", { headers: { "x-lodesong": "1" } });
     const body = (await response.json())["subsonic-response"].playlists.playlist as { name: string }[];
     return body.filter((entry) => entry.name === `Spotify / ${name}`).length;
   }, playlist);

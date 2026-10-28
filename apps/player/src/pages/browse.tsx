@@ -1,10 +1,10 @@
-import { Alert, AlertAction, AlertTitle } from "@keep/ui/components/alert";
-import { Badge } from "@keep/ui/components/badge";
-import { Button } from "@keep/ui/components/button";
-import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle } from "@keep/ui/components/empty";
-import { Skeleton } from "@keep/ui/components/skeleton";
-import { Toggle } from "@keep/ui/components/toggle";
-import { ToggleGroup, ToggleGroupItem } from "@keep/ui/components/toggle-group";
+import { Alert, AlertAction, AlertTitle } from "@lodesong/ui/components/alert";
+import { Badge } from "@lodesong/ui/components/badge";
+import { Button } from "@lodesong/ui/components/button";
+import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle } from "@lodesong/ui/components/empty";
+import { Skeleton } from "@lodesong/ui/components/skeleton";
+import { Toggle } from "@lodesong/ui/components/toggle";
+import { ToggleGroup, ToggleGroupItem } from "@lodesong/ui/components/toggle-group";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { HeartIcon, PlayIcon, ShuffleIcon } from "lucide-react";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -104,7 +104,7 @@ export function HomePage() {
               <Button
                 size="sm"
                 variant="outline"
-                render={<a href="https://github.com/FindMalek/keep-player#run-it" target="_blank" rel="noreferrer" />}
+                render={<a href="https://github.com/FindMalek/lodesong#run-it" target="_blank" rel="noreferrer" />}
               >
                 how to add music
               </Button>

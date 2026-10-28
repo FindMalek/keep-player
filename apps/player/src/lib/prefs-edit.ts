@@ -1,4 +1,4 @@
-import type { AlbumPref, Prefs, SongPref } from "@keep/shared/prefs";
+import type { AlbumPref, Prefs, SongPref } from "@lodesong/shared/prefs";
 import { clock } from "./format";
 import { notify } from "./notify";
 import { currentSong, player } from "./player";

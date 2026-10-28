@@ -1,5 +1,5 @@
 import type { Database } from "bun:sqlite";
-import type { Play } from "@keep/shared/history";
+import type { Play } from "@lodesong/shared/history";
 
 // Navidrome only counts plays; skips (under 30 s, not finished) are the better signal for radio and shuffle.
 // The song is kept as it was, so history survives a re-tag or a deleted file.

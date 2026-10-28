@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import type { Candidate } from "@keep/shared/import-match";
-import type { ImportSet } from "@keep/shared/spotify-import";
+import type { Candidate } from "@lodesong/shared/import-match";
+import type { ImportSet } from "@lodesong/shared/spotify-import";
 import { buildPlan, counts, type ImportRow, missingTracks, pick, rowBucket, toRow, trackKey } from "./import-plan";
 
 const song = (id: string, confidence: number): Candidate => ({ id, title: id, artist: "A", confidence });

@@ -11,7 +11,7 @@ async function realPrefs(page: Page): Promise<void> {
 
 async function reset(page: Page): Promise<void> {
   await page.evaluate(async () => {
-    const headers = { "x-keep-player": "1", "content-type": "application/json" };
+    const headers = { "x-lodesong": "1", "content-type": "application/json" };
     const prefs = (await (await fetch("/api/prefs", { headers })).json()) as { songs: { id: string }[]; albums: { id: string }[] };
     for (const song of prefs.songs)
       await fetch(`/api/prefs/songs/${song.id}`, {
@@ -35,7 +35,7 @@ test("⌥[ starts a song later and ⌥] ends it early, for good, and the list ma
   const bar = page.getByRole("contentinfo");
   await page.locator("body").press("Alt+[");
   await expect(page.getByText(new RegExp(`^${titles[0]} now starts at \\d+:\\d\\d$`))).toBeVisible();
-  const prefs = await page.evaluate(async () => (await (await fetch("/api/prefs", { headers: { "x-keep-player": "1" } })).json()).songs);
+  const prefs = await page.evaluate(async () => (await (await fetch("/api/prefs", { headers: { "x-lodesong": "1" } })).json()).songs);
   const start = prefs[0].trimStart as number;
   expect(start).toBeGreaterThan(10);
 
@@ -127,7 +127,7 @@ test("the keep-in-order flag of an album is saved for the account", async ({ pag
     .click({ button: "right" })
     .catch(() => undefined);
   const prefs = await page.evaluate(async () => {
-    const headers = { "x-keep-player": "1", "content-type": "application/json" };
+    const headers = { "x-lodesong": "1", "content-type": "application/json" };
     await fetch("/api/prefs/albums/al-33", { method: "PUT", headers, body: JSON.stringify({ name: "test album", keepOrder: true }) });
     return (await (await fetch("/api/prefs", { headers })).json()).albums;
   });

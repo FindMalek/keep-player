@@ -1,4 +1,4 @@
-# keep music for macOS
+# lodesong for macOS
 
 The player in its own window, and an island around the notch, made to feel like it shipped with the Mac.
 
@@ -26,16 +26,16 @@ The player in its own window, and an island around the notch, made to feel like 
 
 ## Install
 
-Download `keep-music-macos.zip` from the [latest release](https://github.com/FindMalek/keep-player/releases/latest),
-unzip, move **keep music** to Applications. It isn't signed by Apple yet: the first time, right-click it → **Open**
-(or `xattr -dr com.apple.quarantine "/Applications/keep music.app"`). It asks for your keep music address once.
+Download `lodesong-macos.zip` from the [latest release](https://github.com/FindMalek/lodesong/releases/latest),
+unzip, move **lodesong** to Applications. It isn't signed by Apple yet: the first time, right-click it → **Open**
+(or `xattr -dr com.apple.quarantine "/Applications/lodesong.app"`). It asks for your lodesong address once.
 macOS 14 or later.
 
 ## Build
 
 ```sh
-apps/macos/build.sh                                   # → apps/macos/dist/keep music.app (Apple silicon + Intel)
-swift run --package-path apps/macos KeepMusic --preview /tmp/island   # the island's states as PNGs
+apps/macos/build.sh                                   # → apps/macos/dist/lodesong.app (Apple silicon + Intel)
+swift run --package-path apps/macos Lodesong --preview /tmp/island   # the island's states as PNGs
 ```
 
 No dependencies: AppKit, SwiftUI and WebKit. The page talks to the app through `apps/player/src/lib/native.ts`.

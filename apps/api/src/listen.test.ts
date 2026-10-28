@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import type { ServerMessage } from "@keep/shared/listen";
+import type { ServerMessage } from "@lodesong/shared/listen";
 import { ListenRooms, type Peer } from "./listen";
 
 function peer(session: string, user: string, server = "default"): Peer & { got: ServerMessage[] } {

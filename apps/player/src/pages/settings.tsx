@@ -1,16 +1,16 @@
-import { Button } from "@keep/ui/components/button";
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@keep/ui/components/dialog";
+import { Button } from "@lodesong/ui/components/button";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@lodesong/ui/components/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
-} from "@keep/ui/components/dropdown-menu";
-import { Slider } from "@keep/ui/components/slider";
-import { Switch } from "@keep/ui/components/switch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@keep/ui/components/tabs";
-import { ToggleGroup, ToggleGroupItem } from "@keep/ui/components/toggle-group";
+} from "@lodesong/ui/components/dropdown-menu";
+import { Slider } from "@lodesong/ui/components/slider";
+import { Switch } from "@lodesong/ui/components/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@lodesong/ui/components/tabs";
+import { ToggleGroup, ToggleGroupItem } from "@lodesong/ui/components/toggle-group";
 import { useQuery } from "@tanstack/react-query";
 import {
   ChevronDownIcon,
@@ -262,7 +262,7 @@ function TerminalRow() {
     const response = await fetch("/api/remote/token", { method: "POST", headers: HEADERS }).catch(() => null);
     if (!response?.ok) return setFailed(true);
     const { token } = (await response.json()) as { token: string };
-    setCommand(`/keep-music connect ${location.origin} ${token}`);
+    setCommand(`/lodesong connect ${location.origin} ${token}`);
   };
   return (
     <Row
@@ -539,7 +539,7 @@ export function SettingsPage({ section, onClose }: { section: string | null; onC
             </TabsContent>
 
             <TabsContent value="about">
-              <Row label="install keep music" hint="its own window, in your dock or start menu, with media keys">
+              <Row label="install lodesong" hint="its own window, in your dock or start menu, with media keys">
                 {installState === "installed" ? (
                   <span className="font-mono text-muted-foreground text-xs">installed</span>
                 ) : installState === "available" ? (
@@ -554,13 +554,13 @@ export function SettingsPage({ section, onClose }: { section: string | null; onC
                 )}
               </Row>
               <Row
-                label={version ? `keep music v${version.version}` : "keep music"}
+                label={version ? `lodesong v${version.version}` : "lodesong"}
                 hint={version?.updateAvailable ? `v${version.latest} is out` : "a monochrome web player for navidrome"}
               >
                 <Button
                   variant="outline"
                   size="sm"
-                  render={<a href="https://github.com/FindMalek/keep-player" target="_blank" rel="noreferrer" />}
+                  render={<a href="https://github.com/FindMalek/lodesong" target="_blank" rel="noreferrer" />}
                 >
                   <ExternalLinkIcon />
                   github

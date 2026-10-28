@@ -1,7 +1,7 @@
 {
-  "name": "keep-now-playing",
+  "name": "lodesong-now-playing",
   "version": "0.1.0",
-  "description": "What your keep-player (Navidrome) plays, with its lyric line and play/pause, above the prompt",
+  "description": "What your lodesong (Navidrome) plays, with its lyric line and play/pause, above the prompt",
   "license": "MIT",
   "types": "./types/index.d.ts"
 }

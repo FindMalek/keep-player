@@ -1,5 +1,5 @@
 import type { Database } from "bun:sqlite";
-import { normalize } from "@keep/shared/normalize";
+import { normalize } from "@lodesong/shared/normalize";
 import { blend, type Listening, type Mix, seeded } from "./mixes";
 
 // One Groq call per account per week (cached in `meta`); each day every mood is a fresh blend of your songs.

@@ -1,5 +1,5 @@
-import { Button } from "@keep/ui/components/button";
-import { Progress } from "@keep/ui/components/progress";
+import { Button } from "@lodesong/ui/components/button";
+import { Progress } from "@lodesong/ui/components/progress";
 import { useQuery } from "@tanstack/react-query";
 import { UploadIcon } from "lucide-react";
 import { type DragEvent, useRef, useState } from "react";

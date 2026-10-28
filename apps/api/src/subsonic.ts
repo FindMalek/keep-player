@@ -1,6 +1,6 @@
 import type { Upstream } from "./config";
 
-const CLIENT = "keep-player";
+const CLIENT = "lodesong";
 const VERSION = "1.16.1";
 
 export interface Credentials {

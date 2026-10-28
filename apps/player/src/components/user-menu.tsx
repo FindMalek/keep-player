@@ -1,4 +1,4 @@
-import { Button } from "@keep/ui/components/button";
+import { Button } from "@lodesong/ui/components/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuShortcut,
   DropdownMenuTrigger,
-} from "@keep/ui/components/dropdown-menu";
+} from "@lodesong/ui/components/dropdown-menu";
 import { useQuery } from "@tanstack/react-query";
 import {
   ArrowUpCircleIcon,
@@ -102,7 +102,7 @@ export function UserMenu({ defaultOpen, onShortcuts }: { defaultOpen: boolean; o
               {version.updateAvailable ? (
                 <DropdownMenuItem
                   render={
-                    <a href={`https://github.com/FindMalek/keep-player/releases/tag/v${version.latest}`} target="_blank" rel="noreferrer" />
+                    <a href={`https://github.com/FindMalek/lodesong/releases/tag/v${version.latest}`} target="_blank" rel="noreferrer" />
                   }
                 >
                   <ArrowUpCircleIcon />
@@ -111,7 +111,7 @@ export function UserMenu({ defaultOpen, onShortcuts }: { defaultOpen: boolean; o
               ) : null}
               {/* Base UI labels must sit in a group. */}
               <DropdownMenuGroup>
-                <DropdownMenuLabel className={LABEL}>keep music v{version.version}</DropdownMenuLabel>
+                <DropdownMenuLabel className={LABEL}>lodesong v{version.version}</DropdownMenuLabel>
               </DropdownMenuGroup>
             </>
           )}

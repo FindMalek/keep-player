@@ -42,7 +42,7 @@ const signIn = async (user: string, serverId: string) => {
   const response = await api.login(
     new Request("http://app/auth/login", {
       method: "POST",
-      headers: { "x-keep-player": "1", "content-type": "application/json" },
+      headers: { "x-lodesong": "1", "content-type": "application/json" },
       body: JSON.stringify({ user, password: "pw", server: serverId }),
     }),
     server,

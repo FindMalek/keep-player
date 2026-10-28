@@ -1,5 +1,5 @@
-import { type Bucket, bucketOf, type Candidate, type ImportMatch } from "@keep/shared/import-match";
-import type { ImportSet, ImportTrack } from "@keep/shared/spotify-import";
+import { type Bucket, bucketOf, type Candidate, type ImportMatch } from "@lodesong/shared/import-match";
+import type { ImportSet, ImportTrack } from "@lodesong/shared/spotify-import";
 
 export interface ImportRow {
   track: ImportTrack;

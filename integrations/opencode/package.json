@@ -1,7 +1,7 @@
 {
-  "name": "opencode-keep-now-playing",
+  "name": "opencode-lodesong-now-playing",
   "version": "0.1.0",
-  "description": "What your keep-player plays, with its lyric line, in OpenCode's prompt footer",
+  "description": "What your lodesong plays, with its lyric line, in OpenCode's prompt footer",
   "license": "MIT",
   "type": "module",
   "exports": {

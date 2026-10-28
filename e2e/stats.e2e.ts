@@ -11,7 +11,7 @@ test("stats show what you played, forgotten favourites make a playlist, and the 
         (
           await fetch("/api/history", {
             method: "POST",
-            headers: { "x-keep-player": "1", "content-type": "application/json" },
+            headers: { "x-lodesong": "1", "content-type": "application/json" },
             body: JSON.stringify(body),
           })
         ).status,
@@ -63,5 +63,5 @@ test("stats show what you played, forgotten favourites make a playlist, and the 
   await expect(recap.getByRole("region", { name: "recap slide" })).not.toContainText("your top artist");
   const download = page.waitForEvent("download");
   await recap.getByRole("button", { name: "save image" }).click();
-  expect((await download).suggestedFilename()).toMatch(/^keep-music-recap-.+\.png$/);
+  expect((await download).suggestedFilename()).toMatch(/^lodesong-recap-.+\.png$/);
 });

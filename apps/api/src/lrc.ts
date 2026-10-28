@@ -1,4 +1,4 @@
-import type { LyricLine } from "@keep/shared/lyrics";
+import type { LyricLine } from "@lodesong/shared/lyrics";
 
 const STAMP = /\[(\d{1,3}):(\d{1,2})(?:[.:](\d{1,3}))?\]/g;
 const WORD = /<(\d{1,3}):(\d{1,2})(?:[.:](\d{1,3}))?>/g;

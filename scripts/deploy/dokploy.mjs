@@ -3,9 +3,9 @@
 import { createHash, randomBytes } from "node:crypto";
 
 const MODE = process.argv[2];
-const COMMENT_MARKER = "<!-- keep-player-preview -->";
-const PROJECT = "keep-player-previews";
-const DEMO_APP = "keep-player-demo";
+const COMMENT_MARKER = "<!-- lodesong-preview -->";
+const PROJECT = "lodesong-previews";
+const DEMO_APP = "lodesong-demo";
 const DEMO_USER = "demo";
 const DEMO_PASSWORD = "demo";
 const POLL_INTERVAL_MS = Number(process.env.POLL_INTERVAL_MS) || 5_000;
@@ -156,7 +156,7 @@ function renderRow(row, links) {
 function renderComment({ player }) {
   return [
     COMMENT_MARKER,
-    "**The latest updates on your projects**. Learn more about [keep-player previews](../blob/main/docs/previews.md).",
+    "**The latest updates on your projects**. Learn more about [lodesong previews](../blob/main/docs/previews.md).",
     "",
     "| Project | Deployment | Actions | Updated (UTC) |",
     "| :--- | :----- | :------ | :------ |",
@@ -198,7 +198,7 @@ async function upsertComment(rows) {
 }
 
 function previewRows(pr, status) {
-  return { player: { name: `keep-player-pr-${pr}`, status, host: previewHost(pr) } };
+  return { player: { name: `lodesong-pr-${pr}`, status, host: previewHost(pr) } };
 }
 
 async function previewUp() {
@@ -262,7 +262,7 @@ async function rescan(host) {
   const token = createHash("md5")
     .update(DEMO_PASSWORD + salt)
     .digest("hex");
-  const query = new URLSearchParams({ u: DEMO_USER, t: token, s: salt, v: "1.16.1", c: "keep-player-deploy", f: "json" });
+  const query = new URLSearchParams({ u: DEMO_USER, t: token, s: salt, v: "1.16.1", c: "lodesong-deploy", f: "json" });
   const res = await fetch(`https://${host}/rest/startScan?${query}`).catch(() => null);
   console.info(`demo rescan: ${res?.status ?? "unreachable"}`);
 }

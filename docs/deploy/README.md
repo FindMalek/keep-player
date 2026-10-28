@@ -1,12 +1,12 @@
 # Deploying
 
-keep music is one container (`ghcr.io/findmalek/keep-player`, amd64) that needs to reach your Navidrome.
+lodesong is one container (`ghcr.io/findmalek/lodesong`, amd64) that needs to reach your Navidrome.
 It keeps its state in one volume at `/data`, runs as an unprivileged user and works with a read-only root filesystem.
 
 | file | setup |
 |---|---|
 | [`../../compose.yaml`](../../compose.yaml) | next to an existing Navidrome (join its Docker network) |
-| [`full-stack.compose.yaml`](full-stack.compose.yaml) | Navidrome and keep music together, from scratch |
+| [`full-stack.compose.yaml`](full-stack.compose.yaml) | Navidrome and lodesong together, from scratch |
 | [`traefik.compose.yaml`](traefik.compose.yaml) | behind Traefik with a domain and TLS |
 | [`dokploy.md`](dokploy.md) | Dokploy, with automatic deploys from CI |
 

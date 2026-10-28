@@ -7,9 +7,9 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 import { useIsMobile } from "@/hooks/use-mobile"
-import { Button } from "@keep/ui/components/button"
-import { Input } from "@keep/ui/components/input"
-import { Separator } from "@keep/ui/components/separator"
+import { Button } from "@lodesong/ui/components/button"
+import { Input } from "@lodesong/ui/components/input"
+import { Separator } from "@lodesong/ui/components/separator"
 import {
   Sheet,
   SheetContent,
@@ -17,8 +17,8 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/lazy-sheet"
-import { Skeleton } from "@keep/ui/components/skeleton"
-import type { TooltipContent } from "@keep/ui/components/tooltip"
+import { Skeleton } from "@lodesong/ui/components/skeleton"
+import type { TooltipContent } from "@lodesong/ui/components/tooltip"
 import { loadTooltips, tooltipClosed, useOpenDelay, useTooltips } from "@/lib/tooltips"
 import { PanelLeftIcon } from "lucide-react"
 

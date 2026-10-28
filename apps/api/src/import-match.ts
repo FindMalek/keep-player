@@ -1,8 +1,8 @@
 import type { Database } from "bun:sqlite";
-import type { Candidate, ImportMatch } from "@keep/shared/import-match";
-import { REVIEW_FROM } from "@keep/shared/import-match";
-import { normalize, similarity } from "@keep/shared/normalize";
-import type { ImportTrack } from "@keep/shared/spotify-import";
+import type { Candidate, ImportMatch } from "@lodesong/shared/import-match";
+import { REVIEW_FROM } from "@lodesong/shared/import-match";
+import { normalize, similarity } from "@lodesong/shared/normalize";
+import type { ImportTrack } from "@lodesong/shared/spotify-import";
 import { queryIndex } from "./search-index";
 
 // Candidates come from the search index, so a match only ever offers songs this user may see.

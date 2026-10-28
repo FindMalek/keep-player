@@ -40,7 +40,7 @@ jobs:
       - run: bun scripts/config-docs.ts --check
       - run: bun scripts/shortcuts-docs.ts --check
       # The site (apps/web): a broken Next build fails here, not at deploy.
-      - run: bunx turbo run build --filter=@keep/web
+      - run: bunx turbo run build --filter=@lodesong/web
 
   # The browser suite split four ways, each on its own machine. Lighthouse waits for a release (job below).
   e2e:
@@ -148,8 +148,8 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - run: apps/macos/build.sh
-      - run: cd apps/macos/dist && ditto -c -k --keepParent "keep music.app" keep-music-macos.zip
-      - run: gh release upload "v${{ needs.release.outputs.version }}" "apps/macos/dist/keep-music-macos.zip" --clobber
+      - run: cd apps/macos/dist && ditto -c -k --keepParent "lodesong.app" lodesong-macos.zip
+      - run: gh release upload "v${{ needs.release.outputs.version }}" "apps/macos/dist/lodesong-macos.zip" --clobber
         env:
           GH_TOKEN: ${{ github.token }}
 
@@ -174,7 +174,7 @@ jobs:
       - id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/findmalek/keep-player
+          images: ghcr.io/findmalek/lodesong
           tags: |
             type=raw,value=main
             type=semver,pattern={{version}}
@@ -197,7 +197,7 @@ jobs:
           cache-to: type=gha,mode=max
       - uses: actions/attest-build-provenance@v3
         with:
-          subject-name: ghcr.io/findmalek/keep-player
+          subject-name: ghcr.io/findmalek/lodesong
           subject-digest: ${{ steps.push.outputs.digest }}
           push-to-registry: true
 

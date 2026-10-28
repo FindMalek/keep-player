@@ -1,6 +1,6 @@
 import { Database } from "bun:sqlite";
 import { expect, test } from "bun:test";
-import { normalize } from "@keep/shared/normalize";
+import { normalize } from "@lodesong/shared/normalize";
 import { confidence, matchTrack } from "./import-match";
 import { createIndexTables } from "./search-index";
 

@@ -1,4 +1,4 @@
-import type { Moment } from "@keep/shared/moments";
+import type { Moment } from "@lodesong/shared/moments";
 import { queryOptions, useQuery } from "@tanstack/react-query";
 import { clock } from "./format";
 import { notify } from "./notify";

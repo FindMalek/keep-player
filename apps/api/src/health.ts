@@ -36,7 +36,7 @@ export class HealthCheck {
 /** An unauthenticated ping: Navidrome answers it (with an auth error) and names itself, which is all we need. */
 async function probe(upstream: Upstream): Promise<UpstreamHealth> {
   const started = performance.now();
-  const response = await fetch(`${upstream.url}/rest/ping?f=json&v=1.16.1&c=keep-player`, { signal: AbortSignal.timeout(5000) }).catch(
+  const response = await fetch(`${upstream.url}/rest/ping?f=json&v=1.16.1&c=lodesong`, { signal: AbortSignal.timeout(5000) }).catch(
     () => null,
   );
   const body = (await response?.json().catch(() => null)) as {
@@ -58,7 +58,7 @@ export class UpdateCheck {
 
   constructor(
     private readonly enabled: boolean,
-    private readonly url = "https://api.github.com/repos/FindMalek/keep-player/releases/latest",
+    private readonly url = "https://api.github.com/repos/FindMalek/lodesong/releases/latest",
   ) {}
 
   async info(): Promise<{ version: string; latest: string | null; updateAvailable: boolean }> {

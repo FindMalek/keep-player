@@ -38,7 +38,7 @@ function courtesy(): void {
 }
 
 export function deviceName(client: string): string {
-  return client.startsWith("keep-player@") ? "another browser" : client || "another device";
+  return client.startsWith("lodesong@") ? "another browser" : client || "another device";
 }
 
 type Entry = Song & { username?: string; playerName?: string; minutesAgo?: number };
@@ -50,9 +50,9 @@ function refresh(): void {
   set(
     entries
       .filter((entry) => entry.username === me && entry.playerName !== CLIENT_NAME && stillPlaying(entry))
-      .filter((entry) => !(sessionState.get().connected && entry.playerName?.startsWith("keep-player@")))
+      .filter((entry) => !(sessionState.get().connected && entry.playerName?.startsWith("lodesong@")))
       // Another app (your phone) before another browser of ours: the more useful one to show.
-      .sort((a, b) => Number(a.playerName?.startsWith("keep-player@")) - Number(b.playerName?.startsWith("keep-player@")))
+      .sort((a, b) => Number(a.playerName?.startsWith("lodesong@")) - Number(b.playerName?.startsWith("lodesong@")))
       .map((entry) => ({ song: entry, device: deviceName(entry.playerName ?? "") })),
   );
 }

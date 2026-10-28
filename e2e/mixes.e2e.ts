@@ -4,7 +4,7 @@ test("songs you play become daily mixes on home, saved as navidrome playlists to
   const call = (path: string, init?: { method?: string; body?: string }) =>
     page.evaluate(
       async ([url, options]) =>
-        (await fetch(url, { ...options, headers: { "x-keep-player": "1", "content-type": "application/json" } })).json(),
+        (await fetch(url, { ...options, headers: { "x-lodesong": "1", "content-type": "application/json" } })).json(),
       [path, init ?? {}] as const,
     );
   // Mixes are made from the library index (plays only say which artists you like).

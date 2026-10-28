@@ -34,7 +34,7 @@ jobs:
           context: .
           file: infra/demo/Dockerfile
           push: true
-          tags: ghcr.io/findmalek/keep-player-demo:latest
+          tags: ghcr.io/findmalek/lodesong-demo:latest
           cache-from: type=gha,scope=demo
           cache-to: type=gha,scope=demo,mode=max
 

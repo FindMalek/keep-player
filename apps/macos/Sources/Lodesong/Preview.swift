@@ -1,7 +1,7 @@
 import AppKit
 import SwiftUI
 
-/// `keep music --preview <folder>`: draws the island in each state with a sample song to PNGs, then quits. For checking
+/// `lodesong --preview <folder>`: draws the island in each state with a sample song to PNGs, then quits. For checking
 /// the design (and README pictures) without a server, a login or screen recording.
 @MainActor enum Preview {
     static var active = false

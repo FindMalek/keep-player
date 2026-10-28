@@ -13,9 +13,9 @@ export const metadata: Metadata = {
   // Its own og:url, or shares inherit the layout's "/" and land on the home page.
   openGraph: {
     type: "website",
-    siteName: "keep music",
+    siteName: "lodesong",
     url: "/roadmap",
-    title: "roadmap · keep music",
+    title: "roadmap · lodesong",
     description: "What shipped, what's being built, what's next and what's parked, straight from GitHub.",
   },
 };

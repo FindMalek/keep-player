@@ -2,7 +2,7 @@
 
 ## One session across devices
 
-Every open keep music of yours (a tab, another browser, another computer) joins one playback session, like Spotify
+Every open lodesong of yours (a tab, another browser, another computer) joins one playback session, like Spotify
 Connect. One of them plays; the others are remotes.
 
 - **Press play anywhere** and that device takes over: the one that was playing stops, the rest follow it.
@@ -28,25 +28,25 @@ A line above the prompt of Claude Code or OpenCode: the song, the artist, the pr
 line, and ⏮ ⏸ ⏭ for whichever player of yours is playing. A song playing in another Subsonic app (your phone) shows
 too, without the buttons.
 
-1. In keep music: settings → sync → **now playing in your terminal** → connect. It shows one line,
-   `/keep-music connect https://your-player <token>`, once.
+1. In lodesong: settings → sync → **now playing in your terminal** → connect. It shows one line,
+   `/lodesong connect https://your-player <token>`, once.
 2. **Claude Code**:
 
    ```text
-   /plugin marketplace add FindMalek/keep-player
-   /plugin install keep-now-playing@keep-player
+   /plugin marketplace add FindMalek/lodesong
+   /plugin install lodesong-now-playing@lodesong
    ```
 
-   then paste the line from step 1. `/keep-music` plays or pauses, `/keep-music next`, `/keep-music prev`,
-   `/keep-music off` disconnects.
-3. **OpenCode** (2.x): point `~/.config/opencode/cli.json` at the plugin folder of a keep-player clone, with the URL and
+   then paste the line from step 1. `/lodesong` plays or pauses, `/lodesong next`, `/lodesong prev`,
+   `/lodesong off` disconnects.
+3. **OpenCode** (2.x): point `~/.config/opencode/cli.json` at the plugin folder of a lodesong clone, with the URL and
    the token from step 1 as options:
 
    ```json
    {
      "plugins": [
        {
-         "package": "/path/to/keep-player/integrations/opencode",
+         "package": "/path/to/lodesong/integrations/opencode",
          "options": { "url": "https://your-player", "token": "<token>" }
        }
      ]

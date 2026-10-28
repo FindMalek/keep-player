@@ -1,5 +1,5 @@
-import type { Moment } from "@keep/shared/moments";
-import { Button } from "@keep/ui/components/button";
+import type { Moment } from "@lodesong/shared/moments";
+import { Button } from "@lodesong/ui/components/button";
 import { useQuery } from "@tanstack/react-query";
 import { LinkIcon, PlayIcon, Trash2Icon } from "lucide-react";
 import { useEffect, useMemo } from "react";

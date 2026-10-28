@@ -1,5 +1,5 @@
 {
-  "name": "@keep/web",
+  "name": "@lodesong/web",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -13,7 +13,7 @@
   "dependencies": {
     "@fontsource-variable/ibm-plex-sans": "5.3.0",
     "@fontsource-variable/jetbrains-mono": "5.3.0",
-    "@keep/ui": "workspace:*",
+    "@lodesong/ui": "workspace:*",
     "fumadocs-core": "16.17.1",
     "fumadocs-mdx": "15.4.7",
     "fumadocs-ui": "16.17.1",
@@ -24,7 +24,7 @@
     "zod": "4.6.6"
   },
   "devDependencies": {
-    "@keep/config": "workspace:*",
+    "@lodesong/config": "workspace:*",
     "@tailwindcss/postcss": "4.3.3",
     "@types/mdx": "2.0.14",
     "@types/node": "26.6.5",

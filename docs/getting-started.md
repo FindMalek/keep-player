@@ -35,13 +35,13 @@ shared Docker network. Every other setting has a default ([configuration](config
 
 ## 2. Sign in
 
-Open `http://localhost:8080`. Above the form, keep music checks the server:
+Open `http://localhost:8080`. Above the form, lodesong checks the server:
 
 - `✓ navidrome 0.64.2 · 12 ms` — all good. Sign in with any Navidrome account.
 - `✗ can't reach navidrome` — the container can't reach `NAVIDROME_URL`. See
   [troubleshooting](troubleshooting.md#cant-reach-navidrome).
 
-Your password goes to the keep music server only, which turns it into a Subsonic token, checks it with Navidrome and
+Your password goes to the lodesong server only, which turns it into a Subsonic token, checks it with Navidrome and
 keeps it encrypted. The browser gets a session cookie and never sees the token ([security](security.md)).
 
 ## 3. First run

@@ -1,4 +1,4 @@
-import { Button } from "@keep/ui/components/button";
+import { Button } from "@lodesong/ui/components/button";
 import { useQuery } from "@tanstack/react-query";
 import { PlayIcon } from "lucide-react";
 import { useEffect } from "react";

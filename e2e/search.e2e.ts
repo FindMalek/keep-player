@@ -14,7 +14,7 @@ test("a few words of a lyric find the song, and picking it plays from that line"
   await page.addInitScript(fakeMediaClock);
   await signedIn.goto("/");
   const call = (path: string, method = "GET") =>
-    page.evaluate(async ([url, verb]) => (await fetch(url, { method: verb, headers: { "x-keep-player": "1" } })).json(), [
+    page.evaluate(async ([url, verb]) => (await fetch(url, { method: verb, headers: { "x-lodesong": "1" } })).json(), [
       path,
       method,
     ] as const);
@@ -41,7 +41,7 @@ test("a few words of a lyric find the song, and picking it plays from that line"
 test("typos, artist - title and operators find the right thing, and see all opens the results page", async ({ page, signedIn }) => {
   await signedIn.goto("/");
   const call = (path: string, method = "GET") =>
-    page.evaluate(async ([url, verb]) => (await fetch(url, { method: verb, headers: { "x-keep-player": "1" } })).json(), [
+    page.evaluate(async ([url, verb]) => (await fetch(url, { method: verb, headers: { "x-lodesong": "1" } })).json(), [
       path,
       method,
     ] as const);

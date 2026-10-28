@@ -1,5 +1,5 @@
-import { buttonVariants } from "@keep/ui/components/button";
-import { cn } from "@keep/ui/lib/utils";
+import { buttonVariants } from "@lodesong/ui/components/button";
+import { cn } from "@lodesong/ui/lib/utils";
 import {
   AppleIcon,
   AudioLinesIcon,
@@ -34,7 +34,7 @@ export const revalidate = 86_400;
 const JSON_LD = {
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
-  name: "keep music",
+  name: "lodesong",
   applicationCategory: "MultimediaApplication",
   operatingSystem: "Web, macOS",
   description:
@@ -49,7 +49,7 @@ const YOURS: { icon: LucideIcon; title: string; text: string }[] = [
   {
     icon: FolderLockIcon,
     title: "your files stay put",
-    text: "navidrome serves them from your disk, mounted read-only. keep music never copies, moves or uploads your library.",
+    text: "navidrome serves them from your disk, mounted read-only. lodesong never copies, moves or uploads your library.",
   },
   {
     icon: UserRoundCheckIcon,
@@ -200,7 +200,7 @@ export default async function Home() {
               <Island />
             </div>
           </div>
-          <Shot name="album-lyrics" alt="an album in keep music with its synced lyrics open beside it" className="reveal mt-16" priority />
+          <Shot name="album-lyrics" alt="an album in lodesong with its synced lyrics open beside it" className="reveal mt-16" priority />
         </section>
 
         <Section
@@ -361,7 +361,7 @@ export default async function Home() {
               <thead>
                 <tr className="border-b bg-card font-mono text-muted-foreground text-xs">
                   <th className="px-4 py-3 text-left font-normal" />
-                  <th className="w-32 px-4 py-3 font-medium text-foreground">keep music</th>
+                  <th className="w-32 px-4 py-3 font-medium text-foreground">lodesong</th>
                   <th className="w-32 px-4 py-3 font-normal">spotify</th>
                   <th className="w-32 px-4 py-3 font-normal">navidrome's web ui</th>
                 </tr>
@@ -389,7 +389,7 @@ export default async function Home() {
         <Section
           id="yours"
           title="yours, all the way down"
-          intro="keep music runs next to navidrome on your own machine. here is what that means."
+          intro="lodesong runs next to navidrome on your own machine. here is what that means."
         >
           <div className="grid gap-px border bg-border md:grid-cols-2">
             {YOURS.map(({ icon: Icon, title, text }) => (
@@ -406,7 +406,7 @@ export default async function Home() {
           <div className="reveal mt-8 flex gap-4 border border-dashed p-6">
             <SmartphoneIcon className="mt-0.5 size-5 shrink-0" strokeWidth={1.5} />
             <p className="text-muted-foreground text-sm">
-              <span className="font-medium text-foreground">no phone app, on purpose.</span> keep music is made for desktop browsers and the
+              <span className="font-medium text-foreground">no phone app, on purpose.</span> lodesong is made for desktop browsers and the
               mac. on your phone, use any subsonic app (arpeggi, symfonium, substreamer) against the same navidrome: your queue hands off
               both ways, and mixes show up as playlists there.
             </p>

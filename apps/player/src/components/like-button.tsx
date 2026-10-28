@@ -1,4 +1,4 @@
-import { Button } from "@keep/ui/components/button";
+import { Button } from "@lodesong/ui/components/button";
 import { HeartIcon } from "lucide-react";
 import { type LikeKind, toggleLiked, useLiked } from "@/lib/likes";
 import { cn } from "@/lib/utils";

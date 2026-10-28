@@ -1,4 +1,4 @@
-import { Kbd, KbdGroup } from "@keep/ui/components/kbd";
+import { Kbd, KbdGroup } from "@lodesong/ui/components/kbd";
 import { type ReactElement, type ReactNode, useLayoutEffect, useRef } from "react";
 import { useHintKeys } from "@/lib/shortcuts";
 import { noteMouseUse } from "@/lib/tips";

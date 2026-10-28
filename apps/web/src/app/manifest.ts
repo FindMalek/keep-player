@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "keep music",
-    short_name: "keep music",
+    name: "lodesong",
+    short_name: "lodesong",
     description: "A real music app for the music you own: a player for Navidrome.",
     start_url: "/",
     display: "browser",

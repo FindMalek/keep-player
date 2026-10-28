@@ -1,5 +1,5 @@
-import { albumSchema, mixSchema, songSchema } from "@keep/shared/library";
-import { listeningStatsSchema } from "@keep/shared/stats";
+import { albumSchema, mixSchema, songSchema } from "@lodesong/shared/library";
+import { listeningStatsSchema } from "@lodesong/shared/stats";
 import { oc } from "@orpc/contract";
 import { z } from "zod";
 
@@ -53,7 +53,7 @@ export const contract = {
         path: "/stats",
         summary: "Your listening in a time range",
         description:
-          "From your plays in keep music: minutes, top songs, artists, albums and genres, a listening clock and day totals. At most 400 days.",
+          "From your plays in lodesong: minutes, top songs, artists, albums and genres, a listening clock and day totals. At most 400 days.",
         tags: ["Stats"],
       })
       .input(

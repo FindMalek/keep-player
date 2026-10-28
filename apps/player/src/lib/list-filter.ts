@@ -1,4 +1,4 @@
-import { normalize, similarity } from "@keep/shared/normalize";
+import { normalize, similarity } from "@lodesong/shared/normalize";
 import { useSyncExternalStore } from "react";
 import type { Song } from "./types";
 

@@ -1,4 +1,4 @@
-import type { AudioDevice } from "@keep/ui/components/audio-device-select";
+import type { AudioDevice } from "@lodesong/ui/components/audio-device-select";
 import { useCallback, useEffect, useState } from "react";
 import { player } from "./player";
 

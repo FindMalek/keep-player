@@ -1,6 +1,6 @@
 import { OG_SIZE, OG_TYPE, ogImage } from "@/lib/og";
 
-export const alt = "keep music: a real music app for the music you own";
+export const alt = "lodesong: a real music app for the music you own";
 export const size = OG_SIZE;
 export const contentType = OG_TYPE;
 

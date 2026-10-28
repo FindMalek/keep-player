@@ -12,12 +12,12 @@ const DESCRIPTION =
 // Share images come from each route's opengraph-image; Twitter reads the same ones.
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: { default: "keep music: a real music app for the music you own", template: "%s · keep music" },
+  title: { default: "lodesong: a real music app for the music you own", template: "%s · lodesong" },
   description: DESCRIPTION,
-  applicationName: "keep music",
+  applicationName: "lodesong",
   keywords: ["navidrome", "subsonic", "music player", "self-hosted", "spotify alternative", "synced lyrics", "open source", "macos"],
   alternates: { canonical: "/" },
-  openGraph: { type: "website", siteName: "keep music", locale: "en", url: "/", description: DESCRIPTION },
+  openGraph: { type: "website", siteName: "lodesong", locale: "en", url: "/", description: DESCRIPTION },
   twitter: { card: "summary_large_image" },
 };
 

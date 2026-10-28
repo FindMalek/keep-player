@@ -2,7 +2,7 @@ import { expect, test } from "./fixtures";
 
 test("the library doctor lists each check with a count and a fix hint", async ({ page, signedIn }) => {
   const call = (path: string, method = "GET") =>
-    signedIn.evaluate(async ([url, verb]) => (await fetch(url, { method: verb, headers: { "x-keep-player": "1" } })).json(), [
+    signedIn.evaluate(async ([url, verb]) => (await fetch(url, { method: verb, headers: { "x-lodesong": "1" } })).json(), [
       path,
       method,
     ] as const);
@@ -22,7 +22,7 @@ test("the library doctor lists each check with a count and a fix hint", async ({
 
 test("with lyterion's ⇪ Upgrade playlist around, a finding's fix button hands that song to it", async ({ page, signedIn }) => {
   const call = (path: string, method = "GET") =>
-    signedIn.evaluate(async ([url, verb]) => (await fetch(url, { method: verb, headers: { "x-keep-player": "1" } })).json(), [
+    signedIn.evaluate(async ([url, verb]) => (await fetch(url, { method: verb, headers: { "x-lodesong": "1" } })).json(), [
       path,
       method,
     ] as const);

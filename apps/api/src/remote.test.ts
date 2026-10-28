@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import type { Lyrics } from "@keep/shared/lyrics";
+import type { Lyrics } from "@lodesong/shared/lyrics";
 import { latestFor, lineAt } from "./remote";
 
 const lyrics: Lyrics = {

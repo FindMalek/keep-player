@@ -60,7 +60,7 @@ export function seedHistory(db: Database, account: string, songs: Song[], now = 
   if (existing > 0) return 0;
   const plays = generatePlays(songs, now);
   db.transaction(() => {
-    for (const play of plays) recordPlay(db, account, "keep-player", play);
+    for (const play of plays) recordPlay(db, account, "lodesong", play);
   })();
   return plays.length;
 }

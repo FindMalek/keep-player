@@ -1,4 +1,4 @@
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "@keep/ui/components/hover-card";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@lodesong/ui/components/hover-card";
 import { fileFormat } from "@/lib/format";
 import { appliedGain } from "@/lib/player";
 import { getSetting } from "@/lib/settings";

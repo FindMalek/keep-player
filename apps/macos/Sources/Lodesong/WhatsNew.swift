@@ -44,7 +44,7 @@ struct WhatsNewView: View {
         VStack(spacing: 0) {
             VStack(spacing: 6) {
                 Image(nsImage: NSApp.applicationIconImage).resizable().frame(width: 72, height: 72)
-                Text("What's New in keep music").font(.system(size: 22, weight: .bold))
+                Text("What's New in lodesong").font(.system(size: 22, weight: .bold))
                 Text(releases.count == 1 ? "Version \(releases[0].version.description)" : "Since \(since.description): \(releases.count) updates")
                     .font(.system(size: 13)).foregroundStyle(.secondary)
             }

@@ -1,4 +1,4 @@
 {
-  "extends": "@keep/config/tsconfig.base.json",
+  "extends": "@lodesong/config/tsconfig.base.json",
   "include": ["src"]
 }

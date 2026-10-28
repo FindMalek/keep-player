@@ -1,4 +1,4 @@
-const API = "https://api.github.com/repos/FindMalek/keep-player";
+const API = "https://api.github.com/repos/FindMalek/lodesong";
 const HOUR = 3600;
 
 export interface Item {
@@ -71,7 +71,7 @@ export async function roadmap(): Promise<Roadmap> {
     get<{ tag_name: string; published_at: string; html_url: string; body: string | null; draft: boolean }[]>("/releases?per_page=6"),
     get<{ number: number; title: string; open_issues: number; closed_issues: number }[]>("/milestones?state=open&sort=due_on"),
     get<{ items: Issue[] }>(
-      `https://api.github.com/search/issues?q=${encodeURIComponent("repo:FindMalek/keep-player is:issue is:open [Epic] in:title")}`,
+      `https://api.github.com/search/issues?q=${encodeURIComponent("repo:FindMalek/lodesong is:issue is:open [Epic] in:title")}`,
     ),
     get<Issue[]>("/issues?state=open&labels=later&per_page=50"),
   ]);

@@ -1,5 +1,5 @@
-import { Button } from "@keep/ui/components/button";
-import { Kbd } from "@keep/ui/components/kbd";
+import { Button } from "@lodesong/ui/components/button";
+import { Kbd } from "@lodesong/ui/components/kbd";
 import { ArrowLeftIcon, ArrowRightIcon, SearchIcon } from "lucide-react";
 import { lazy, Suspense, useState, useSyncExternalStore } from "react";
 import { useUser } from "@/lib/subsonic";

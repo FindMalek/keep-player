@@ -1,4 +1,4 @@
-# keep music next to an existing Navidrome. `docker compose up -d`, then open http://localhost:8080.
+# lodesong next to an existing Navidrome. `docker compose up -d`, then open http://localhost:8080.
 # More setups (full stack, behind Caddy or Traefik, Dokploy): docs/deploy/.
 services:
   player:

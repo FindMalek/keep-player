@@ -1,7 +1,7 @@
-import type { Check } from "@keep/shared/doctor";
-import { Button } from "@keep/ui/components/button";
-import { Progress, ProgressLabel, ProgressValue } from "@keep/ui/components/progress";
-import { Table, TableBody, TableCell, TableRow } from "@keep/ui/components/table";
+import type { Check } from "@lodesong/shared/doctor";
+import { Button } from "@lodesong/ui/components/button";
+import { Progress, ProgressLabel, ProgressValue } from "@lodesong/ui/components/progress";
+import { Table, TableBody, TableCell, TableRow } from "@lodesong/ui/components/table";
 import { useQuery } from "@tanstack/react-query";
 import { Content, EmptyState, PageHeader, Section } from "@/components/library";
 import { Link } from "@/components/link";

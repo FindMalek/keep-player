@@ -10,6 +10,6 @@ export type Now = {
 
 declare module "claude-code" {
   interface PluginState {
-    "keep-now-playing": { now: Now | null; error: string | null };
+    "lodesong-now-playing": { now: Now | null; error: string | null };
   }
 }

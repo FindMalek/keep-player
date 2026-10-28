@@ -1,4 +1,4 @@
-import { normalize } from "@keep/shared/normalize";
+import { normalize } from "@lodesong/shared/normalize";
 import { notify } from "./notify";
 import { player } from "./player";
 import { HEADERS } from "./subsonic";

@@ -1,11 +1,11 @@
 # Roadmap
 
-The plan for making keep music the best self-hosted music player. Every item is a GitHub issue; epics hold
+The plan for making lodesong the best self-hosted music player. Every item is a GitHub issue; epics hold
 sub-issues. Run [`scripts/setup-project.sh`](../scripts/setup-project.sh) once to put them all on a GitHub Project
 board with a `Phase` and `Priority` field.
 
-**Where it stands:** the [1.0 milestone](https://github.com/FindMalek/keep-player/milestone/1) is done (mixes, uploads,
-Lyterion, previews). [2.0](https://github.com/FindMalek/keep-player/milestone/2) is under way: one session across
+**Where it stands:** the [1.0 milestone](https://github.com/FindMalek/lodesong/milestone/1) is done (mixes, uploads,
+Lyterion, previews). [2.0](https://github.com/FindMalek/lodesong/milestone/2) is under way: one session across
 devices, now playing in the terminal, the recap reel and prompt playlists are in; a macOS app, AudioMuse and more are
 next.
 
@@ -24,18 +24,18 @@ next.
 
 | # | epic | priority |
 |---|---|---|
-| [#1](https://github.com/FindMalek/keep-player/issues/1) | Foundation: shadcn + Tailwind v4 + audiocn | p0 |
-| [#2](https://github.com/FindMalek/keep-player/issues/2) | Performance | p0 |
-| [#3](https://github.com/FindMalek/keep-player/issues/3) | Playback engine: gapless, precaching, crossfade | p0 |
-| [#4](https://github.com/FindMalek/keep-player/issues/4) | Keyboard-first | p0 |
-| [#30](https://github.com/FindMalek/keep-player/issues/30) | Search: fuzzy, typo-tolerant, lyrics | p0 |
-| [#5](https://github.com/FindMalek/keep-player/issues/5) | Lyrics everywhere | p0 |
-| [#6](https://github.com/FindMalek/keep-player/issues/6) | UX polish: loading, tooltips, motion, states | p1 |
-| [#7](https://github.com/FindMalek/keep-player/issues/7) | Cross-device sync with Arpeggi | p1 |
-| [#8](https://github.com/FindMalek/keep-player/issues/8) | Library & playlists | p1 |
-| [#9](https://github.com/FindMalek/keep-player/issues/9) | Self-hosting: onboarding, security, docs | p1 |
-| [#60](https://github.com/FindMalek/keep-player/issues/60) | Signature features other players miss | p1 |
-| [#10](https://github.com/FindMalek/keep-player/issues/10) | Discovery, AI playlists & aura | p2 |
+| [#1](https://github.com/FindMalek/lodesong/issues/1) | Foundation: shadcn + Tailwind v4 + audiocn | p0 |
+| [#2](https://github.com/FindMalek/lodesong/issues/2) | Performance | p0 |
+| [#3](https://github.com/FindMalek/lodesong/issues/3) | Playback engine: gapless, precaching, crossfade | p0 |
+| [#4](https://github.com/FindMalek/lodesong/issues/4) | Keyboard-first | p0 |
+| [#30](https://github.com/FindMalek/lodesong/issues/30) | Search: fuzzy, typo-tolerant, lyrics | p0 |
+| [#5](https://github.com/FindMalek/lodesong/issues/5) | Lyrics everywhere | p0 |
+| [#6](https://github.com/FindMalek/lodesong/issues/6) | UX polish: loading, tooltips, motion, states | p1 |
+| [#7](https://github.com/FindMalek/lodesong/issues/7) | Cross-device sync with Arpeggi | p1 |
+| [#8](https://github.com/FindMalek/lodesong/issues/8) | Library & playlists | p1 |
+| [#9](https://github.com/FindMalek/lodesong/issues/9) | Self-hosting: onboarding, security, docs | p1 |
+| [#60](https://github.com/FindMalek/lodesong/issues/60) | Signature features other players miss | p1 |
+| [#10](https://github.com/FindMalek/lodesong/issues/10) | Discovery, AI playlists & aura | p2 |
 
 ## Build order
 

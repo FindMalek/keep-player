@@ -1,4 +1,4 @@
-import { Button } from "@keep/ui/components/button";
+import { Button } from "@lodesong/ui/components/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -6,7 +6,7 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
-} from "@keep/ui/components/dropdown-menu";
+} from "@lodesong/ui/components/dropdown-menu";
 import { useQuery } from "@tanstack/react-query";
 import { ListEndIcon, ListMusicIcon, ListStartIcon, MinusIcon, PlayIcon, PlusIcon, XIcon } from "lucide-react";
 import { player } from "@/lib/player";

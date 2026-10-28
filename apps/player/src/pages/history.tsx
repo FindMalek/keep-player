@@ -1,5 +1,5 @@
-import type { Play } from "@keep/shared/history";
-import { Button } from "@keep/ui/components/button";
+import type { Play } from "@lodesong/shared/history";
+import { Button } from "@lodesong/ui/components/button";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { PlayIcon } from "lucide-react";
 import { useEffect, useMemo, useRef } from "react";

@@ -1,7 +1,7 @@
 import { mkdirSync, readdirSync, statSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
 
-export { snapCoverSize } from "@keep/shared/cover-sizes";
+export { snapCoverSize } from "@lodesong/shared/cover-sizes";
 
 type Fetcher = (id: string, size: number) => Promise<Response | null>;
 

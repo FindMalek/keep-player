@@ -1,5 +1,5 @@
 import type { Database } from "bun:sqlite";
-import type { Moment } from "@keep/shared/moments";
+import type { Moment } from "@lodesong/shared/moments";
 
 // Subsonic bookmarks keep one position per song, so moments live here, per account.
 

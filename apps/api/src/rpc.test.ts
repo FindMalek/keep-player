@@ -1,5 +1,5 @@
 import { afterAll, expect, test } from "bun:test";
-import { createKeepClient } from "@keep/orpc/client";
+import { createKeepClient } from "@lodesong/orpc/client";
 import { createApi } from "./api";
 import { CoverCache } from "./covers";
 import { openLibraryDb } from "./db";
@@ -26,11 +26,11 @@ const cookie = sessions.create({ server: "default", user: "demo", token: "t", sa
 const client = (headers: Record<string, string>) => createKeepClient("http://app/api/rpc", headers, (request) => api.rpc(request));
 
 test("the typed client reaches the procedures signed in, is turned away signed out, and bad input never runs", async () => {
-  const signedIn = client({ "x-keep-player": "1", cookie: `kp_session=${cookie}` });
+  const signedIn = client({ "x-lodesong": "1", cookie: `kp_session=${cookie}` });
   expect(await signedIn.stats.forgotten({ days: 30 })).toEqual({ songs: [] });
   expect(await signedIn.mixes({ day: 20_000, hour: 9, tz: 0 })).toEqual({ day: 20_000, mixes: [] });
 
-  await expect(client({ "x-keep-player": "1" }).stats.forgotten({ days: 30 })).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+  await expect(client({ "x-lodesong": "1" }).stats.forgotten({ days: 30 })).rejects.toMatchObject({ code: "UNAUTHORIZED" });
   await expect(signedIn.stats.range({ from: 2, to: 1, tz: 0 })).rejects.toMatchObject({ code: "BAD_REQUEST" });
   // Without the CSRF header the route answers 403 before oRPC sees it.
   await expect(client({ cookie: `kp_session=${cookie}` }).stats.forgotten({ days: 30 })).rejects.toBeDefined();
@@ -44,7 +44,7 @@ test("over plain HTTP: a bearer token signs in, a cookie needs the CSRF header, 
   expect(withToken.status).toBe(200);
   expect(await withToken.json()).toEqual({ songs: [] });
   expect((await call("/api/stats/forgotten", { cookie: `kp_session=${cookie}` })).status).toBe(401);
-  expect((await call("/api/stats/forgotten", { cookie: `kp_session=${cookie}`, "x-keep-player": "1" })).status).toBe(200);
+  expect((await call("/api/stats/forgotten", { cookie: `kp_session=${cookie}`, "x-lodesong": "1" })).status).toBe(200);
 
   const spec = (await (await call("/api/spec.json")).json()) as { paths: Record<string, unknown> };
   expect(Object.keys(spec.paths)).toContain("/artists/{id}/appears-on");
@@ -52,7 +52,7 @@ test("over plain HTTP: a bearer token signs in, a cookie needs the CSRF header, 
 
 test("the terminal's token only reaches what's playing; an api token made in settings reaches the api", async () => {
   const mint = async (make: (request: Request) => Response) => {
-    const request = new Request("http://app/token", { method: "POST", headers: { "x-keep-player": "1", cookie: `kp_session=${cookie}` } });
+    const request = new Request("http://app/token", { method: "POST", headers: { "x-lodesong": "1", cookie: `kp_session=${cookie}` } });
     return ((await make(request).json()) as { token: string }).token;
   };
   const stats = (token: string) =>
@@ -64,18 +64,18 @@ test("the terminal's token only reaches what's playing; an api token made in set
 
 test("neither token counts as the browser cookie", async () => {
   const mint = async (make: (request: Request) => Response) => {
-    const request = new Request("http://app/token", { method: "POST", headers: { "x-keep-player": "1", cookie: `kp_session=${cookie}` } });
+    const request = new Request("http://app/token", { method: "POST", headers: { "x-lodesong": "1", cookie: `kp_session=${cookie}` } });
     return ((await make(request).json()) as { token: string }).token;
   };
   for (const token of [await mint(api.remoteToken), await mint(api.apiToken)]) {
-    const headers = { "x-keep-player": "1", cookie: `kp_session=${token}` };
+    const headers = { "x-lodesong": "1", cookie: `kp_session=${token}` };
     await expect(client(headers).stats.forgotten({ days: 30 })).rejects.toMatchObject({ code: "UNAUTHORIZED" });
     expect(api.apiToken(new Request("http://app/token", { method: "POST", headers })).status).toBe(401);
   }
 });
 
 test("an integration lifts a radio ban with the song id in the path", async () => {
-  const headers = { "x-keep-player": "1", cookie: `kp_session=${cookie}`, "content-type": "application/json" };
+  const headers = { "x-lodesong": "1", cookie: `kp_session=${cookie}`, "content-type": "application/json" };
   const call = (method: string, path: string, body?: unknown) =>
     api.http(new Request(`http://app${path}`, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) }));
   await call("POST", "/api/radio/bans", { song: { id: "so-1", title: "one" } });

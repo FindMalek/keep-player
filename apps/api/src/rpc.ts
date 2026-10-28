@@ -1,5 +1,5 @@
 import type { Database } from "bun:sqlite";
-import { contract } from "@keep/orpc";
+import { contract } from "@lodesong/orpc";
 import { OpenAPIHandler } from "@orpc/openapi/fetch";
 import { OpenAPIReferencePlugin } from "@orpc/openapi/plugins";
 import { implement, ORPCError } from "@orpc/server";
@@ -180,15 +180,15 @@ export function createRpc({ library, updates, groq, fetcher, upstreamFor, folder
     plugins: [
       new OpenAPIReferencePlugin({
         schemaConverters: [new ZodToJsonSchemaConverter()],
-        docsTitle: "keep music API",
+        docsTitle: "lodesong API",
         // Pinned: the page runs on the player's origin, where the session cookie works.
         docsScriptUrl: "https://cdn.jsdelivr.net/npm/@scalar/api-reference@1.74.0",
         specGenerateOptions: {
           info: {
-            title: "keep music API",
+            title: "lodesong API",
             version: VERSION,
             description:
-              "Everything the keep music player does, for your own integrations. Sign in with a token from the player " +
+              "Everything the lodesong player does, for your own integrations. Sign in with a token from the player " +
               "(settings → sync → api token) as `Authorization: Bearer <token>`. The player itself uses the same procedures over `/api/rpc`.",
           },
           components: { securitySchemes: { token: { type: "http", scheme: "bearer" } } },

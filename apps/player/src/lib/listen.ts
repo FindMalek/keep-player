@@ -6,7 +6,7 @@ import {
   type ListenSong,
   type Member,
   type ServerMessage,
-} from "@keep/shared/listen";
+} from "@lodesong/shared/listen";
 import { useSyncExternalStore } from "react";
 import { player } from "./player";
 import { HEADERS } from "./subsonic";

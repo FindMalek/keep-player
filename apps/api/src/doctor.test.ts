@@ -1,6 +1,6 @@
 import { Database } from "bun:sqlite";
 import { expect, test } from "bun:test";
-import { runChecks } from "@keep/shared/doctor";
+import { runChecks } from "@lodesong/shared/doctor";
 import { libraryItems } from "./doctor";
 import { createIndexTables } from "./search-index";
 

@@ -1,5 +1,5 @@
 import type { Database } from "bun:sqlite";
-import { type Lyrics, MISSING } from "@keep/shared/lyrics";
+import { type Lyrics, MISSING } from "@lodesong/shared/lyrics";
 import type { Upstream } from "./config";
 import { parseLrc, parsePlain } from "./lrc";
 import { createLyricsSearchTables, indexLyrics, unindexLyrics } from "./lyrics-search";
@@ -8,7 +8,7 @@ import { type Credentials, subsonic } from "./subsonic";
 const DAY = 86_400_000;
 /** A miss is asked again after this long: LRCLIB grows every day. */
 const RETRY_MISSING_MS = 30 * DAY;
-const USER_AGENT = "keep-player (https://github.com/FindMalek/keep-player)";
+const USER_AGENT = "lodesong (https://github.com/FindMalek/lodesong)";
 
 interface Song {
   id: string;

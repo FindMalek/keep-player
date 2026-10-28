@@ -1,8 +1,8 @@
-import type { LyricsCoverage } from "@keep/shared/lyrics";
-import { Button } from "@keep/ui/components/button";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@keep/ui/components/dialog";
-import { Progress, ProgressLabel, ProgressValue } from "@keep/ui/components/progress";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@keep/ui/components/table";
+import type { LyricsCoverage } from "@lodesong/shared/lyrics";
+import { Button } from "@lodesong/ui/components/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@lodesong/ui/components/dialog";
+import { Progress, ProgressLabel, ProgressValue } from "@lodesong/ui/components/progress";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@lodesong/ui/components/table";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { RefreshCwIcon, Undo2Icon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -162,7 +162,7 @@ export function LyricsPage() {
             {note && <p className="font-mono text-muted-foreground text-sm">{note}</p>}
             {data.written === undefined && admin && (
               <p className="text-muted-foreground text-sm">
-                lyrics found on lrclib live only in keep music. set <code className="font-mono">LYRICS_WRITE_LRC=on</code> to also save them
+                lyrics found on lrclib live only in lodesong. set <code className="font-mono">LYRICS_WRITE_LRC=on</code> to also save them
                 as .lrc files next to your music, so every other client gets them.
               </p>
             )}
@@ -214,7 +214,7 @@ export function LyricsPage() {
           <DialogHeader>
             <DialogTitle className="font-mono">remove written .lrc files?</DialogTitle>
             <DialogDescription>
-              deletes every .lrc keep music wrote next to your music. files edited since are kept. lyrics stay in keep music.
+              deletes every .lrc lodesong wrote next to your music. files edited since are kept. lyrics stay in lodesong.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

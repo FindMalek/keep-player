@@ -1,4 +1,4 @@
-import type { LyricsHit, SearchResults } from "@keep/shared/search";
+import type { LyricsHit, SearchResults } from "@lodesong/shared/search";
 import { player } from "./player";
 import { queries, queryClient } from "./queries";
 import { go } from "./router";

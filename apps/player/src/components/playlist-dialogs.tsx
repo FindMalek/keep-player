@@ -1,7 +1,7 @@
-import { Button } from "@keep/ui/components/button";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@keep/ui/components/dialog";
-import { Input } from "@keep/ui/components/input";
-import { Label } from "@keep/ui/components/label";
+import { Button } from "@lodesong/ui/components/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@lodesong/ui/components/dialog";
+import { Input } from "@lodesong/ui/components/input";
+import { Label } from "@lodesong/ui/components/label";
 import { useState } from "react";
 import { openPlaylistDialog, type PlaylistDialog } from "@/lib/playlist-dialogs";
 import { renameFolder } from "@/lib/playlists";

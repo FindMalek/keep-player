@@ -34,7 +34,7 @@ function adopt(target: Window): void {
     }
   }
   target.document.documentElement.className = document.documentElement.className;
-  target.document.title = "keep music";
+  target.document.title = "lodesong";
 }
 
 export async function openMiniPlayer(): Promise<void> {

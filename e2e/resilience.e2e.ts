@@ -7,7 +7,7 @@ test.describe(() => {
     await signedIn.goto("/album/al-3");
     const titles = await trackTitles(page);
     const firstId = await page.evaluate(async () => {
-      const response = await fetch("/rest/getAlbum?f=json&id=al-3", { headers: { "x-keep-player": "1" } });
+      const response = await fetch("/rest/getAlbum?f=json&id=al-3", { headers: { "x-lodesong": "1" } });
       return (await response.json())["subsonic-response"].album.song[0].id as string;
     });
     await page.route(`**/rest/stream?id=${firstId}&*`, (route) => route.fulfill({ status: 404, body: "" }));
@@ -21,7 +21,7 @@ test.describe(() => {
     await signedIn.goto("/album/al-3");
     const titles = await trackTitles(page);
     const firstId = await page.evaluate(async () => {
-      const response = await fetch("/rest/getAlbum?f=json&id=al-3", { headers: { "x-keep-player": "1" } });
+      const response = await fetch("/rest/getAlbum?f=json&id=al-3", { headers: { "x-lodesong": "1" } });
       return (await response.json())["subsonic-response"].album.song[0].id as string;
     });
     let failed = false;
@@ -40,7 +40,7 @@ test.describe(() => {
     await signedIn.goto("/album/al-3");
     const titles = await trackTitles(page);
     const ids = await page.evaluate(async () => {
-      const response = await fetch("/rest/getAlbum?f=json&id=al-3", { headers: { "x-keep-player": "1" } });
+      const response = await fetch("/rest/getAlbum?f=json&id=al-3", { headers: { "x-lodesong": "1" } });
       return ((await response.json())["subsonic-response"].album.song as { id: string }[]).map((song) => song.id);
     });
     const [first, second] = ids as [string, string];

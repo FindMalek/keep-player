@@ -5,7 +5,7 @@ import { readPlays, recordPlay } from "./history";
 test("a short listen that didn't finish is a skip; pages go back in time, per account", () => {
   const db = openLibraryDb(":memory:");
   const play = (id: string, started: number, listened: number, finished = false, account = "s:me") =>
-    recordPlay(db, account, "keep-player@x", { song: { id, title: id }, started, listened, finished });
+    recordPlay(db, account, "lodesong@x", { song: { id, title: id }, started, listened, finished });
   play("a", 1000, 200, true);
   play("b", 2000, 12);
   play("c", 3000, 25, true);

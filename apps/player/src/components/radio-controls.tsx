@@ -1,5 +1,5 @@
-import { Button } from "@keep/ui/components/button";
-import { Slider } from "@keep/ui/components/slider";
+import { Button } from "@lodesong/ui/components/button";
+import { Slider } from "@lodesong/ui/components/slider";
 import { BanIcon, CalendarRangeIcon, RadioIcon, SaveIcon, SquareIcon, ThumbsDownIcon, ThumbsUpIcon, UserIcon } from "lucide-react";
 import { currentSong, usePlayer } from "@/lib/player";
 import {

@@ -7,7 +7,7 @@
   "jsPlugins": ["@shadcn/lint", "./scripts/lint/comments.mjs"],
   "settings": {
     "shadcn": {
-      "ui": "@keep/ui/components"
+      "ui": "@lodesong/ui/components"
     }
   },
   "rules": {

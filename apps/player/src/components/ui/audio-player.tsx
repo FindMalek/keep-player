@@ -195,7 +195,7 @@ const PlayerRoot = ({
   );
 };
 
-// Local edit: always driven by an external `player` (keep-player's engine); the internal <audio> fallback
+// Local edit: always driven by an external `player` (lodesong's engine); the internal <audio> fallback
 // (useAudioPlayer) is dropped so it stays off the first screen.
 export const AudioPlayer = ({
   player,

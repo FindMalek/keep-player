@@ -50,7 +50,7 @@ export class LrcWriter {
     if (!body) return false;
     const target = this.target(song.path);
     if (!target || existsSync(target)) return false;
-    const temp = join(dirname(target), `.keep-player-${process.pid}-${Date.now()}.lrc.tmp`);
+    const temp = join(dirname(target), `.lodesong-${process.pid}-${Date.now()}.lrc.tmp`);
     const content = `${body}\n`;
     try {
       writeFileSync(temp, content, { flag: "wx" });

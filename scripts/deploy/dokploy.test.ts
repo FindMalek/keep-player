@@ -4,7 +4,7 @@ import { afterAll, beforeAll, expect, test } from "bun:test";
 const calls: { method: string; path: string; body: unknown }[] = [];
 const comments: { id: number; body: string }[] = [];
 const applications: { name: string; applicationId: string; appName: string }[] = [
-  { name: "keep-player-demo", applicationId: "demo-id", appName: "keep-player-demo-abc" },
+  { name: "lodesong-demo", applicationId: "demo-id", appName: "lodesong-demo-abc" },
 ];
 let server: ReturnType<typeof Bun.serve>;
 
@@ -17,7 +17,7 @@ beforeAll(() => {
       calls.push({ method: req.method, path: url.pathname, body });
       const json = (value: unknown) => Response.json(value);
       if (url.pathname === "/api/project.all")
-        return json([{ name: "keep-player-previews", environments: [{ environmentId: "env", projectId: "proj", applications }] }]);
+        return json([{ name: "lodesong-previews", environments: [{ environmentId: "env", projectId: "proj", applications }] }]);
       if (url.pathname === "/api/application.create") {
         const { name } = body as { name: string };
         applications.push({ name, applicationId: `${name}-id`, appName: `${name}-x` });
@@ -61,7 +61,7 @@ async function run(mode: string): Promise<number> {
       DOKPLOY_API_KEY: "k",
       GITHUB_API_URL: `http://localhost:${server.port}`,
       GITHUB_TOKEN: "t",
-      GITHUB_REPOSITORY: "FindMalek/keep-player",
+      GITHUB_REPOSITORY: "FindMalek/lodesong",
       PR_NUMBER: "7",
       PREVIEW_DOMAIN: "preview.example.test",
       POLL_INTERVAL_MS: "10",
@@ -78,7 +78,7 @@ test("a preview is deployed, tied to the demo navidrome, and one sticky comment 
   expect(await run("preview-up")).toBe(0);
   const save = calls.find((c) => c.path === "/api/application.saveEnvironment");
   const env = (save?.body as { env: string } | undefined)?.env;
-  expect(env).toContain("NAVIDROME_URL=http://keep-player-demo-abc:4533");
+  expect(env).toContain("NAVIDROME_URL=http://lodesong-demo-abc:4533");
   expect(env).toContain("LRCLIB_URL=");
   expect(env).toContain("DEMO_SEED=on");
   expect(env).toContain("INDEX_USER=demo");
@@ -87,7 +87,7 @@ test("a preview is deployed, tied to the demo navidrome, and one sticky comment 
   const domain = calls.find((c) => c.path === "/api/domain.create");
   expect((domain?.body as { host: string } | undefined)?.host).toBe("player-pr-7.preview.example.test");
   expect(comments).toHaveLength(1);
-  expect(comments[0]?.body).toContain("<!-- keep-player-preview -->");
+  expect(comments[0]?.body).toContain("<!-- lodesong-preview -->");
   expect(comments[0]?.body).toContain("✅ Ready");
   expect(comments[0]?.body).toContain("[Visit Preview](https://player-pr-7.preview.example.test)");
   expect(comments[0]?.body).toContain("[API reference](https://player-pr-7.preview.example.test/api)");
@@ -101,6 +101,6 @@ test("a second push edits the same comment instead of adding one", async () => {
 
 test("closing the PR deletes the app and marks the comment deleted", async () => {
   expect(await run("preview-down")).toBe(0);
-  expect(applications.some((a) => a.name === "keep-player-pr-7" || a.name === "keep-web-pr-7")).toBe(false);
+  expect(applications.some((a) => a.name === "lodesong-pr-7" || a.name === "keep-web-pr-7")).toBe(false);
   expect(comments[0]?.body).toContain("🗑 Deleted");
 });

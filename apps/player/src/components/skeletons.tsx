@@ -1,4 +1,4 @@
-import { Skeleton } from "@keep/ui/components/skeleton";
+import { Skeleton } from "@lodesong/ui/components/skeleton";
 import { type ReactNode, useEffect, useState } from "react";
 
 // Exact geometry of what replaces them (CLS 0, e2e/cls.e2e.ts); none shows in the first 150 ms,

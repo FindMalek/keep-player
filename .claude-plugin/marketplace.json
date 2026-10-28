@@ -1,11 +1,11 @@
 {
-  "name": "keep-player",
+  "name": "lodesong",
   "owner": { "name": "FindMalek" },
   "plugins": [
     {
-      "name": "keep-now-playing",
+      "name": "lodesong-now-playing",
       "source": "./integrations/claude-code",
-      "description": "What your keep-player plays, with its lyric line and play/pause, above the prompt"
+      "description": "What your lodesong plays, with its lyric line and play/pause, above the prompt"
     }
   ]
 }

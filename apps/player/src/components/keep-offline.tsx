@@ -1,4 +1,4 @@
-import { Button } from "@keep/ui/components/button";
+import { Button } from "@lodesong/ui/components/button";
 import { CheckIcon, DownloadIcon } from "lucide-react";
 import { keepOffline, useCachedIds, useOfflineStatus } from "@/lib/offline";
 import type { Song } from "@/lib/types";

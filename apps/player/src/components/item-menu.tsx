@@ -1,5 +1,5 @@
-import { Button } from "@keep/ui/components/button";
-import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from "@keep/ui/components/context-menu";
+import { Button } from "@lodesong/ui/components/button";
+import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from "@lodesong/ui/components/context-menu";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,8 +12,8 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
-} from "@keep/ui/components/dropdown-menu";
-import { Input } from "@keep/ui/components/input";
+} from "@lodesong/ui/components/dropdown-menu";
+import { Input } from "@lodesong/ui/components/input";
 import { useQuery } from "@tanstack/react-query";
 import {
   BanIcon,

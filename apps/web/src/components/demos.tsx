@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "@keep/ui/lib/utils";
+import { cn } from "@lodesong/ui/lib/utils";
 import { AppWindowIcon, LaptopIcon, MonitorIcon, SearchIcon, Volume2Icon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Art } from "./art";

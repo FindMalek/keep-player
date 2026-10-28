@@ -1,23 +1,23 @@
 #!/bin/sh
-# Builds "keep music.app" (universal: Apple silicon and Intel) into apps/macos/dist. Unsigned: the first launch needs a
-# right-click → Open, or `xattr -dr com.apple.quarantine "keep music.app"`.
+# Builds "lodesong.app" (universal: Apple silicon and Intel) into apps/macos/dist. Unsigned: the first launch needs a
+# right-click → Open, or `xattr -dr com.apple.quarantine "lodesong.app"`.
 set -eu
 cd "$(dirname "$0")"
 VERSION=$(node -p "require('../../package.json').version" 2>/dev/null || echo 0.0.0)
 swift build -c release --arch arm64 --arch x86_64
-APP="dist/keep music.app"
+APP="dist/lodesong.app"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
-cp .build/apple/Products/Release/KeepMusic "$APP/Contents/MacOS/keep music"
+cp .build/apple/Products/Release/Lodesong "$APP/Contents/MacOS/lodesong"
 cat > "$APP/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-  <key>CFBundleName</key><string>keep music</string>
-  <key>CFBundleDisplayName</key><string>keep music</string>
-  <key>CFBundleIdentifier</key><string>engineer.findmalek.keep-music</string>
-  <key>CFBundleExecutable</key><string>keep music</string>
+  <key>CFBundleName</key><string>lodesong</string>
+  <key>CFBundleDisplayName</key><string>lodesong</string>
+  <key>CFBundleIdentifier</key><string>engineer.findmalek.lodesong</string>
+  <key>CFBundleExecutable</key><string>lodesong</string>
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>CFBundleIconFile</key><string>AppIcon</string>
   <key>CFBundleShortVersionString</key><string>$VERSION</string>

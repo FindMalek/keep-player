@@ -1,6 +1,6 @@
-import { parseQuery } from "@keep/shared/search-query";
-import { Button } from "@keep/ui/components/button";
-import { InputGroup, InputGroupAddon, InputGroupInput } from "@keep/ui/components/input-group";
+import { parseQuery } from "@lodesong/shared/search-query";
+import { Button } from "@lodesong/ui/components/button";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@lodesong/ui/components/input-group";
 import { useQuery } from "@tanstack/react-query";
 import { PlayIcon, SearchIcon } from "lucide-react";
 import { useEffect, useState } from "react";

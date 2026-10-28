@@ -6,7 +6,7 @@ set -euo pipefail
 #
 # Usage:
 #   export GH_RUNNER_TOKEN=<repo registration token>
-#   ./install-runner.sh FindMalek/keep-player
+#   ./install-runner.sh FindMalek/lodesong
 #
 # The token is per-repo: Settings -> Actions -> Runners -> New self-hosted runner.
 

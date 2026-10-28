@@ -44,7 +44,7 @@ function markReachable(): void {
 }
 
 export async function retryNow(): Promise<void> {
-  const response = await fetch("/rest/ping", { headers: { "x-keep-player": "1" }, cache: "no-store" }).catch(() => null);
+  const response = await fetch("/rest/ping", { headers: { "x-lodesong": "1" }, cache: "no-store" }).catch(() => null);
   if (response && response.status < 500) markReachable();
   else if (state.unreachable) schedule();
   else markUnreachable();

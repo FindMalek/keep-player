@@ -7,7 +7,7 @@ test.describe.configure({ mode: "serial" });
 
 async function clearMoments(page: Page): Promise<void> {
   await page.evaluate(async () => {
-    const headers = { "x-keep-player": "1" };
+    const headers = { "x-lodesong": "1" };
     const { moments } = (await (await fetch("/api/moments", { headers })).json()) as { moments: { id: number }[] };
     for (const moment of moments) await fetch(`/api/moments/${moment.id}`, { method: "DELETE", headers });
   });

@@ -33,8 +33,8 @@ struct Version: Comparable, CustomStringConvertible {
 @MainActor @Observable final class Updater {
     enum State: Equatable { case idle, checking, downloading, ready(String), failed(String) }
 
-    static let repo = "FindMalek/keep-player"
-    static let asset = "keep-music-macos.zip"
+    static let repo = "FindMalek/lodesong"
+    static let asset = "lodesong-macos.zip"
 
     var state: State = .idle
     var automatic: Bool {
@@ -53,7 +53,7 @@ struct Version: Comparable, CustomStringConvertible {
             try? await Task.sleep(for: .seconds(15))
             await check(userInitiated: false)
         }
-        let scheduler = NSBackgroundActivityScheduler(identifier: "engineer.findmalek.keep-music.update")
+        let scheduler = NSBackgroundActivityScheduler(identifier: "engineer.findmalek.lodesong.update")
         scheduler.repeats = true
         scheduler.interval = 6 * 3600
         scheduler.tolerance = 1800
@@ -78,7 +78,7 @@ struct Version: Comparable, CustomStringConvertible {
         }
         guard running < latest.version, let download = latest.download else {
             state = .idle
-            if userInitiated { Self.tell("You're up to date", "keep music \(running) is the newest version.") }
+            if userInitiated { Self.tell("You're up to date", "lodesong \(running) is the newest version.") }
             return
         }
         state = .downloading
@@ -108,7 +108,7 @@ struct Version: Comparable, CustomStringConvertible {
 
     private static func stage(_ url: URL, version: String) async throws -> URL {
         let folder = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("engineer.findmalek.keep-music/update/\(version)")
+            .appendingPathComponent("engineer.findmalek.lodesong/update/\(version)")
         try? FileManager.default.removeItem(at: folder)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         let (zip, _) = try await URLSession.shared.download(from: url)
@@ -117,7 +117,7 @@ struct Version: Comparable, CustomStringConvertible {
         unzip.arguments = ["-x", "-k", zip.path, folder.path]
         try unzip.run()
         unzip.waitUntilExit()
-        let app = folder.appendingPathComponent("keep music.app")
+        let app = folder.appendingPathComponent("lodesong.app")
         guard unzip.terminationStatus == 0,
               Bundle(url: app)?.bundleIdentifier == Bundle.main.bundleIdentifier
         else { throw CocoaError(.fileReadCorruptFile) }

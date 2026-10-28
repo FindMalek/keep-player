@@ -1,7 +1,7 @@
-import { Badge } from "@keep/ui/components/badge";
-import { Button } from "@keep/ui/components/button";
-import { Input } from "@keep/ui/components/input";
-import { Skeleton } from "@keep/ui/components/skeleton";
+import { Badge } from "@lodesong/ui/components/badge";
+import { Button } from "@lodesong/ui/components/button";
+import { Input } from "@lodesong/ui/components/input";
+import { Skeleton } from "@lodesong/ui/components/skeleton";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { CheckIcon, CircleIcon, Loader2Icon, MusicIcon, PlayIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";

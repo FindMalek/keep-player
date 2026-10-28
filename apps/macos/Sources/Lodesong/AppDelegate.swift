@@ -46,7 +46,7 @@ import SwiftUI
         buildMenu()
         let alert = NSAlert()
         alert.icon = NSApp.applicationIconImage
-        alert.messageText = "keep music \(version) is ready"
+        alert.messageText = "lodesong \(version) is ready"
         alert.informativeText = "Restart to finish updating. What's new shows when it opens again."
         alert.addButton(withTitle: "Restart Now")
         alert.addButton(withTitle: "Later")
@@ -77,7 +77,7 @@ import SwiftUI
             contentRect: CGRect(x: 0, y: 0, width: 1280, height: 820),
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered, defer: false)
-        window.title = preview.map { "keep music · preview \($0)" } ?? "keep music"
+        window.title = preview.map { "lodesong · preview \($0)" } ?? "lodesong"
         window.tabbingMode = .disallowed
         window.contentView = player.webView
         window.delegate = self
@@ -89,7 +89,7 @@ import SwiftUI
 
     private func askForServer() {
         let alert = NSAlert()
-        alert.messageText = "Where is your keep music?"
+        alert.messageText = "Where is your lodesong?"
         alert.informativeText = "The address you open it at in a browser."
         let field = NSTextField(frame: CGRect(x: 0, y: 0, width: 320, height: 24))
         field.placeholderString = "https://music.example.com"
@@ -194,19 +194,19 @@ import SwiftUI
             return entry
         }
         var appItems = [
-            item("About keep music", #selector(NSApplication.orderFrontStandardAboutPanel(_:))),
+            item("About lodesong", #selector(NSApplication.orderFrontStandardAboutPanel(_:))),
             item("Check for Updates…", #selector(checkForUpdates)),
         ]
         if case let .ready(version) = updater.state { appItems.append(item("Restart to Update to \(version)", #selector(restartToUpdate))) }
-        submenu("keep music", appItems + [
+        submenu("lodesong", appItems + [
             .separator(),
             item("Settings…", #selector(showSettings), ","),
             .separator(),
             item("Change Server…", #selector(changeServer)),
         ] + (preview == nil ? [] : [item("Leave Preview", #selector(leavePreview))]) + [
             .separator(),
-            item("Hide keep music", #selector(NSApplication.hide(_:)), "h"),
-            item("Quit keep music", #selector(NSApplication.terminate(_:)), "q"),
+            item("Hide lodesong", #selector(NSApplication.hide(_:)), "h"),
+            item("Quit lodesong", #selector(NSApplication.terminate(_:)), "q"),
         ])
         submenu("Edit", [
             item("Undo", Selector(("undo:")), "z"),
@@ -223,7 +223,7 @@ import SwiftUI
             item("Previous", #selector(previousSong), String(UnicodeScalar(NSLeftArrowFunctionKey)!), .command),
         ])
         let windows = [
-            item("keep music", #selector(showWindow), "1"),
+            item("lodesong", #selector(showWindow), "1"),
             item("Mini Player", #selector(toggleMini), "m", [.command, .shift]),
             .separator(),
             item("Minimize", #selector(NSWindow.performMiniaturize(_:)), "m"),

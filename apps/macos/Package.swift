@@ -2,9 +2,9 @@
 import PackageDescription
 
 let package = Package(
-    name: "KeepMusic",
+    name: "Lodesong",
     platforms: [.macOS(.v14)],
     targets: [
-        .executableTarget(name: "KeepMusic", path: "Sources/KeepMusic")
+        .executableTarget(name: "Lodesong", path: "Sources/Lodesong")
     ]
 )

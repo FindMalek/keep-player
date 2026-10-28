@@ -37,7 +37,7 @@ export async function ogImage(input: { eyebrow: string; title: string; subtitle?
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 16, fontFamily: "JetBrains", fontSize: 30 }}>
           <div style={{ width: 22, height: 22, background: "#ebebeb" }} />
-          keep music
+          lodesong
         </div>
         {/* The notch island, as on the landing page. */}
         <div
