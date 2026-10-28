@@ -1,6 +1,6 @@
 import { expect, fakeMediaClock, test, trackTitles } from "./fixtures";
 
-test("radio from a song: it starts with that song, keeps 10 ahead as it plays, and tunes with 👍 / 👎 / ban", async ({
+test("radio from a song: it starts with that song, keeps 30 ahead as it plays, and tunes with 👍 / 👎 / ban", async ({
   page,
   signedIn,
 }) => {
@@ -12,6 +12,7 @@ test("radio from a song: it starts with that song, keeps 10 ahead as it plays, a
     .first()
     .click({ button: "right" });
   await page.getByRole("menu").getByRole("menuitem", { name: "start radio" }).click();
+  await page.getByRole("button", { name: "play radio" }).click();
   const bar = page.getByRole("contentinfo");
   await expect(bar.getByRole("link", { name: titles[0] as string, exact: true })).toBeVisible();
 
@@ -23,7 +24,7 @@ test("radio from a song: it starts with that song, keeps 10 ahead as it plays, a
 
   for (let i = 0; i < 7; i++) await page.locator("body").press("n");
   await expect.poll(async () => (await panel.getByText(/radio$/).count()) > 0).toBe(true);
-  await expect.poll(async () => upcoming.count(), { timeout: 10_000 }).toBeGreaterThanOrEqual(10);
+  await expect.poll(async () => upcoming.count(), { timeout: 10_000 }).toBeGreaterThanOrEqual(15);
 
   const before = await bar.getByRole("link").first().textContent();
   await radio.getByRole("button", { name: /^not for this station: / }).click();
@@ -52,6 +53,7 @@ test("radio from a song: it starts with that song, keeps 10 ahead as it plays, a
 test("a genre page starts that genre's radio", async ({ page, signedIn }) => {
   await signedIn.goto("/genre/Rock");
   await page.getByRole("button", { name: "rock radio" }).click();
+  await page.getByRole("button", { name: "play radio" }).click();
   await page.keyboard.press("q");
   await expect(page.getByRole("complementary", { name: "queue" }).getByRole("region", { name: "radio" })).toContainText("Rock radio");
 });
