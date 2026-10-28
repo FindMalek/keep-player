@@ -130,6 +130,4 @@ const server = Bun.serve({
   }),
 });
 
-console.log(
-  `lodesong ${VERSION} on :${server.port} → ${config.upstreams.map((upstream) => `${upstream.id} ${upstream.url}`).join(", ")}`,
-);
+console.log(`lodesong ${VERSION} on :${server.port} → ${config.upstreams.map((upstream) => `${upstream.id} ${upstream.url}`).join(", ")}`);

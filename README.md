@@ -1,14 +1,14 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/header/graph.svg?title=keep+music&subtitle=your+own+music%2C+played+like+a+streaming+app&align=left&font=jetbrains-mono&radius=0&mode=dark" />
-    <img alt="lodesong: your own music, played like a streaming app" src="https://shieldcn.dev/header/graph.svg?title=keep+music&subtitle=your+own+music%2C+played+like+a+streaming+app&align=left&font=jetbrains-mono&radius=0&mode=light" />
+    <source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/header/graph.svg?title=lodesong&subtitle=your+own+music%2C+played+like+a+streaming+app&align=left&font=jetbrains-mono&radius=0&mode=dark" />
+    <img alt="lodesong: your own music, played like a streaming app" src="https://shieldcn.dev/header/graph.svg?title=lodesong&subtitle=your+own+music%2C+played+like+a+streaming+app&align=left&font=jetbrains-mono&radius=0&mode=light" />
   </picture>
 </p>
 
 <p align="center">
   <a href="https://github.com/FindMalek/lodesong/actions/workflows/ci.yml"><img alt="CI" src="https://shieldcn.dev/github/ci/FindMalek/lodesong.svg?workflow=ci.yml&variant=secondary" /></a>
   <a href="https://github.com/FindMalek/lodesong/releases"><img alt="Latest release" src="https://shieldcn.dev/github/release/FindMalek/lodesong.svg?variant=secondary" /></a>
-  <a href="https://github.com/FindMalek/lodesong/pkgs/container/lodesong"><img alt="Docker image" src="https://shieldcn.dev/badge/ghcr.io-keep--player-18181b.svg?logo=docker&variant=secondary" /></a>
+  <a href="https://github.com/FindMalek/lodesong/pkgs/container/lodesong"><img alt="Docker image" src="https://shieldcn.dev/badge/ghcr.io-lodesong-18181b.svg?logo=docker&variant=secondary" /></a>
   <a href="LICENSE"><img alt="License" src="https://shieldcn.dev/github/license/FindMalek/lodesong.svg?variant=secondary" /></a>
   <a href="https://github.com/FindMalek/lodesong/commits/main"><img alt="Last commit" src="https://shieldcn.dev/github/last-commit/FindMalek/lodesong.svg?variant=secondary" /></a>
 </p>

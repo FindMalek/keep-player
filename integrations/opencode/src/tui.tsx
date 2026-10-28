@@ -49,7 +49,7 @@ export default Plugin.define({
       priority: 10,
       commands: [
         {
-          id: "keep.music",
+          id: "lodesong",
           title: "lodesong: play/pause, next, prev",
           group: "lodesong",
           palette: true,
@@ -60,7 +60,7 @@ export default Plugin.define({
           },
         },
       ],
-      bindings: ["keep.music"],
+      bindings: ["lodesong"],
     }));
 
     context.ui.slot({
