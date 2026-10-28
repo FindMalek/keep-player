@@ -54,8 +54,8 @@ echo 'store-dir=/fast/cache/pnpm' >> ~/.pnpmrc
 `type=gha` still works with self-hosted runners, but it uploads/downloads cache to GitHub. Use a **local cache** or a **registry cache** instead:
 
 ```yaml
-cache-from: type=registry,ref=ghcr.io/findmalek/keep-player:cache
-cache-to: type=registry,ref=ghcr.io/findmalek/keep-player:cache,mode=max
+cache-from: type=registry,ref=ghcr.io/findmalek/lodesong:cache
+cache-to: type=registry,ref=ghcr.io/findmalek/lodesong:cache,mode=max
 ```
 
 For lyterion, use per-app cache tags:

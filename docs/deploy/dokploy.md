@@ -10,7 +10,7 @@ In Dokploy: **Create Service → Compose**, source **Raw**, and paste:
 ```yaml
 services:
   player:
-    image: ghcr.io/findmalek/keep-player:main   # or :latest for releases only
+    image: ghcr.io/findmalek/lodesong:main   # or :latest for releases only
     restart: unless-stopped
     environment:
       NAVIDROME_URL: http://navidrome:4533       # Navidrome's service name on dokploy-network

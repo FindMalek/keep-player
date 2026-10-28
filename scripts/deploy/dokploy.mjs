@@ -212,7 +212,7 @@ async function previewUp() {
   await upsertComment(rows);
   const player = await deployApp(environment, {
     name: rows.player.name,
-    image: `ghcr.io/findmalek/keep-player:${tag}`,
+    image: `ghcr.io/findmalek/lodesong:${tag}`,
     host: rows.player.host,
     port: 8080,
     // A fresh data dir per preview (no volume), so sessions, history and the search index never come from production.

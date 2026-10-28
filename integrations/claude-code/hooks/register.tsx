@@ -62,7 +62,7 @@ export const register: Register = (on) => {
     await $.command
       .register({
         name: "lodesong",
-        description: "keep-player: connect <url> <token> · pause · next · prev · off",
+        description: "lodesong: connect <url> <token> · pause · next · prev · off",
       })
       .catch(() => undefined);
     void poll($);

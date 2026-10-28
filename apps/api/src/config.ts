@@ -7,7 +7,7 @@ export type { Upstream } from "./settings";
 const { config: parsed, errors } = readConfig(process.env);
 if (errors.length) {
   console.error(
-    `keep-player: can't start, fix the configuration (see docs/configuration.md):\n${errors.map((error) => `  - ${error}`).join("\n")}`,
+    `lodesong: can't start, fix the configuration (see docs/configuration.md):\n${errors.map((error) => `  - ${error}`).join("\n")}`,
   );
   process.exit(1);
 }

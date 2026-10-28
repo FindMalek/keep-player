@@ -11,7 +11,7 @@ Next to an existing Navidrome, on the same Docker network:
 ```yaml
 services:
   player:
-    image: ghcr.io/findmalek/keep-player:latest
+    image: ghcr.io/findmalek/lodesong:latest
     restart: unless-stopped
     environment:
       NAVIDROME_URL: http://navidrome:4533
