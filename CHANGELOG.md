@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.9.1](https://github.com/FindMalek/lodesong/compare/v1.9.0...v1.9.1) (2026-10-28)
+
+
+### Bug Fixes
+
+* **deploy:** image name lodesong ([#384](https://github.com/FindMalek/lodesong/issues/384)) ([7736db2](https://github.com/FindMalek/lodesong/commit/7736db2f5cf7089bdd63a96a3b31e2abdc636a55)), closes [#383](https://github.com/FindMalek/lodesong/issues/383)
+* **web:** site url lodesong host ([#387](https://github.com/FindMalek/lodesong/issues/387)) ([831f03a](https://github.com/FindMalek/lodesong/commit/831f03a37e7b94b864a502a526296c64b1bac989)), closes [#386](https://github.com/FindMalek/lodesong/issues/386)
+
 ## [1.9.0](https://github.com/FindMalek/lodesong/compare/v1.8.0...v1.9.0) (2026-10-28)
 
 
