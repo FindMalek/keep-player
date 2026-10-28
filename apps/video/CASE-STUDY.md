@@ -118,7 +118,7 @@ The storyboard above became a reveal arc, authored together with the score (120 
 | 0 to 6 | Tension | Black. "Your library." "Your server." "Your rules." land at 1.0, 2.5 and 4.0 | Drone, soft pulses on each line, riser from 3.0, heartbeat, a gap before the hit |
 | 6 to 10 | Reveal | Impact on 6.0. A bloom of light, the app comes out of the dark as the camera pulls back, a highlight sweeps the glass, "keep music. Spotify, for music you own." | Impact |
 | 10 to 18 | Search and play | The recorded session, slowed 4% so the search click lands on 12.0 and the song click on 16.0 | Groove enters |
-| 18 to 24 | Lyrics | `y` lands on 18.0; synced lines | Lull: bass, pad, arp only |
+| 18 to 24 | Lyrics | `y` lands on 18.0; full-screen stage: cover in a beat-pulsing ring, large lyrics lit one line per 1.5 s | Lull: bass, pad, arp only |
 | 24 to 32.5 | Radio | Preview opens on 26.0, two songs dropped on 27.7 and 29.5, play on 31.0, queue on 32.0 | Full groove, snare roll |
 | 32.5 to 38.5 | Showcase | Four real screens in 4K, one every three beats: mixes, stats, history, songs | Peak |
 | 38.5 to 42.5 | Proof | `docker compose up -d` | Breakdown, riser |
