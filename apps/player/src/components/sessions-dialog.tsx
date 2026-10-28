@@ -1,6 +1,6 @@
-import { Button } from "@keep/ui/components/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@keep/ui/components/dialog";
-import { Item, ItemActions, ItemContent, ItemDescription, ItemGroup, ItemTitle } from "@keep/ui/components/item";
+import { Button } from "@lodesong/ui/components/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@lodesong/ui/components/dialog";
+import { Item, ItemActions, ItemContent, ItemDescription, ItemGroup, ItemTitle } from "@lodesong/ui/components/item";
 import { useCallback, useEffect, useState } from "react";
 import { EmptyState } from "./library";
 
@@ -52,7 +52,7 @@ export function SessionsDialog({ open, onOpenChange }: { open: boolean; onOpenCh
   }, [open, load]);
 
   async function revoke(id: string): Promise<void> {
-    await fetch(`/auth/sessions/${id}`, { method: "DELETE", headers: { "x-keep-player": "1" } }).catch(() => undefined);
+    await fetch(`/auth/sessions/${id}`, { method: "DELETE", headers: { "x-lodesong": "1" } }).catch(() => undefined);
     await load();
   }
 

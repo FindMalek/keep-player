@@ -4,15 +4,15 @@ import { atom, read, update } from "claude-code";
 import type { Now } from "../types";
 
 /*
- * keep-player's now playing above the prompt: song, artist, playhead, the synced lyric line, and ⏮ ⏯ ⏭ for whichever
- * of your players is playing. `/keep-music connect <url> <token>` once (the player's settings → sync makes the line).
+ * lodesong's now playing above the prompt: song, artist, playhead, the synced lyric line, and ⏮ ⏯ ⏭ for whichever
+ * of your players is playing. `/lodesong connect <url> <token>` once (the player's settings → sync makes the line).
  */
 
 const POLL_MS = 2000;
 const BAR = 16;
 
-const now = atom({ plugin: "keep-now-playing", key: "now" } as const, null);
-const error = atom({ plugin: "keep-now-playing", key: "error" } as const, null);
+const now = atom({ plugin: "lodesong-now-playing", key: "now" } as const, null);
+const error = atom({ plugin: "lodesong-now-playing", key: "error" } as const, null);
 
 type Link = { url: string; token: string };
 
@@ -49,8 +49,8 @@ async function poll($: EngineInterface): Promise<void> {
 
 async function control($: EngineInterface, action: "toggle" | "next" | "previous"): Promise<string> {
   const response = await call($, `/api/remote/${action}`, "POST").catch(() => null);
-  if (!response) return "not connected: /keep-music connect <url> <token>";
-  if (response.status === 409) return "nothing of yours is playing in keep-player (arpeggi can't be controlled from here)";
+  if (!response) return "not connected: /lodesong connect <url> <token>";
+  if (response.status === 409) return "nothing of yours is playing in lodesong (arpeggi can't be controlled from here)";
   if (!response.ok) return `the player said ${response.status}`;
   await poll($);
   return "";
@@ -61,7 +61,7 @@ export const register: Register = (on) => {
     // Another plugin owning the name must not stop the polling below.
     await $.command
       .register({
-        name: "keep-music",
+        name: "lodesong",
         description: "keep-player: connect <url> <token> · pause · next · prev · off",
       })
       .catch(() => undefined);
@@ -70,11 +70,11 @@ export const register: Register = (on) => {
     return next(e);
   });
 
-  on("command.run", { command: "keep-music" }, async ($, e) => {
+  on("command.run", { command: "lodesong" }, async ($, e) => {
     const [verb = "", ...rest] = e.args.trim().split(/\s+/);
     if (verb === "connect") {
       const [url, token] = rest;
-      if (!url || !token || !/^https?:\/\//.test(url)) return { text: "usage: /keep-music connect https://your-player <token>" };
+      if (!url || !token || !/^https?:\/\//.test(url)) return { text: "usage: /lodesong connect https://your-player <token>" };
       await $.store.set("link", { url: url.replace(/\/+$/, ""), token });
       await poll($);
       return { text: (await read($, error)) ?? `connected to ${url}` };
@@ -92,7 +92,7 @@ export const register: Register = (on) => {
           : verb === "" || verb === "pause" || verb === "play"
             ? "toggle"
             : null;
-    if (!action) return { text: "usage: /keep-music [pause | next | prev | connect <url> <token> | off]" };
+    if (!action) return { text: "usage: /lodesong [pause | next | prev | connect <url> <token> | off]" };
     const said = await control($, action);
     return { text: said || undefined };
   });

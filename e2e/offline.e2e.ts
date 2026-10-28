@@ -34,7 +34,7 @@ test("close to the end, the next song loads once: the service worker drops its c
   await page.evaluate(() => navigator.serviceWorker.ready);
   await page.reload();
   const ids = await page.evaluate(async (id) => {
-    const response = await fetch(`/rest/getAlbum?f=json&id=${id}`, { headers: { "x-keep-player": "1" } });
+    const response = await fetch(`/rest/getAlbum?f=json&id=${id}`, { headers: { "x-lodesong": "1" } });
     return ((await response.json())["subsonic-response"].album.song as { id: string }[]).map((song) => song.id);
   }, album);
   const second = ids[1] as string;

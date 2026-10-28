@@ -1,4 +1,4 @@
-import { cn } from "@keep/ui/lib/utils";
+import { cn } from "@lodesong/ui/lib/utils";
 import type { CSSProperties } from "react";
 
 /** Monochrome cover art drawn in CSS, the same style as the demo library's generated covers. */

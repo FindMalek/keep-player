@@ -29,7 +29,7 @@ function github(target: FeedbackTarget, fetcher: Fetcher) {
         authorization: `Bearer ${target.token}`,
         accept: "application/vnd.github+json",
         "content-type": "application/json",
-        "user-agent": "keep-player",
+        "user-agent": "lodesong",
       },
       body: init.body === undefined ? undefined : JSON.stringify(init.body),
       signal: AbortSignal.timeout(20_000),

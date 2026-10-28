@@ -1,10 +1,10 @@
 import type { Database } from "bun:sqlite";
 import { createHash, randomBytes } from "node:crypto";
-import type { DeviceCommand } from "@keep/shared/devices";
-import { runChecks } from "@keep/shared/doctor";
-import type { LyricsCoverage } from "@keep/shared/lyrics";
-import type { LyricsSearch } from "@keep/shared/search";
-import { readTrack } from "@keep/shared/spotify-import";
+import type { DeviceCommand } from "@lodesong/shared/devices";
+import { runChecks } from "@lodesong/shared/doctor";
+import type { LyricsCoverage } from "@lodesong/shared/lyrics";
+import type { LyricsSearch } from "@lodesong/shared/search";
+import { readTrack } from "@lodesong/shared/spotify-import";
 import type { Server } from "bun";
 import { askGroq, buildPlaylist, libraryArtists } from "./ai-playlist";
 import type { Cache } from "./cache";
@@ -34,7 +34,7 @@ const FOLDERS_TTL_MS = 10 * 60_000;
 const REMOTE_AGENT = "terminal · now playing";
 const API_AGENT = "api token";
 /** Requests that change or read data must carry this header. Cross-site pages can't set it without a CORS preflight. */
-const CSRF_HEADER = "x-keep-player";
+const CSRF_HEADER = "x-lodesong";
 const CLIENT_HEADER = "x-keep-client";
 
 /** Subsonic endpoints the app uses. Anything else is refused, so the proxy can't be used as a general API gateway. */
@@ -350,10 +350,10 @@ export function createApi({
     if (form) for (const [name, value] of form) query.append(name, value);
     for (const name of STRIPPED) query.delete(name);
     for (const [name, value] of upstreamQuery(session)) query.set(name, value);
-    // Each browser is its own Subsonic client ("keep-player@<id>"), so a play queue saved here is told apart from one
+    // Each browser is its own Subsonic client ("lodesong@<id>"), so a play queue saved here is told apart from one
     // saved by Arpeggi or another browser (`changedBy`).
     const client = request.headers.get(CLIENT_HEADER);
-    if (client && /^[a-z0-9-]{1,32}$/.test(client)) query.set("c", `keep-player@${client}`);
+    if (client && /^[a-z0-9-]{1,32}$/.test(client)) query.set("c", `lodesong@${client}`);
 
     const headers = new Headers();
     for (const name of ["range", "if-none-match", "if-modified-since"]) {

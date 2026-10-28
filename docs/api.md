@@ -27,4 +27,4 @@ curl -H "Authorization: Bearer $TOKEN" "https://your-player/api/stats/forgotten?
 
 More of the player moves onto the typed API release by release; the reference always lists what's there. Library data
 itself (albums, artists, playlists, streams) is Navidrome's own [Subsonic API](https://opensubsonic.netlify.app), which
-keep music proxies at `/rest/*` for its signed-in browsers.
+lodesong proxies at `/rest/*` for its signed-in browsers.

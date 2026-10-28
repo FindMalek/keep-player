@@ -6,8 +6,8 @@ import {
   type DeviceState,
   MAX_PLAY_SONGS,
   MAX_STATE_SONGS,
-} from "@keep/shared/devices";
-import { clockOffset, expectedPosition } from "@keep/shared/listen";
+} from "@lodesong/shared/devices";
+import { clockOffset, expectedPosition } from "@lodesong/shared/listen";
 import { apiQueries } from "./api-queries";
 import { notify } from "./notify";
 import { player } from "./player";
@@ -52,7 +52,7 @@ function deviceId(): string {
 }
 
 export function deviceLabel(ua: string): string {
-  if (/keep-music-desktop/i.test(ua)) return "the desktop app";
+  if (/lodesong-desktop/i.test(ua)) return "the desktop app";
   const browser = /Edg\//.test(ua)
     ? "edge"
     : /Firefox\//.test(ua)

@@ -29,7 +29,7 @@ test("an admin finds the library index in settings and can rebuild it", async ({
 
 test("the menu shows the running version, and the server reports Navidrome's health without signing in", async ({ page, signedIn }) => {
   await signedIn.getByRole("button", { name: /demo$/ }).click();
-  await expect(page.getByText(/^keep music v\d+\.\d+\.\d+$/)).toBeVisible();
+  await expect(page.getByText(/^lodesong v\d+\.\d+\.\d+$/)).toBeVisible();
   const health = await page.request.get("/api/health");
   expect(health.status()).toBe(200);
   expect(await health.json()).toMatchObject({ status: "ok", upstreams: [{ id: "default", reachable: true }] });

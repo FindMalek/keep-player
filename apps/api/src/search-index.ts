@@ -1,6 +1,6 @@
 import type { Database } from "bun:sqlite";
-import { normalize, similarity } from "@keep/shared/normalize";
-import type { IndexStatus } from "@keep/shared/search";
+import { normalize, similarity } from "@lodesong/shared/normalize";
+import type { IndexStatus } from "@lodesong/shared/search";
 import type { Upstream } from "./config";
 import { type Credentials, subsonic } from "./subsonic";
 

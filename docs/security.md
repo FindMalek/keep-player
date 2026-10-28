@@ -1,6 +1,6 @@
 # Security
 
-keep music is a thin client in front of your Navidrome. The server in this repo (`apps/api/src`) is the only thing that
+lodesong is a thin client in front of your Navidrome. The server in this repo (`apps/api/src`) is the only thing that
 talks to Navidrome, and the browser never sees a credential.
 
 ## How login works

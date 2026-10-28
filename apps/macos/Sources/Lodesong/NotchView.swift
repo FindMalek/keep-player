@@ -279,7 +279,7 @@ struct OpenView: View {
                     nowPlaying.like()
                 }
                 .contentTransition(.symbolEffect(.replace))
-                IconButton(symbol: "arrow.up.forward.app", size: 14, label: "Open keep music", action: openPlayer)
+                IconButton(symbol: "arrow.up.forward.app", size: 14, label: "Open lodesong", action: openPlayer)
             }
             TabBar(tab: $state.tab)
             Group {

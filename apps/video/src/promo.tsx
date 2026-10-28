@@ -14,7 +14,7 @@ const SCENES = [
   { title: "the notch", clip: "notch.mp4", frames: 150 },
   { title: "lyrics", clip: "lyrics.webm", frames: 150 },
   { title: "radio", clip: "radio.webm", frames: 150 },
-  { title: "keep music", clip: undefined, frames: 150 },
+  { title: "lodesong", clip: undefined, frames: 150 },
 ];
 
 export const totalFrames = SCENES.reduce((sum, scene) => sum + scene.frames, 0) - TRANSITION * (SCENES.length - 1);

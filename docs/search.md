@@ -2,7 +2,7 @@
 
 `⌘K` (or `/`) opens search from anywhere; `↵` on a result plays it, `⌘↵` opens the full results page.
 
-keep music searches its own index on the server (SQLite FTS5 over your whole library and its lyrics), not
+lodesong searches its own index on the server (SQLite FTS5 over your whole library and its lyrics), not
 Navidrome's search, so it forgives what Navidrome's doesn't:
 
 | you type | it finds |

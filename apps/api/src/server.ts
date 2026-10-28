@@ -1,6 +1,6 @@
 import { join } from "node:path";
-import { MAX_DEVICE_MESSAGE_BYTES } from "@keep/shared/devices";
-import { LEVELS_WORKLET_SOURCE } from "@keep/shared/levels-worklet";
+import { MAX_DEVICE_MESSAGE_BYTES } from "@lodesong/shared/devices";
+import { LEVELS_WORKLET_SOURCE } from "@lodesong/shared/levels-worklet";
 import { createApi } from "./api";
 import { LyricsBackfill, serviceAccount } from "./backfill";
 import { createCache } from "./cache";
@@ -130,6 +130,4 @@ const server = Bun.serve({
   }),
 });
 
-console.log(
-  `keep-player ${VERSION} on :${server.port} → ${config.upstreams.map((upstream) => `${upstream.id} ${upstream.url}`).join(", ")}`,
-);
+console.log(`lodesong ${VERSION} on :${server.port} → ${config.upstreams.map((upstream) => `${upstream.id} ${upstream.url}`).join(", ")}`);

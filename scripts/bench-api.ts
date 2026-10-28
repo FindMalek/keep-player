@@ -5,12 +5,12 @@ const RUNS = 15;
 
 const login = await fetch(`${base}/auth/login`, {
   method: "POST",
-  headers: { "content-type": "application/json", "x-keep-player": "1" },
+  headers: { "content-type": "application/json", "x-lodesong": "1" },
   body: JSON.stringify({ user: "demo", password: "demo", server: "default" }),
 });
 const cookie = (login.headers.get("set-cookie") ?? "").split(";")[0] ?? "";
 if (!login.ok || !cookie) throw new Error(`sign in failed: ${login.status}`);
-const headers = { cookie, "x-keep-player": "1", "accept-encoding": "br, gzip" };
+const headers = { cookie, "x-lodesong": "1", "accept-encoding": "br, gzip" };
 
 const rest = (endpoint: string, params: Record<string, string> = {}) =>
   `/rest/${endpoint}?${new URLSearchParams({ f: "json", ...params })}`;

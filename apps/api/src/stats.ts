@@ -1,5 +1,5 @@
 import type { Database } from "bun:sqlite";
-import type { ListeningStats, StatItem } from "@keep/shared/stats";
+import type { ListeningStats, StatItem } from "@lodesong/shared/stats";
 
 // Days and the clock use the viewer's time zone, as minutes east of UTC (`-new Date().getTimezoneOffset()`).
 

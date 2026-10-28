@@ -2,7 +2,7 @@ import { expect, test } from "./fixtures";
 
 test("a playlist from a description is filled with your own songs and saved", async ({ page, signedIn }) => {
   const call = (path: string, method = "GET") =>
-    signedIn.evaluate(async ([url, verb]) => (await fetch(url, { method: verb, headers: { "x-keep-player": "1" } })).json(), [
+    signedIn.evaluate(async ([url, verb]) => (await fetch(url, { method: verb, headers: { "x-lodesong": "1" } })).json(), [
       path,
       method,
     ] as const);

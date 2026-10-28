@@ -30,6 +30,6 @@ When a song starts, the lyrics for the next two in the queue are fetched too.
 
 ## Getting lyrics into other apps
 
-Lyrics fetched here live in keep music's cache, so Arpeggi and other Subsonic apps don't see them. To share them,
+Lyrics fetched here live in lodesong's cache, so Arpeggi and other Subsonic apps don't see them. To share them,
 write them into the files: [beets](https://beets.io) with the `lyrics` plugin (`synced: yes`), or a tool that writes
 `.lrc` files next to the audio. Navidrome picks those up on its next scan (`ND_LYRICSPRIORITY=.lrc,embedded`).

@@ -1,7 +1,7 @@
 # Architecture
 
 ```
- browser                                   keep music server (Bun, one executable)              upstream
+ browser                                   lodesong server (Bun, one executable)              upstream
 ┌──────────────────────────┐   cookie   ┌──────────────────────────────────────────┐
 │ React app (shadcn/ui)     │──────────▶│ /auth/*      sessions (SQLite, encrypted)  │
 │  player engine, 2 decks   │           │ /rest/*      Subsonic proxy, adds the      │──────▶ Navidrome

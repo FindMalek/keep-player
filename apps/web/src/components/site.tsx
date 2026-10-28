@@ -1,5 +1,5 @@
-import { buttonVariants } from "@keep/ui/components/button";
-import { cn } from "@keep/ui/lib/utils";
+import { buttonVariants } from "@lodesong/ui/components/button";
+import { cn } from "@lodesong/ui/lib/utils";
 import Link from "next/link";
 import { DOCS, REPO, SELF_HOSTING } from "@/lib/site";
 
@@ -9,7 +9,7 @@ export function SiteHeader() {
       <nav className="mx-auto flex h-14 max-w-6xl items-center gap-6 px-4 sm:px-6">
         <Link href="/" className="flex items-center gap-2.5 font-medium font-mono text-body">
           <span aria-hidden className="size-2.5 bg-foreground" />
-          keep music
+          lodesong
         </Link>
         {/* Phones keep roadmap and docs; the in-page anchors are a scroll away anyway. */}
         <div className="ml-auto flex items-center gap-4 text-muted-foreground text-sm sm:gap-6">
@@ -38,7 +38,7 @@ export function SiteFooter() {
   return (
     <footer className="border-t">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-8 font-mono text-muted-foreground text-xs sm:px-6">
-        <span>keep music · mit</span>
+        <span>lodesong · mit</span>
         <a href={REPO} className="hover:text-foreground">
           source
         </a>

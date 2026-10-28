@@ -1,5 +1,5 @@
-import { Button } from "@keep/ui/components/button";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@keep/ui/components/dialog";
+import { Button } from "@lodesong/ui/components/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@lodesong/ui/components/dialog";
 import { useQuery } from "@tanstack/react-query";
 import { RefreshCwIcon } from "lucide-react";
 import { apiQueries } from "@/lib/api-queries";
@@ -13,7 +13,7 @@ export function IndexDialog({ open, onOpenChange }: { open: boolean; onOpenChang
   const { data, isError } = useQuery({ ...apiQueries.searchIndex(), enabled: open });
 
   async function rebuild(): Promise<void> {
-    const response = await fetch("/api/index", { method: "POST", headers: { "x-keep-player": "1" } }).catch(() => null);
+    const response = await fetch("/api/index", { method: "POST", headers: { "x-lodesong": "1" } }).catch(() => null);
     if (response?.ok) queryClient.setQueryData(apiQueries.searchIndex().queryKey, await response.json());
   }
 

@@ -1,5 +1,5 @@
 import type { Database } from "bun:sqlite";
-import type { LyricsCoverage } from "@keep/shared/lyrics";
+import type { LyricsCoverage } from "@lodesong/shared/lyrics";
 
 // Songs the backfill hasn't reached yet count as "unchecked", not "missing".
 

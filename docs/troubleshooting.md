@@ -1,6 +1,6 @@
 # Troubleshooting
 
-First stop: `https://<your keep music>/api/health`. It says, per configured server, whether keep music reaches it,
+First stop: `https://<your lodesong>/api/health`. It says, per configured server, whether lodesong reaches it,
 how fast, and what it is.
 
 ## Can't reach Navidrome

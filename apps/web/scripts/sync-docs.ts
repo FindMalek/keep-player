@@ -8,8 +8,8 @@ import { dirname, join, posix, relative } from "node:path";
 const ROOT = join(import.meta.dir, "../../..");
 const SOURCE = join(ROOT, "docs");
 const OUT = join(import.meta.dir, "../content/docs");
-const BLOB = "https://github.com/FindMalek/keep-player/blob/main/docs";
-const RAW = "https://raw.githubusercontent.com/FindMalek/keep-player/main/docs";
+const BLOB = "https://github.com/FindMalek/lodesong/blob/main/docs";
+const RAW = "https://raw.githubusercontent.com/FindMalek/lodesong/main/docs";
 const SKIP = new Set(["ROADMAP.md"]);
 const RENAME: Record<string, string> = { "start-to-finish.md": "index.md" };
 
@@ -41,8 +41,8 @@ const PAGES: Record<string, { title?: string; icon: string }> = {
 
 const META: Record<string, { title: string; description?: string; icon?: string; pages: string[] }> = {
   "": {
-    title: "keep music docs",
-    description: "How to run keep music next to Navidrome, use it, bring a Spotify library over with Lyterion, and build on its API.",
+    title: "lodesong docs",
+    description: "How to run lodesong next to Navidrome, use it, bring a Spotify library over with Lyterion, and build on its API.",
     pages: [
       "---start here---",
       "index",
@@ -96,7 +96,7 @@ function rewrite(markdown: string, fromDocs: string): string {
     const [path = "", anchor] = target.split("#");
     const resolved = posix.normalize(posix.join(here, path));
     if (resolved.startsWith(".."))
-      return `${bang}[${text}](https://github.com/FindMalek/keep-player/blob/main/${resolved.replace(/^(\.\.\/)+/, "")})`;
+      return `${bang}[${text}](https://github.com/FindMalek/lodesong/blob/main/${resolved.replace(/^(\.\.\/)+/, "")})`;
     if (bang) return `![${text}](${RAW}/${resolved})`;
     if (resolved.endsWith(".md")) return `[${text}](${route(resolved)}${anchor ? `#${anchor}` : ""})`;
     return `[${text}](${BLOB}/${resolved}${anchor ? `#${anchor}` : ""})`;

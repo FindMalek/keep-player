@@ -5,14 +5,17 @@ import { deflateSync } from "node:zlib";
 const DARK = [0x10, 0x10, 0x10] as const;
 const LIGHT = [0xeb, 0xeb, 0xeb] as const;
 
-/** The play triangle in a 16×16 box (the favicon's path: M5 3.5v9l7-4.5z), shrunk toward the center for maskable icons. */
-function insideTriangle(x: number, y: number, scale: number): boolean {
+/** The mark in a 16×16 box: a square split by a stepped vein (the favicon's path), shrunk toward the center for maskable icons. */
+const VEIN: ReadonlyArray<readonly [number, number, number, number]> = [
+  [2, 8.5, 8.75, 10],
+  [7.25, 6, 8.75, 10],
+  [7.25, 6, 14, 7.5],
+];
+function insideMark(x: number, y: number, scale: number): boolean {
   const u = (x - 8) / scale + 8;
   const v = (y - 8) / scale + 8;
-  if (u < 5 || v < 3.5 || v > 12.5) return false;
-  // Right edge: from (5, 3.5) to (12, 8) and back to (5, 12.5).
-  const half = (12 - 5) * (1 - Math.abs(v - 8) / 4.5);
-  return u <= 5 + half;
+  if (u < 2 || u > 14 || v < 2 || v > 14) return false;
+  return !VEIN.some(([left, top, right, bottom]) => u >= left && u <= right && v >= top && v <= bottom);
 }
 
 const CRC = new Int32Array(256).map((_, n) => {
@@ -45,7 +48,7 @@ export function iconPng(size: number, maskable = false): Uint8Array<ArrayBuffer>
       let hits = 0;
       for (let sy = 0; sy < 4; sy++)
         for (let sx = 0; sx < 4; sx++)
-          if (insideTriangle(((x + (sx + 0.5) / 4) / size) * 16, ((y + (sy + 0.5) / 4) / size) * 16, scale)) hits++;
+          if (insideMark(((x + (sx + 0.5) / 4) / size) * 16, ((y + (sy + 0.5) / 4) / size) * 16, scale)) hits++;
       const t = hits / 16;
       const at = y * (size * 3 + 1) + 1 + x * 3;
       for (let channel = 0; channel < 3; channel++)
@@ -72,11 +75,11 @@ export function iconPng(size: number, maskable = false): Uint8Array<ArrayBuffer>
   return png;
 }
 
-const ICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><rect width="16" height="16" fill="#101010"/><path d="M5 3.5v9l7-4.5z" fill="#ebebeb"/></svg>`;
+const ICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><rect width="16" height="16" fill="#101010"/><path d="M2 2h12v4H7.25v2.5H2zM2 10h6.75V7.5H14V14H2z" fill="#ebebeb"/></svg>`;
 
 export const MANIFEST = {
-  name: "keep music",
-  short_name: "keep music",
+  name: "lodesong",
+  short_name: "lodesong",
   description: "a monochrome web player for your Navidrome library",
   start_url: "/",
   scope: "/",

@@ -9,16 +9,16 @@ GitHub-hosted runner minutes are exhausted, so CI jobs run on the-keep itself. G
 - Tools are installed once on the runner instead of fetched per job:
   - Node 22 and 24
   - pnpm (latest v9+) and npm
-  - Bun 1.4.2 (for keep-player / keep-dashboard)
+  - Bun 1.4.2 (for lodesong / keep-dashboard)
   - Python 3.13 (for keep-minecraft datapack build)
   - Docker + buildx (for image builds and pushes)
-  - Playwright Chromium deps (`npx playwright install-deps chromium`, for keep-player e2e)
+  - Playwright Chromium deps (`npx playwright install-deps chromium`, for lodesong e2e)
   - zsh and bash (for guesswork shell tests)
 
 ## Install one runner per repo
 
 ```bash
-REPO=FindMalek/keep-player   # or keep-dashboard, keep-minecraft
+REPO=FindMalek/lodesong   # or keep-dashboard, keep-minecraft
 RUNNER_USER=findmalek
 VERSION=2.322.0
 ARCH=arm64                   # or amd64

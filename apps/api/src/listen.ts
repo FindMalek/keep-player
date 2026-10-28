@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { type ClientMessage, type HostState, type Member, parseClientMessage, type ServerMessage } from "@keep/shared/listen";
+import { type ClientMessage, type HostState, type Member, parseClientMessage, type ServerMessage } from "@lodesong/shared/listen";
 
 // In memory: a room dies with the process, or when its host ends it or stays away.
 

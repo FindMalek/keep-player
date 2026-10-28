@@ -1,4 +1,4 @@
-import type { Lyrics } from "@keep/shared/lyrics";
+import type { Lyrics } from "@lodesong/shared/lyrics";
 
 // The terminal's token is a session of its own, so the sessions list can sign it out.
 

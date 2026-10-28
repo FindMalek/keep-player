@@ -1,4 +1,4 @@
-import type { Lyrics } from "@keep/shared/lyrics";
+import type { Lyrics } from "@lodesong/shared/lyrics";
 import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
 import { infiniteQueryOptions, type Query, QueryClient, queryOptions } from "@tanstack/react-query";
 import { del, get, set } from "idb-keyval";
@@ -196,7 +196,7 @@ export const queries = {
     queryOptions({
       queryKey: ["lyrics", songId],
       queryFn: async (): Promise<Lyrics> => {
-        const response = await fetch(`/api/lyrics/${encodeURIComponent(songId)}`, { headers: { "x-keep-player": "1" } });
+        const response = await fetch(`/api/lyrics/${encodeURIComponent(songId)}`, { headers: { "x-lodesong": "1" } });
         if (!response.ok) throw new Error(`lyrics: ${response.status}`);
         return (await response.json()) as Lyrics;
       },

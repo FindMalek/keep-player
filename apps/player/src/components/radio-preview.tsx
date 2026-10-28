@@ -1,5 +1,5 @@
-import { Button } from "@keep/ui/components/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@keep/ui/components/dialog";
+import { Button } from "@lodesong/ui/components/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@lodesong/ui/components/dialog";
 import { PlayIcon, SaveIcon, ShuffleIcon, XIcon } from "lucide-react";
 import { cancelRadioPreview, dropFromPreview, playRadio, reshuffleRadio, savePreview, useRadioPreview } from "@/lib/radio";
 import { Cover } from "./cover";

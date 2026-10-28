@@ -1,7 +1,7 @@
 import AppKit
 import WebKit
 
-/// keep music in a web view: your session cookie is kept between launches, links to elsewhere open in the browser,
+/// lodesong in a web view: your session cookie is kept between launches, links to elsewhere open in the browser,
 /// and the page's bridge (`window.keepNative`, `webkit.messageHandlers.keep`) feeds `NowPlaying`.
 @MainActor final class PlayerView: NSObject, PlayerBridge, WKScriptMessageHandler, WKNavigationDelegate, WKUIDelegate {
     let webView: WKWebView
@@ -22,7 +22,7 @@ import WebKit
         config.websiteDataStore = .default()
         config.mediaTypesRequiringUserActionForPlayback = []
         // The player names this device "the desktop app" in its device picker.
-        config.applicationNameForUserAgent = "keep-music-desktop"
+        config.applicationNameForUserAgent = "lodesong-desktop"
         let controller = WKUserContentController()
         config.userContentController = controller
         Self.allowFullFrameRate(config.preferences)

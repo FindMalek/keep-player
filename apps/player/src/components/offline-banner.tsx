@@ -1,5 +1,5 @@
-import { Alert, AlertAction, AlertDescription, AlertTitle } from "@keep/ui/components/alert";
-import { Button } from "@keep/ui/components/button";
+import { Alert, AlertAction, AlertDescription, AlertTitle } from "@lodesong/ui/components/alert";
+import { Button } from "@lodesong/ui/components/button";
 import { WifiOffIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { retryNow, useReachability } from "@/lib/reachability";

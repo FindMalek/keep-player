@@ -1,4 +1,4 @@
-import { Button } from "@keep/ui/components/button";
+import { Button } from "@lodesong/ui/components/button";
 import { BanIcon, EyeOffIcon, ScissorsIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { clock } from "@/lib/format";

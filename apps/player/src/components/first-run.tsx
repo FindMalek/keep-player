@@ -1,8 +1,8 @@
-import { Button } from "@keep/ui/components/button";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@keep/ui/components/dialog";
-import { Field, FieldDescription, FieldGroup, FieldLabel } from "@keep/ui/components/field";
-import { Switch } from "@keep/ui/components/switch";
-import { ToggleGroup, ToggleGroupItem } from "@keep/ui/components/toggle-group";
+import { Button } from "@lodesong/ui/components/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@lodesong/ui/components/dialog";
+import { Field, FieldDescription, FieldGroup, FieldLabel } from "@lodesong/ui/components/field";
+import { Switch } from "@lodesong/ui/components/switch";
+import { ToggleGroup, ToggleGroupItem } from "@lodesong/ui/components/toggle-group";
 import { MonitorIcon, MoonIcon, SunIcon } from "lucide-react";
 import { useState } from "react";
 import { setCacheCap } from "@/lib/offline";
@@ -99,7 +99,7 @@ export function FirstRun({ onDone }: { onDone: () => void }) {
           <>
             <DialogHeader>
               <DialogTitle className="font-mono">three things worth knowing</DialogTitle>
-              <DialogDescription>keep music is built for the keyboard</DialogDescription>
+              <DialogDescription>lodesong is built for the keyboard</DialogDescription>
             </DialogHeader>
             <ul className="flex flex-col gap-3 text-sm">
               <Tip id="search" text="search anything, even a line from a song's lyrics" />

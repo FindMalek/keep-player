@@ -13,11 +13,11 @@
   "iconLibrary": "lucide",
   "rtl": false,
   "aliases": {
-    "components": "@keep/ui/components",
-    "utils": "@keep/ui/lib/utils",
-    "ui": "@keep/ui/components",
-    "lib": "@keep/ui/lib",
-    "hooks": "@keep/ui/hooks"
+    "components": "@lodesong/ui/components",
+    "utils": "@lodesong/ui/lib/utils",
+    "ui": "@lodesong/ui/components",
+    "lib": "@lodesong/ui/lib",
+    "hooks": "@lodesong/ui/hooks"
   },
   "menuColor": "default",
   "menuAccent": "subtle",

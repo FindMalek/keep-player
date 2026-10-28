@@ -1,7 +1,7 @@
 import type { Database } from "bun:sqlite";
-import { normalize, similarity } from "@keep/shared/normalize";
-import type { SearchResults } from "@keep/shared/search";
-import { type Filters, parseQuery } from "@keep/shared/search-query";
+import { normalize, similarity } from "@lodesong/shared/normalize";
+import type { SearchResults } from "@lodesong/shared/search";
+import { type Filters, parseQuery } from "@lodesong/shared/search-query";
 import { type Hit, type Kind, queryIndex } from "./search-index";
 
 export interface SearchContext {

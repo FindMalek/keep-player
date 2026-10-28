@@ -63,7 +63,7 @@ export function Island() {
   return (
     <div className="island-screen relative mx-auto h-57.5 w-full max-w-[560px] overflow-hidden border border-b-0 sm:h-70">
       <div className="absolute inset-x-0 top-0 flex h-7 items-center justify-between px-3 font-mono text-label text-foreground/60">
-        <span>keep music</span>
+        <span>lodesong</span>
         <span>{new Date(0, 0, 1, 9, 41).toLocaleTimeString("en", { hour: "numeric", minute: "2-digit" })}</span>
       </div>
       {/* biome-ignore lint/a11y/noStaticElementInteractions: hover only opens what the button opens too */}

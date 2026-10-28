@@ -1,4 +1,4 @@
-/* keep music's look: black and white tokens, light and dark, square corners. Imported after tailwindcss. */
+/* lodesong's look: black and white tokens, light and dark, square corners. Imported after tailwindcss. */
 @custom-variant dark (&:is(.dark *));
 /* Short windows (the mac app made small, a laptop with the dock up): headers get compact. */
 @custom-variant short (@media (max-height: 560px));

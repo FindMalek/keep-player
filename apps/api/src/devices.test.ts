@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import type { DeviceServerMessage } from "@keep/shared/devices";
+import type { DeviceServerMessage } from "@lodesong/shared/devices";
 import { DeviceHub, type DevicePeer } from "./devices";
 
 function device(id: string): DevicePeer & { got: DeviceServerMessage[] } {

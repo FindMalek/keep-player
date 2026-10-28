@@ -6,7 +6,7 @@ import {
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
-} from "@keep/ui/components/dropdown-menu";
+} from "@lodesong/ui/components/dropdown-menu";
 import { MonitorSpeakerIcon } from "lucide-react";
 import { session } from "@/lib/session";
 import { useSession } from "@/lib/session-state";

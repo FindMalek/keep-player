@@ -1,5 +1,5 @@
 import type { Database } from "bun:sqlite";
-import { normalize } from "@keep/shared/normalize";
+import { normalize } from "@lodesong/shared/normalize";
 import { readPrefs } from "./prefs";
 import type { StatsSong as Song } from "./stats";
 

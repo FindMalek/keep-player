@@ -8,7 +8,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ slu
   if (!page) notFound();
   const description = page.data.description;
   return ogImage({
-    eyebrow: "keep music · docs",
+    eyebrow: "lodesong · docs",
     title: page.data.title,
     subtitle: description && description.length > 150 ? `${description.slice(0, 147).replace(/\s\S*$/, "")}…` : description,
   });

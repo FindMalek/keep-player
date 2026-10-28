@@ -1,4 +1,4 @@
-import type { LyricsHit } from "@keep/shared/search";
+import type { LyricsHit } from "@lodesong/shared/search";
 
 /** The matched line with its matching words emphasized, between faint context lines. */
 export function LyricsSnippet({ hit }: { hit: LyricsHit }) {

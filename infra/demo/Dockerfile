@@ -1,5 +1,5 @@
 # A Navidrome with the generated demo library baked in (docs/demo-library.md), for PR previews and screenshots.
-# Build from the repo root: docker build -f infra/demo/Dockerfile -t keep-player-demo .
+# Build from the repo root: docker build -f infra/demo/Dockerfile -t lodesong-demo .
 FROM oven/bun:1.4.2-alpine AS library
 RUN apk add --no-cache ffmpeg
 WORKDIR /app

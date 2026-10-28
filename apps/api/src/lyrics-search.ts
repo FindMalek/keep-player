@@ -1,7 +1,7 @@
 import type { Database } from "bun:sqlite";
-import type { Lyrics } from "@keep/shared/lyrics";
-import { editDistance, normalize } from "@keep/shared/normalize";
-import type { LyricsHit } from "@keep/shared/search";
+import type { Lyrics } from "@lodesong/shared/lyrics";
+import { editDistance, normalize } from "@lodesong/shared/normalize";
+import type { LyricsHit } from "@lodesong/shared/search";
 
 // Misspellings are corrected against the index's own vocabulary; a trigram index would be several times the lyrics' size.
 

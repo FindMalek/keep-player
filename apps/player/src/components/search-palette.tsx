@@ -1,7 +1,7 @@
-import { normalize } from "@keep/shared/normalize";
-import { parseQuery } from "@keep/shared/search-query";
-import { Badge } from "@keep/ui/components/badge";
-import { Button } from "@keep/ui/components/button";
+import { normalize } from "@lodesong/shared/normalize";
+import { parseQuery } from "@lodesong/shared/search-query";
+import { Badge } from "@lodesong/ui/components/badge";
+import { Button } from "@lodesong/ui/components/button";
 import {
   Command,
   CommandDialog,
@@ -11,7 +11,7 @@ import {
   CommandItem,
   CommandList,
   CommandShortcut,
-} from "@keep/ui/components/command";
+} from "@lodesong/ui/components/command";
 import { useQuery } from "@tanstack/react-query";
 import { ClockIcon, PlayIcon, PlusIcon, XIcon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";

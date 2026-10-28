@@ -1,9 +1,9 @@
-import { Button } from "@keep/ui/components/button";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@keep/ui/components/dialog";
-import { Input } from "@keep/ui/components/input";
-import { Label } from "@keep/ui/components/label";
-import { Switch } from "@keep/ui/components/switch";
-import { Textarea } from "@keep/ui/components/textarea";
+import { Button } from "@lodesong/ui/components/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@lodesong/ui/components/dialog";
+import { Input } from "@lodesong/ui/components/input";
+import { Label } from "@lodesong/ui/components/label";
+import { Switch } from "@lodesong/ui/components/switch";
+import { Textarea } from "@lodesong/ui/components/textarea";
 import { useQuery } from "@tanstack/react-query";
 import { SparklesIcon } from "lucide-react";
 import { useState } from "react";

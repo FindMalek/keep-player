@@ -33,7 +33,7 @@ import Observation
         }
         guard item == nil else { return }
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        item.button?.image = NSImage(systemSymbolName: "music.note", accessibilityDescription: "keep music")
+        item.button?.image = NSImage(systemSymbolName: "music.note", accessibilityDescription: "lodesong")
         let menu = NSMenu()
         menu.delegate = self
         item.menu = menu
@@ -57,7 +57,7 @@ import Observation
             menu.addItem(entry("Previous", #selector(previous)))
             menu.addItem(.separator())
         }
-        menu.addItem(withTitle: "Open keep music", action: #selector(AppDelegate.showWindow), keyEquivalent: "")
+        menu.addItem(withTitle: "Open lodesong", action: #selector(AppDelegate.showWindow), keyEquivalent: "")
         menu.addItem(withTitle: "Quit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "")
     }
 

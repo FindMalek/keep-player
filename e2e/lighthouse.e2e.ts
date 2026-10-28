@@ -13,7 +13,7 @@ test("home scores ≥ 93 on Lighthouse performance (desktop, 10k-track fixture, 
   test.setTimeout(240_000);
   const login = await fetch(`${baseURL}/auth/login`, {
     method: "POST",
-    headers: { "x-keep-player": "1", "content-type": "application/json" },
+    headers: { "x-lodesong": "1", "content-type": "application/json" },
     body: JSON.stringify({ user: "demo", password: "demo" }),
   });
   const cookie = login.headers.get("set-cookie")?.split(";")[0] ?? "";

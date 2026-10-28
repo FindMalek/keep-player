@@ -1,4 +1,4 @@
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@keep/ui/components/resizable";
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@lodesong/ui/components/resizable";
 import type { ReactNode } from "react";
 import { useDefaultLayout } from "react-resizable-panels";
 import { PageSlot } from "./page-host";

@@ -1,6 +1,6 @@
-import { Badge } from "@keep/ui/components/badge";
-import { Button } from "@keep/ui/components/button";
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "@keep/ui/components/hover-card";
+import { Badge } from "@lodesong/ui/components/badge";
+import { Button } from "@lodesong/ui/components/button";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@lodesong/ui/components/hover-card";
 import { SmartphoneIcon } from "lucide-react";
 import type { Elsewhere } from "@/lib/elsewhere";
 import { Cover } from "./cover";

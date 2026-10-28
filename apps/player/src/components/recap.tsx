@@ -1,7 +1,7 @@
-import type { ListeningStats, StatItem } from "@keep/shared/stats";
-import { Button } from "@keep/ui/components/button";
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@keep/ui/components/dialog";
-import { ToggleGroup, ToggleGroupItem } from "@keep/ui/components/toggle-group";
+import type { ListeningStats, StatItem } from "@lodesong/shared/stats";
+import { Button } from "@lodesong/ui/components/button";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@lodesong/ui/components/dialog";
+import { ToggleGroup, ToggleGroupItem } from "@lodesong/ui/components/toggle-group";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronLeftIcon, ChevronRightIcon, DownloadIcon, ListPlusIcon, PlayIcon } from "lucide-react";
 import { useState } from "react";
@@ -188,7 +188,7 @@ async function recapImage(stats: ListeningStats, label: string): Promise<Blob | 
     context.fillText(shown, 70, y);
     y += size * gap;
   };
-  line(`keep music · ${label}`, 36, token("--muted-foreground"), mono, 3);
+  line(`lodesong · ${label}`, 36, token("--muted-foreground"), mono, 3);
   for (const slide of slides(stats, label)) {
     line(slide.kicker, 34, token("--muted-foreground"), mono, 1.6);
     line(slide.headline, 84, token("--foreground"), font, 1.25);
@@ -213,9 +213,9 @@ export function Recap({ open, onOpenChange }: { open: boolean; onOpenChange: (op
     if (!data) return;
     const blob = await recapImage(data, range.label);
     if (!blob) return;
-    const file = new File([blob], `keep-music-recap-${range.label.replaceAll(" ", "-")}.png`, { type: "image/png" });
+    const file = new File([blob], `lodesong-recap-${range.label.replaceAll(" ", "-")}.png`, { type: "image/png" });
     if (navigator.canShare?.({ files: [file] })) {
-      await navigator.share({ files: [file], title: `keep music · ${range.label}` }).catch(() => undefined);
+      await navigator.share({ files: [file], title: `lodesong · ${range.label}` }).catch(() => undefined);
       return;
     }
     const url = URL.createObjectURL(file);

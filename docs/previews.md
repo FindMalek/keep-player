@@ -11,9 +11,9 @@ Sign in with `demo` / `demo`.
 ## In the macOS app
 
 Sign out, tap the sign-in page's background 4 times, and enter the id from the PR comment (`pr-123`, `123` or the full
-address). The app opens that preview for this launch, with the id in the window title; keep music → **Leave Preview**
+address). The app opens that preview for this launch, with the id in the window title; lodesong → **Leave Preview**
 (or 4 taps again → "Back to …") returns to your server. Previews are at `player-pr-<n>.preview.findmalek.engineer`;
-point the app elsewhere with `defaults write engineer.findmalek.keep-music previewDomain preview.example.com`.
+point the app elsewhere with `defaults write engineer.findmalek.lodesong previewDomain preview.example.com`.
 
 ## What is isolated
 
@@ -38,8 +38,8 @@ Previews stay off until the repo variable `DEPLOY_ENABLED` is `true`.
 | secret | `DOKPLOY_API_KEY` | a Dokploy API key |
 | secret | `GHCR_READ_TOKEN` | optional classic PAT with `read:packages`, so Dokploy can keep pulling images after the job ends |
 
-Then run the **Demo** workflow once (Actions → Demo → Run workflow). It builds `ghcr.io/findmalek/keep-player-demo`,
-deploys it as `keep-player-demo` at `demo.<PREVIEW_DOMAIN>` and creates the `demo` account. It runs again on its own
+Then run the **Demo** workflow once (Actions → Demo → Run workflow). It builds `ghcr.io/findmalek/lodesong-demo`,
+deploys it as `lodesong-demo` at `demo.<PREVIEW_DOMAIN>` and creates the `demo` account. It runs again on its own
 whenever the generator changes.
 
 Pull requests from forks get no preview: they have no access to the secrets.

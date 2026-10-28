@@ -12,7 +12,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         title: (
           <span className="flex items-center gap-2.5 font-medium font-mono text-body">
             <span aria-hidden className="size-2.5 bg-foreground" />
-            keep music
+            lodesong
           </span>
         ),
       }}

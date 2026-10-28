@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from "react";
 
 /*
- * "Install keep music" (#53): Chromium offers to install a PWA through `beforeinstallprompt`, fired once early, so it's
+ * "Install lodesong" (#53): Chromium offers to install a PWA through `beforeinstallprompt`, fired once early, so it's
  * caught at load and kept for the settings page's button. Safari and Firefox install from their own menus instead.
  */
 

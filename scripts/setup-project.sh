@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# Creates the "keep music" GitHub Project board, adds every roadmap issue to it and sets Phase + Priority.
+# Creates the "lodesong" GitHub Project board, adds every roadmap issue to it and sets Phase + Priority.
 # Needs gh with the project scope:  gh auth refresh -s project
 # Usage: scripts/setup-project.sh [owner] [repo]
 set -euo pipefail
 
 OWNER="${1:-FindMalek}"
-REPO="${2:-keep-player}"
-TITLE="keep music"
+REPO="${2:-lodesong}"
+TITLE="lodesong"
 
 # issue -> phase (see docs/ROADMAP.md); epics go in phase 0.
 declare -A PHASE=(

@@ -56,7 +56,7 @@ test("playing here saves the queue as this browser, and keep mine is remembered"
       const saved = (await (await page.request.get(`${MOCK}/rest/getPlayQueue?${AUTH}`)).json())["subsonic-response"].playQueue;
       return [saved?.changedBy, saved?.entry?.[0]?.title];
     })
-    .toEqual([expect.stringMatching(/^keep-player@/), titles[0]]);
+    .toEqual([expect.stringMatching(/^lodesong@/), titles[0]]);
 
   // The phone saves something newer; we keep ours and aren't asked again (a reload would save ours, which is newer).
   await saveFromArpeggi(page, ["so-40"], 0, 5_000);

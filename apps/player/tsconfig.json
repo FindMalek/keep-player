@@ -1,5 +1,5 @@
 {
-  "extends": "@keep/config/tsconfig.base.json",
+  "extends": "@lodesong/config/tsconfig.base.json",
   "compilerOptions": { "paths": { "@/*": ["./src/*"] } },
   "include": ["src"]
 }

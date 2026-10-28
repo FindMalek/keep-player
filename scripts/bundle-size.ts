@@ -2,8 +2,8 @@ import { gzipSync } from "node:zlib";
 import tailwind from "bun-plugin-tailwind";
 
 // Fails when the first screen's gzipped JS and CSS grow past the budget; lazy chunks aren't budgeted. Never loosen
-// without saying why in the PR (#99 lazy tooltips 175 → 155, #119 nine features 155 → 160).
-const BUDGET_KB = { js: 160, css: 30 };
+// without saying why in the PR (#99 lazy tooltips 175 → 155, #119 nine features 155 → 160, #380 the inline logo mark 160 → 161).
+const BUDGET_KB = { js: 161, css: 30 };
 
 const result = await Bun.build({
   entrypoints: ["apps/player/src/index.html"],

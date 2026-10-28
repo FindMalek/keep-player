@@ -1,4 +1,4 @@
-import { Progress } from "@keep/ui/components/progress";
+import { Progress } from "@lodesong/ui/components/progress";
 
 /** The thin line at the very top while a refresh runs; indeterminate, styled in app.css. */
 export function TopProgressLine() {

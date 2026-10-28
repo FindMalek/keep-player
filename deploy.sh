@@ -1,7 +1,7 @@
 #!/bin/sh
 # Copy the source to your server and redeploy the Dokploy compose that builds it, then wait for health.
 # Settings come from .deploy.env (git-ignored): KEEP_HOST (ssh host), COMPOSE_ID (Dokploy), SOURCE_DIR
-# (a path Dokploy can see, e.g. /etc/dokploy/sources/keep-player). The server needs the `dk` helper
+# (a path Dokploy can see, e.g. /etc/dokploy/sources/lodesong). The server needs the `dk` helper
 # from host/ (Dokploy API with your key).
 set -eu
 cd "$(dirname "$0")"

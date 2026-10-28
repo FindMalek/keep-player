@@ -27,7 +27,7 @@ export default defineConfig({
       env: { MOCK_PORT: String(MOCK) },
     },
     {
-      command: "bun scripts/build.ts && ./dist/keep-player",
+      command: "bun scripts/build.ts && ./dist/lodesong",
       url: `http://127.0.0.1:${APP}/healthz`,
       env: {
         PORT: String(APP),

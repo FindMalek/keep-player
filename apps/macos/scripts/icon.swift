@@ -1,6 +1,6 @@
 import AppKit
 
-// Draws the app icon (1024 px) to the path given: the brand's dark square with the light play triangle, on Apple's
+// Draws the app icon (1024 px) to the path given: the brand's dark tile with the light split-square mark, on Apple's
 // macOS icon grid (an 824 px rounded square with room for its shadow). `build.sh` turns it into AppIcon.icns.
 let size: CGFloat = 1024
 let image = NSImage(size: CGSize(width: size, height: size), flipped: false) { _ in
@@ -29,20 +29,19 @@ let image = NSImage(size: CGSize(width: size, height: size), flipped: false) { _
     rim.stroke()
     NSGraphicsContext.restoreGraphicsState()
 
-    // The play triangle (the favicon's M5 3.5v9l7-4.5z on 16 units), centered on its own weight.
+    // The mark (the favicon's two pieces on 16 units): a square split by a stepped vein, centered on the tile.
     let unit = 824.0 / 16 * 0.62
-    let origin = CGPoint(x: 512 - 8.5 * unit + 0.4 * unit, y: 512 - 8 * unit)
-    let triangle = NSBezierPath()
-    triangle.move(to: CGPoint(x: origin.x + 5 * unit, y: origin.y + (16 - 3.5) * unit))
-    triangle.line(to: CGPoint(x: origin.x + 5 * unit, y: origin.y + (16 - 12.5) * unit))
-    triangle.line(to: CGPoint(x: origin.x + 12 * unit, y: origin.y + 8 * unit))
-    triangle.close()
-    triangle.lineJoinStyle = .round
-    triangle.lineWidth = unit * 0.9
+    func point(_ x: CGFloat, _ y: CGFloat) -> CGPoint { CGPoint(x: 512 + (x - 8) * unit, y: 512 + (8 - y) * unit) }
+    func piece(_ points: [(CGFloat, CGFloat)]) -> NSBezierPath {
+        let path = NSBezierPath()
+        path.move(to: point(points[0].0, points[0].1))
+        for (x, y) in points.dropFirst() { path.line(to: point(x, y)) }
+        path.close()
+        return path
+    }
     NSColor(white: 0.96, alpha: 1).setFill()
-    NSColor(white: 0.96, alpha: 1).setStroke()
-    triangle.fill()
-    triangle.stroke()
+    piece([(2, 2), (14, 2), (14, 6), (7.25, 6), (7.25, 8.5), (2, 8.5)]).fill()
+    piece([(2, 10), (8.75, 10), (8.75, 7.5), (14, 7.5), (14, 14), (2, 14)]).fill()
     return true
 }
 let rep = NSBitmapImageRep(

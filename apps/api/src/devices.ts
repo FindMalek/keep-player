@@ -1,4 +1,4 @@
-import { type Device, type DeviceCommand, type DeviceServerMessage, type DeviceState, parseDeviceMessage } from "@keep/shared/devices";
+import { type Device, type DeviceCommand, type DeviceServerMessage, type DeviceState, parseDeviceMessage } from "@lodesong/shared/devices";
 
 // At most one device plays; the last state survives it closing, so another can pick up where it stopped.
 

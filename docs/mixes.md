@@ -1,6 +1,6 @@
 # Mixes and playlists made for you
 
-Everything here is made from **your** library and what you play in keep music, and saved as ordinary Navidrome
+Everything here is made from **your** library and what you play in lodesong, and saved as ordinary Navidrome
 playlists, so your phone and every other Subsonic app have them too.
 
 ## Made for you (home)

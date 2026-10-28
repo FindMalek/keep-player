@@ -1,4 +1,4 @@
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@keep/ui/components/collapsible";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@lodesong/ui/components/collapsible";
 import { useQuery } from "@tanstack/react-query";
 import {
   BookmarkIcon,

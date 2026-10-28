@@ -12,7 +12,7 @@ export const leftTarget = (event: { currentTarget: EventTarget; relatedTarget: E
   !(event.relatedTarget instanceof Node && event.currentTarget instanceof Node && event.currentTarget.contains(event.relatedTarget));
 
 // Native drag events (they work with virtualized lists); what's dragged lives here, the custom type only marks it ours.
-const DRAG_TYPE = "application/x-keep-music";
+const DRAG_TYPE = "application/x-lodesong";
 
 interface Dragging {
   target: MenuTarget;

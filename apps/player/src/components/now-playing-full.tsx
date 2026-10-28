@@ -1,5 +1,5 @@
-import { Button } from "@keep/ui/components/button";
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@keep/ui/components/dialog";
+import { Button } from "@lodesong/ui/components/button";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@lodesong/ui/components/dialog";
 import { PauseIcon, PlayIcon, SkipBackIcon, SkipForwardIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { currentSong, player, usePlayer } from "@/lib/player";

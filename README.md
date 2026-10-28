@@ -1,16 +1,16 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/header/graph.svg?title=keep+music&subtitle=your+own+music%2C+played+like+a+streaming+app&align=left&font=jetbrains-mono&radius=0&mode=dark" />
-    <img alt="keep music: your own music, played like a streaming app" src="https://shieldcn.dev/header/graph.svg?title=keep+music&subtitle=your+own+music%2C+played+like+a+streaming+app&align=left&font=jetbrains-mono&radius=0&mode=light" />
+    <source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/header/graph.svg?title=lodesong&subtitle=your+own+music%2C+played+like+a+streaming+app&align=left&font=jetbrains-mono&radius=0&mode=dark" />
+    <img alt="lodesong: your own music, played like a streaming app" src="https://shieldcn.dev/header/graph.svg?title=lodesong&subtitle=your+own+music%2C+played+like+a+streaming+app&align=left&font=jetbrains-mono&radius=0&mode=light" />
   </picture>
 </p>
 
 <p align="center">
-  <a href="https://github.com/FindMalek/keep-player/actions/workflows/ci.yml"><img alt="CI" src="https://shieldcn.dev/github/ci/FindMalek/keep-player.svg?workflow=ci.yml&variant=secondary" /></a>
-  <a href="https://github.com/FindMalek/keep-player/releases"><img alt="Latest release" src="https://shieldcn.dev/github/release/FindMalek/keep-player.svg?variant=secondary" /></a>
-  <a href="https://github.com/FindMalek/keep-player/pkgs/container/keep-player"><img alt="Docker image" src="https://shieldcn.dev/badge/ghcr.io-keep--player-18181b.svg?logo=docker&variant=secondary" /></a>
-  <a href="LICENSE"><img alt="License" src="https://shieldcn.dev/github/license/FindMalek/keep-player.svg?variant=secondary" /></a>
-  <a href="https://github.com/FindMalek/keep-player/commits/main"><img alt="Last commit" src="https://shieldcn.dev/github/last-commit/FindMalek/keep-player.svg?variant=secondary" /></a>
+  <a href="https://github.com/FindMalek/lodesong/actions/workflows/ci.yml"><img alt="CI" src="https://shieldcn.dev/github/ci/FindMalek/lodesong.svg?workflow=ci.yml&variant=secondary" /></a>
+  <a href="https://github.com/FindMalek/lodesong/releases"><img alt="Latest release" src="https://shieldcn.dev/github/release/FindMalek/lodesong.svg?variant=secondary" /></a>
+  <a href="https://github.com/FindMalek/lodesong/pkgs/container/lodesong"><img alt="Docker image" src="https://shieldcn.dev/badge/ghcr.io-lodesong-18181b.svg?logo=docker&variant=secondary" /></a>
+  <a href="LICENSE"><img alt="License" src="https://shieldcn.dev/github/license/FindMalek/lodesong.svg?variant=secondary" /></a>
+  <a href="https://github.com/FindMalek/lodesong/commits/main"><img alt="Last commit" src="https://shieldcn.dev/github/last-commit/FindMalek/lodesong.svg?variant=secondary" /></a>
 </p>
 
 <p align="center">
@@ -38,7 +38,7 @@
 
 Your own music deserves a player as good as the streaming apps, and better where they cut corners:
 
-| | keep music | Spotify web player |
+| | lodesong | Spotify web player |
 |---|---|---|
 | your files, your server | ✓ | — |
 | daily mixes, discover weekly, a daylist, made from **your** library | ✓ | ✓ (their catalog) |
@@ -73,7 +73,7 @@ volumes:
 `docker compose up -d`, open `http://localhost:8080`, sign in with your Navidrome account. No Navidrome yet?
 [`docs/deploy/full-stack.compose.yaml`](docs/deploy/full-stack.compose.yaml) runs both.
 
-The whole stack (Navidrome, keep music, uploads into a tagging inbox, AI playlists, a domain with HTTPS, Lyterion) is
+The whole stack (Navidrome, lodesong, uploads into a tagging inbox, AI playlists, a domain with HTTPS, Lyterion) is
 in **[self-hosting](docs/self-hosting.md)**, written so a person or a coding agent can follow it step by step.
 
 ### With a coding agent
@@ -81,7 +81,7 @@ in **[self-hosting](docs/self-hosting.md)**, written so a person or a coding age
 Paste this into Claude Code, OpenCode, Codex or Cursor on the machine that will run it:
 
 ```text
-Set up keep music (https://github.com/FindMalek/keep-player) on this machine by following
+Set up lodesong (https://github.com/FindMalek/lodesong) on this machine by following
 docs/self-hosting.md in that repo, top to bottom. Ask me before each choice the guide marks as
 "ask", never print secrets, and finish with the guide's "check it works" list, showing me each result.
 ```
@@ -131,7 +131,7 @@ output to expect, and a closing checklist, so the agent can tell you what it did
   Lyterion.
 - **Keyboard first**: everything has a key, `?` shows them all, lists move with `j`/`k`. [shortcuts](docs/shortcuts.md)
 - **Fast**: a 10k-song list renders ~40 rows, the library is cached so a reload paints instantly, the first screen is
-  under 160 KB of JS (gzip).
+  under 161 KB of JS (gzip).
 
 <table>
   <tr>
@@ -174,7 +174,7 @@ pocket; the queue hands off between them. [sync](docs/sync.md)
 
 ## With Lyterion
 
-[Lyterion](https://github.com/FindMalek/lyterion) brings a Spotify library over to your own Navidrome. keep music
+[Lyterion](https://github.com/FindMalek/lyterion) brings a Spotify library over to your own Navidrome. lodesong
 connects to it: the import page shows each Spotify playlist and how much of it is already in your library, the doctor's
 "fix with Lyterion" hands songs over for a better copy, and Lyterion keeps every playlist editable in Navidrome.
 Setting them up together: [lyterion](docs/lyterion.md).
@@ -207,7 +207,7 @@ them.
 [`compose.demo.yaml`](compose.demo.yaml) serves it from a Navidrome. See [demo library](docs/demo-library.md).
 
 **Does it change my music files?** No. It reads through Navidrome's API. Likes, ratings, playlists and plays are
-stored by Navidrome; keep music keeps only its own data (sessions, its search and lyrics cache, history) in `/data`.
+stored by Navidrome; lodesong keeps only its own data (sessions, its search and lyrics cache, history) in `/data`.
 
 **Does it phone home?** No. It talks to your Navidrome and, for missing lyrics, to LRCLIB (`LRCLIB_URL=` turns that
 off). Groq is called only for playlists from a prompt, and only when you set `GROQ_API_KEY`; it gets your artist names,

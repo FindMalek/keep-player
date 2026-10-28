@@ -1,4 +1,4 @@
-import type { IndexStatus, LyricsSearch, SearchResults } from "@keep/shared/search";
+import type { IndexStatus, LyricsSearch, SearchResults } from "@lodesong/shared/search";
 import { queryOptions } from "@tanstack/react-query";
 import { rpc } from "./rpc";
 
@@ -11,7 +11,7 @@ export const apiQueries = {
     queryOptions({
       queryKey: ["lyricsOffset", songId],
       queryFn: async (): Promise<number> => {
-        const response = await fetch(`/api/lyrics/${encodeURIComponent(songId)}/offset`, { headers: { "x-keep-player": "1" } });
+        const response = await fetch(`/api/lyrics/${encodeURIComponent(songId)}/offset`, { headers: { "x-lodesong": "1" } });
         return response.ok ? ((await response.json()) as { offset: number }).offset : 0;
       },
       staleTime: 0,
@@ -39,7 +39,7 @@ export const apiQueries = {
     queryOptions({
       queryKey: ["searchIndex"],
       queryFn: async (): Promise<IndexStatus> => {
-        const response = await fetch("/api/index", { headers: { "x-keep-player": "1" } });
+        const response = await fetch("/api/index", { headers: { "x-lodesong": "1" } });
         if (!response.ok) throw new Error(`index: ${response.status}`);
         return (await response.json()) as IndexStatus;
       },
@@ -50,7 +50,7 @@ export const apiQueries = {
     queryOptions({
       queryKey: ["lyricsSearch", query],
       queryFn: async ({ signal }): Promise<LyricsSearch> => {
-        const response = await fetch(`/api/search/lyrics?q=${encodeURIComponent(query)}`, { headers: { "x-keep-player": "1" }, signal });
+        const response = await fetch(`/api/search/lyrics?q=${encodeURIComponent(query)}`, { headers: { "x-lodesong": "1" }, signal });
         if (!response.ok) throw new Error(`lyrics search: ${response.status}`);
         return (await response.json()) as LyricsSearch;
       },
@@ -61,7 +61,7 @@ export const apiQueries = {
       queryKey: ["search", query, limit],
       queryFn: async ({ signal }): Promise<SearchResults> => {
         const response = await fetch(`/api/search?${new URLSearchParams({ q: query, limit: String(limit) })}`, {
-          headers: { "x-keep-player": "1" },
+          headers: { "x-lodesong": "1" },
           signal,
         });
         if (!response.ok) throw new Error(`search: ${response.status}`);

@@ -1,8 +1,8 @@
-import type { StatItem } from "@keep/shared/stats";
-import { Button } from "@keep/ui/components/button";
-import { type ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@keep/ui/components/chart";
-import { Input } from "@keep/ui/components/input";
-import { ToggleGroup, ToggleGroupItem } from "@keep/ui/components/toggle-group";
+import type { StatItem } from "@lodesong/shared/stats";
+import { Button } from "@lodesong/ui/components/button";
+import { type ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@lodesong/ui/components/chart";
+import { Input } from "@lodesong/ui/components/input";
+import { ToggleGroup, ToggleGroupItem } from "@lodesong/ui/components/toggle-group";
 import { useQuery } from "@tanstack/react-query";
 import { ListPlusIcon, PlayIcon, SparklesIcon } from "lucide-react";
 import { lazy, Suspense, useMemo, useState } from "react";

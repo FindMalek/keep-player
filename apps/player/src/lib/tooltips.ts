@@ -2,7 +2,7 @@ import { useSyncExternalStore } from "react";
 
 // Tooltips (~20 KB gzip) load when idle or on the first hover or focus; until then triggers render as plain markup.
 
-type TooltipModule = typeof import("@keep/ui/components/tooltip");
+type TooltipModule = typeof import("@lodesong/ui/components/tooltip");
 
 let loaded: TooltipModule | null = null;
 let requested = false;
@@ -11,7 +11,7 @@ const listeners = new Set<() => void>();
 export function loadTooltips(): void {
   if (requested) return;
   requested = true;
-  void import("@keep/ui/components/tooltip").then((module) => {
+  void import("@lodesong/ui/components/tooltip").then((module) => {
     loaded = module;
     for (const listener of listeners) listener();
   });

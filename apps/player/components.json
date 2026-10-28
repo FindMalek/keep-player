@@ -14,8 +14,8 @@
   "rtl": false,
   "aliases": {
     "components": "@/components",
-    "utils": "@keep/ui/lib/utils",
-    "ui": "@keep/ui/components",
+    "utils": "@lodesong/ui/lib/utils",
+    "ui": "@lodesong/ui/components",
     "lib": "@/lib",
     "hooks": "@/hooks"
   },

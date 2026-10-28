@@ -1,4 +1,4 @@
-import { Button } from "@keep/ui/components/button";
+import { Button } from "@lodesong/ui/components/button";
 import {
   EllipsisIcon,
   InfoIcon,

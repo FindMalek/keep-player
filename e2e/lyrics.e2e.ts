@@ -2,7 +2,7 @@ import { expect, fakeMediaClock, test } from "./fixtures";
 
 test("lyrics come from Navidrome, fall back to LRCLIB, and say when there are none", async ({ page, signedIn }) => {
   const lyricsOf = (id: string) =>
-    page.evaluate(async (songId) => (await fetch(`/api/lyrics/${songId}`, { headers: { "x-keep-player": "1" } })).json(), id);
+    page.evaluate(async (songId) => (await fetch(`/api/lyrics/${songId}`, { headers: { "x-lodesong": "1" } })).json(), id);
   await signedIn.goto("/");
   // The fixture: Navidrome has synced lyrics for so-2, 5, 8…, plain for so-0, 3, 6…, none for so-1, 4, 7…;
   // LRCLIB knows the even-numbered ones of those.
@@ -29,7 +29,7 @@ test("synced lyrics follow the song, a click seeks, and ] nudges the timing for 
   await page.evaluate(() =>
     fetch("/api/lyrics/so-2/offset", {
       method: "PUT",
-      headers: { "x-keep-player": "1", "content-type": "application/json" },
+      headers: { "x-lodesong": "1", "content-type": "application/json" },
       body: JSON.stringify({ offset: 0 }),
     }),
   );

@@ -1,5 +1,5 @@
 import type { Database } from "bun:sqlite";
-import type { AlbumPref, Prefs, SongPref } from "@keep/shared/prefs";
+import type { AlbumPref, Prefs, SongPref } from "@lodesong/shared/prefs";
 
 /*
  * Per-song and per-album playback rules (#62): trims, never in shuffle or radio, keep an album in order, hide a song.

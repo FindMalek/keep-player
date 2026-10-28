@@ -74,7 +74,7 @@ try {
     entrypoints: ["apps/api/src/server.ts"],
     // BUN_TARGET (e.g. bun-linux-arm64-musl) cross-compiles: the image builds every architecture on the CI's own CPU.
     compile: {
-      outfile: "dist/keep-player",
+      outfile: "dist/lodesong",
       ...(process.env.BUN_TARGET ? { target: process.env.BUN_TARGET as Bun.Build.CompileTarget } : {}),
     },
     target: "bun",
@@ -85,4 +85,4 @@ try {
 } finally {
   await Bun.write(MANIFEST, empty);
 }
-console.log(`built dist/keep-player (${entries.length} embedded assets)`);
+console.log(`built dist/lodesong (${entries.length} embedded assets)`);

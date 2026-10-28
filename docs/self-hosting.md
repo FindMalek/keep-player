@@ -1,6 +1,6 @@
 # Self-hosting
 
-The whole stack on one machine: [Navidrome](https://www.navidrome.org) serving your files, keep music in front of it,
+The whole stack on one machine: [Navidrome](https://www.navidrome.org) serving your files, lodesong in front of it,
 and the extras you want (uploads, playlists from a prompt, a domain with HTTPS, Lyterion). Written so a person or a
 coding agent can follow it top to bottom.
 
@@ -26,7 +26,7 @@ coding agent can follow it top to bottom.
 
 - Linux or macOS with Docker 24+ and the compose plugin. The image is **amd64** (a Mac with Apple silicon runs it
   through Docker's emulation; fine for trying, slow for a library of thousands of songs).
-- The music folder readable by uid 1000 (Navidrome's and keep music's user).
+- The music folder readable by uid 1000 (Navidrome's and lodesong's user).
 
 ```sh
 docker compose version     # Docker Compose version v2.x
@@ -37,7 +37,7 @@ ls "$MUSIC" | head         # your artist folders
 ## 2. Write the stack
 
 ```sh
-mkdir -p ~/keep-music && cd ~/keep-music
+mkdir -p ~/lodesong && cd ~/lodesong
 ```
 
 `compose.yaml`. With an existing Navidrome, drop the `navidrome` service and set `NAVIDROME_URL` to the address
@@ -101,7 +101,7 @@ docker compose ps          # navidrome and player both "running" / "healthy"
 **ask** the person to open `http://<machine>:4533` and create the Navidrome admin there (Navidrome asks for it on the
 first visit; the person picks the password). Navidrome scans the music folder on start and every hour after.
 
-Then open keep music at `http://<machine>:8080`. Above the sign-in form it checks the server:
+Then open lodesong at `http://<machine>:8080`. Above the sign-in form it checks the server:
 
 - `✓ navidrome 0.6x · 12 ms`: sign in with the Navidrome account.
 - `✗ can't reach navidrome`: the container can't reach `NAVIDROME_URL`; see
@@ -149,14 +149,14 @@ play them) and answers with artists and an era; the playlist is built from songs
 
 ### Your other devices
 
-Nothing to set: every open keep music tab of yours shares one playback session, with a device picker in the player bar.
+Nothing to set: every open lodesong tab of yours shares one playback session, with a device picker in the player bar.
 Phones use a Subsonic app (Arpeggi, Substreamer, Symfonium…) against Navidrome's address; the queue hands off both
 ways. [devices](devices.md) · [sync](sync.md)
 
 ### Now playing in your terminal
 
 Settings → sync → **now playing in your terminal** makes a token and a one-line command for Claude Code
-(`/keep-music connect …`) or the OpenCode plugin. [devices](devices.md#now-playing-in-your-terminal)
+(`/lodesong connect …`) or the OpenCode plugin. [devices](devices.md#now-playing-in-your-terminal)
 
 ### Lyterion
 
@@ -194,7 +194,7 @@ curl -sI https://music.example.com/healthz     # HTTP/2 200
 ## 6. Keep it running
 
 - **Updates**: `docker compose pull && docker compose up -d`. Pin a version (`keep-player:1.2.0`) to update on your
-  own schedule; [releases](https://github.com/FindMalek/keep-player/releases) list what changed.
+  own schedule; [releases](https://github.com/FindMalek/lodesong/releases) list what changed.
 - **Backups**: the music folder (your files), the `navidrome-data` volume (accounts, playlists, likes, play counts) and
   the `player-data` volume (sessions, listening history, lyrics cache, synced settings). Back up `.env` somewhere
   private.

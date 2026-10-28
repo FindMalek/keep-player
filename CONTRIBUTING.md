@@ -56,7 +56,7 @@ on Base UI's ContextMenu (the registry was unreachable when it was added); repla
 ## How it ships
 
 `bun run build` bundles the web app into `dist/web` (minified, code-split, hashed names), precompresses every file
-(brotli + gzip), and compiles the server with those files embedded into one executable, `dist/keep-player`. In
+(brotli + gzip), and compiles the server with those files embedded into one executable, `dist/lodesong`. In
 production the server serves them itself: hashed assets `immutable`, `index.html` `no-cache` with the CSP header. In
 development (`bun run dev`) Bun bundles on the fly with hot reload instead. e2e tests always run the executable.
 
@@ -72,7 +72,7 @@ browser is idle. The first screen is budgeted (`bun run size`) and the home page
 
 Pull requests and merges to `main` run the checks and the e2e suite (4 shards) on GitHub's runners; pull requests also
 build the image and smoke-test it read-only. Nothing ships on a merge: release-please keeps a release PR open, and
-merging it builds `ghcr.io/findmalek/keep-player` (amd64, with SBOM and provenance) on the self-hosted runner, tags
+merging it builds `ghcr.io/findmalek/lodesong` (amd64, with SBOM and provenance) on the self-hosted runner, tags
 `:X.Y.Z`, `:latest` and `:main`, runs Lighthouse, and, when the `DOKPLOY_WEBHOOK_URL` secret is set, calls the Dokploy
 webhook and waits for `$PLAYER_URL/api/health`. Every PR gets its own Dokploy preview and a sticky comment with its status, logs and link.
 Setup: [docs/deploy/dokploy.md](docs/deploy/dokploy.md).

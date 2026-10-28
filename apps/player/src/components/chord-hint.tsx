@@ -1,4 +1,4 @@
-import { Kbd } from "@keep/ui/components/kbd";
+import { Kbd } from "@lodesong/ui/components/kbd";
 import { displayKeys, usePendingChord } from "@/lib/shortcuts";
 
 /** While a chord waits for its second key ("g" … "h"), a small hint shows what was pressed. */

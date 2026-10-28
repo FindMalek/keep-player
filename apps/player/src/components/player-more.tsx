@@ -12,7 +12,7 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
-} from "@keep/ui/components/dropdown-menu";
+} from "@lodesong/ui/components/dropdown-menu";
 import {
   EllipsisIcon,
   InfoIcon,

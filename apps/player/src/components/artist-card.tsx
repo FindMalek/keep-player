@@ -1,5 +1,5 @@
-import { Button } from "@keep/ui/components/button";
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "@keep/ui/components/hover-card";
+import { Button } from "@lodesong/ui/components/button";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@lodesong/ui/components/hover-card";
 import { useQuery } from "@tanstack/react-query";
 import { PlayIcon } from "lucide-react";
 import type { ReactElement } from "react";

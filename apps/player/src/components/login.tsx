@@ -1,9 +1,9 @@
-import { Button } from "@keep/ui/components/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@keep/ui/components/card";
-import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@keep/ui/components/field";
-import { Input } from "@keep/ui/components/input";
-import { Skeleton } from "@keep/ui/components/skeleton";
-import { ToggleGroup, ToggleGroupItem } from "@keep/ui/components/toggle-group";
+import { Button } from "@lodesong/ui/components/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@lodesong/ui/components/card";
+import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@lodesong/ui/components/field";
+import { Input } from "@lodesong/ui/components/input";
+import { Skeleton } from "@lodesong/ui/components/skeleton";
+import { ToggleGroup, ToggleGroupItem } from "@lodesong/ui/components/toggle-group";
 import { CheckIcon, RefreshCwIcon, XIcon } from "lucide-react";
 import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { login } from "@/lib/subsonic";
@@ -18,7 +18,7 @@ interface ServerHealth {
   openSubsonic: boolean;
 }
 
-const DOCS = "https://github.com/FindMalek/keep-player/blob/main/docs/deploy/README.md";
+const DOCS = "https://github.com/FindMalek/lodesong/blob/main/docs/deploy/README.md";
 const PREVIEW_TAPS = 4;
 const PREVIEW_TAPS_MS = 1500;
 

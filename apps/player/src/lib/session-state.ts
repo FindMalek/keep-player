@@ -1,4 +1,4 @@
-import type { Device } from "@keep/shared/devices";
+import type { Device } from "@lodesong/shared/devices";
 import { useSyncExternalStore } from "react";
 
 /** Which devices share this account's playback session and which one plays; `session.ts` (loaded later) fills it in. */

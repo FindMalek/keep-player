@@ -1,4 +1,4 @@
-import { snapCoverSize } from "@keep/shared/cover-sizes";
+import { snapCoverSize } from "@lodesong/shared/cover-sizes";
 import { useSyncExternalStore } from "react";
 import { markUnreachable, noteResponse } from "./reachability";
 import { getSetting } from "./settings";
@@ -21,9 +21,9 @@ const CLIENT_ID = (() => {
     return "browser";
   }
 })();
-export const CLIENT_NAME = `keep-player@${CLIENT_ID}`;
+export const CLIENT_NAME = `lodesong@${CLIENT_ID}`;
 
-export const HEADERS = { "x-keep-player": "1", "x-keep-client": CLIENT_ID };
+export const HEADERS = { "x-lodesong": "1", "x-keep-client": CLIENT_ID };
 
 class ApiError extends Error {
   constructor(
@@ -111,7 +111,7 @@ export async function login(name: string, password: string, server?: string): Pr
     headers: { ...HEADERS, "content-type": "application/json" },
     body: JSON.stringify({ user: name, password, server }),
   }).catch(() => null);
-  if (!response) throw new Error("can't reach keep music: check your connection");
+  if (!response) throw new Error("can't reach lodesong: check your connection");
   const body = (await response.json().catch(() => ({}))) as { user?: string; server?: string; error?: string };
   if (!response.ok || !body.user) throw new Error(body.error ?? "login failed");
   await setAccount(`${body.server ?? ""}/${body.user}`);

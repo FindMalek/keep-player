@@ -3,7 +3,7 @@ import {
   AudioDeviceSelectContent,
   AudioDeviceSelectPermission,
   AudioDeviceSelectTrigger,
-} from "@keep/ui/components/audio-device-select";
+} from "@lodesong/ui/components/audio-device-select";
 import { SpeakerIcon } from "lucide-react";
 import { player, usePlayer } from "@/lib/player";
 import { useOutputDevices } from "@/lib/use-output-devices";

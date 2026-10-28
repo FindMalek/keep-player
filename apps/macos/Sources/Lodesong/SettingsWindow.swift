@@ -38,7 +38,7 @@ struct SettingsView: View {
                 }
             }
             Section("Menu Bar") {
-                Toggle("Show keep music in the menu bar", isOn: $preferences.menuBarItem)
+                Toggle("Show lodesong in the menu bar", isOn: $preferences.menuBarItem)
             }
             Section("Updates") {
                 Toggle("Download updates automatically", isOn: $updater.automatic)

@@ -279,7 +279,7 @@ export function App() {
   }, [user]);
 
   useEffect(() => {
-    document.title = nowPlaying && playing ? `▶ ${nowPlaying.title} · ${nowPlaying.artist ?? ""}` : "keep music";
+    document.title = nowPlaying && playing ? `▶ ${nowPlaying.title} · ${nowPlaying.artist ?? ""}` : "lodesong";
     const icon = document.querySelector<HTMLLinkElement>("link[rel=icon]");
     if (icon) icon.href = tabIcon(playing);
   }, [nowPlaying, playing]);

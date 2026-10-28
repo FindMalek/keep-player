@@ -1,6 +1,6 @@
-import { Button } from "@keep/ui/components/button";
-import { Input } from "@keep/ui/components/input";
-import { Switch } from "@keep/ui/components/switch";
+import { Button } from "@lodesong/ui/components/button";
+import { Input } from "@lodesong/ui/components/input";
+import { Switch } from "@lodesong/ui/components/switch";
 import { CopyIcon, UsersIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Content, EmptyState, PageHeader, Section } from "@/components/library";

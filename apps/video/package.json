@@ -1,5 +1,5 @@
 {
-  "name": "@keep/video",
+  "name": "@lodesong/video",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -17,7 +17,7 @@
     "remotion": "4.0.539"
   },
   "devDependencies": {
-    "@keep/config": "workspace:*",
+    "@lodesong/config": "workspace:*",
     "@types/react": "19.3.0"
   }
 }

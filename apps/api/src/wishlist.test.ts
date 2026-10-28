@@ -36,7 +36,7 @@ const post = (step: string, session: string, body: unknown) =>
   Object.assign(
     new Request(`http://app/api/wishlist/${step}`, {
       method: "POST",
-      headers: { cookie: `kp_session=${session}`, "x-keep-player": "1" },
+      headers: { cookie: `kp_session=${session}`, "x-lodesong": "1" },
       body: JSON.stringify(body),
     }),
     { params: { step } },

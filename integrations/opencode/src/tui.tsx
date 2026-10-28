@@ -3,7 +3,7 @@ import { Plugin } from "@opencode/plugin/tui";
 import { createSignal, Show } from "solid-js";
 
 /*
- * keep-player's now playing in OpenCode's prompt footer: song, artist, playhead and the synced lyric line, and /music
+ * lodesong's now playing in OpenCode's prompt footer: song, artist, playhead and the synced lyric line, and /music
  * to play, pause and skip whichever of your players is playing. `url` and `token` come from cli.json's options.
  */
 
@@ -40,7 +40,7 @@ export default Plugin.define({
 
     const control = async (action: "toggle" | "next" | "previous") => {
       const response = await fetch(`${url}/api/remote/${action}`, { method: "POST", headers }).catch(() => null);
-      if (response?.status === 409) context.ui.toast.show({ message: "nothing of yours is playing in keep-player" });
+      if (response?.status === 409) context.ui.toast.show({ message: "nothing of yours is playing in lodesong" });
       await poll();
     };
 
@@ -49,9 +49,9 @@ export default Plugin.define({
       priority: 10,
       commands: [
         {
-          id: "keep.music",
-          title: "keep music: play/pause, next, prev",
-          group: "keep music",
+          id: "lodesong",
+          title: "lodesong: play/pause, next, prev",
+          group: "lodesong",
           palette: true,
           slash: { name: "music", arguments: true },
           run: async (input?: string) => {
@@ -60,7 +60,7 @@ export default Plugin.define({
           },
         },
       ],
-      bindings: ["keep.music"],
+      bindings: ["lodesong"],
     }));
 
     context.ui.slot({

@@ -1,4 +1,4 @@
-# Navidrome and keep music together, for a fresh setup. Your music goes in ./music.
+# Navidrome and lodesong together, for a fresh setup. Your music goes in ./music.
 services:
   navidrome:
     image: deluan/navidrome:latest

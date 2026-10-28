@@ -40,9 +40,7 @@ test("radio from a song: it starts with that song, keeps 30 ahead as it plays, a
   const banned = await bar.getByRole("link").first().textContent();
   await radio.getByRole("button", { name: /^never play .* on radio$/ }).click();
   await expect(page.getByText(`${banned} won't play on radio again`)).toBeVisible();
-  const bans = await page.evaluate(
-    async () => (await (await fetch("/api/radio/bans", { headers: { "x-keep-player": "1" } })).json()).songs,
-  );
+  const bans = await page.evaluate(async () => (await (await fetch("/api/radio/bans", { headers: { "x-lodesong": "1" } })).json()).songs);
   expect(bans.map((song: { title: string }) => song.title)).toContain(banned);
 
   // Stop: the queue stays, the strip offers a radio from it instead.

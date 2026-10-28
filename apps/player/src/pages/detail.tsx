@@ -1,10 +1,10 @@
-import { Badge } from "@keep/ui/components/badge";
-import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@keep/ui/components/breadcrumb";
-import { Button } from "@keep/ui/components/button";
-import { Label } from "@keep/ui/components/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@keep/ui/components/select";
-import { Switch } from "@keep/ui/components/switch";
-import { ToggleGroup, ToggleGroupItem } from "@keep/ui/components/toggle-group";
+import { Badge } from "@lodesong/ui/components/badge";
+import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@lodesong/ui/components/breadcrumb";
+import { Button } from "@lodesong/ui/components/button";
+import { Label } from "@lodesong/ui/components/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@lodesong/ui/components/select";
+import { Switch } from "@lodesong/ui/components/switch";
+import { ToggleGroup, ToggleGroupItem } from "@lodesong/ui/components/toggle-group";
 import { useQuery } from "@tanstack/react-query";
 import { ExternalLinkIcon, PlayIcon, RadioIcon, SearchIcon, Trash2Icon } from "lucide-react";
 import { Fragment, type ReactNode, useEffect, useMemo, useState } from "react";

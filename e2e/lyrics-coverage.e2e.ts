@@ -2,7 +2,7 @@ import { expect, test } from "./fixtures";
 
 test("the lyrics page shows coverage and the songs without lyrics, and an admin can ask again", async ({ page, signedIn }) => {
   const call = (path: string, method = "GET") =>
-    signedIn.evaluate(async ([url, verb]) => (await fetch(url, { method: verb, headers: { "x-keep-player": "1" } })).json(), [
+    signedIn.evaluate(async ([url, verb]) => (await fetch(url, { method: verb, headers: { "x-lodesong": "1" } })).json(), [
       path,
       method,
     ] as const);
