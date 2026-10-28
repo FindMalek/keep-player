@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.9.0](https://github.com/FindMalek/lodesong/compare/v1.8.0...v1.9.0) (2026-10-28)
+
+
+### Features
+
+* **radio:** preview before playing ([#376](https://github.com/FindMalek/lodesong/issues/376)) ([8c969da](https://github.com/FindMalek/lodesong/commit/8c969da53939bc8683e9da1edfef4adc8e13acb5)), closes [#373](https://github.com/FindMalek/lodesong/issues/373)
+* **video:** add promo app ([#377](https://github.com/FindMalek/lodesong/issues/377)) ([9d21fc5](https://github.com/FindMalek/lodesong/commit/9d21fc530bdd8dde027b51c9033e0c3c1f060741)), closes [#374](https://github.com/FindMalek/lodesong/issues/374)
+
+
+### Bug Fixes
+
+* **macos:** hide notch after pause ([#375](https://github.com/FindMalek/lodesong/issues/375)) ([dc55f90](https://github.com/FindMalek/lodesong/commit/dc55f9027d9ad2aa2aacf276d62401303c730d54)), closes [#372](https://github.com/FindMalek/lodesong/issues/372)
+
 ## [1.8.0](https://github.com/FindMalek/keep-player/compare/v1.7.0...v1.8.0) (2026-10-26)
 
 
