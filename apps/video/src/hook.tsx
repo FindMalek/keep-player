@@ -4,9 +4,9 @@ import { BG, clamp, EASE_OUT, FG, FPS, MUTED, SANS, useBox } from "./theme";
 
 // Three lines, one every three beats, each landing with a pulse in the score.
 const LINES = [
-  { text: "Your library.", at: 1.0 },
-  { text: "Your server.", at: 2.5 },
-  { text: "Your rules.", at: 4.0 },
+  { text: "Your library.", word: "library.", hue: 28, at: 1.0 },
+  { text: "Your server.", word: "server.", hue: 215, at: 2.5 },
+  { text: "Your rules.", word: "rules.", hue: 330, at: 4.0 },
 ];
 
 /** The tension before the reveal: dark, slow, three lines. Everything fades to black just before the impact. */
@@ -46,7 +46,8 @@ export function Tension({ length = 6 }: { length?: number }) {
                 letterSpacing: -7 + (1 - p) * 10,
               }}
             >
-              {line.text}
+              {line.text.slice(0, line.text.length - line.word.length)}
+              <span style={{ color: `hsl(${line.hue},90%,70%)`, textShadow: `0 0 60px hsla(${line.hue},90%,60%,0.5)` }}>{line.word}</span>
             </div>
           );
         })}
