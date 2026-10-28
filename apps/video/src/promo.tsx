@@ -2,13 +2,14 @@ import { Audio } from "@remotion/media";
 import { AbsoluteFill, interpolate, Sequence, staticFile, useCurrentFrame } from "remotion";
 import { Captions, type Line } from "./captions";
 import { Tension } from "./hook";
+import { LyricsStage } from "./lyrics-stage";
 import { Outro } from "./outro";
 import { Proof } from "./proof";
 import { Reveal } from "./reveal";
 import { type Callout, EVENTS, type Flight, Session, type Spot, type View } from "./session";
 import { Sfx } from "./sfx";
 import { SHOWCASE_LENGTH, Showcase } from "./showcase";
-import { BG, FPS, sec } from "./theme";
+import { BG, EASE_OUT, FG, FPS, MONO, MUTED, SANS, sec } from "./theme";
 
 interface Segment {
   /** Where it sits in the film (seconds), and how long it runs. Every cut is on a half-second: a beat at 120 bpm. */
@@ -53,33 +54,6 @@ const SEGMENTS: Segment[] = [
       { text: "Your whole library. One keystroke.", from: 0.4, to: 1.9 },
       { text: "Search. Hear it.", sub: "songs · albums · artists · lyrics", from: 3.1, to: 7.6 },
     ],
-  },
-  {
-    // The `y` key lands on 18.0.
-    at: 18,
-    glow: [18, 285],
-    length: 2,
-    from: 8.93,
-    cam: [
-      { t: 8.93, x: 960, y: 540, z: 1 },
-      { t: 9.1, x: 960, y: 540, z: 1 },
-      { t: 9.9, x: 1620, y: 380, z: 1.55 },
-      { t: 10.93, x: 1620, y: 380, z: 1.55 },
-    ],
-    captions: [{ text: "Synced lyrics. One key.", from: 0.4, to: 2 }],
-    spot: { rect: { x: 1596, y: 44, w: 324, h: 966 }, from: 9.6, to: 10.93 },
-  },
-  {
-    at: 20,
-    glow: [18, 285],
-    length: 4,
-    from: 13.5,
-    cam: [
-      { t: 13.5, x: 1620, y: 380, z: 1.55 },
-      { t: 17.5, x: 1620, y: 440, z: 1.7 },
-    ],
-    captions: [{ text: "Synced lyrics. One key.", sub: "press y, sing along", from: 0, to: 4 }],
-    spot: { rect: { x: 1596, y: 44, w: 324, h: 966 }, from: 13.5, to: 17.5 },
   },
   {
     // "start radio" lands on 26.0 and the 30-song preview opens.
@@ -138,6 +112,7 @@ const SEGMENTS: Segment[] = [
 const FADE = 6;
 const TENSION = { at: 0, length: 6 };
 const REVEAL = { at: 6, length: 4 };
+const LYRICS = { at: 18, length: 6 };
 const SHOWCASE = { at: 32.5, length: SHOWCASE_LENGTH };
 const PROOF = { at: 38.5, length: 4 };
 const OUTRO = { at: 42.5, length: 5.5 };
@@ -164,6 +139,32 @@ function Sounds() {
   );
 }
 
+/** The size of the radio preview, counted up as it opens. */
+function Count() {
+  const frame = useCurrentFrame();
+  const t = frame / FPS;
+  const n = Math.round(30 * EASE_OUT(interpolate(t, [0, 0.8], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })));
+  const out = interpolate(t, [1.5, 2], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  return (
+    <AbsoluteFill style={{ left: 120, top: 330, width: 560, opacity: out, pointerEvents: "none" }}>
+      <div
+        style={{
+          fontFamily: SANS,
+          fontWeight: 700,
+          fontSize: 340,
+          lineHeight: 1,
+          letterSpacing: -16,
+          color: FG,
+          textShadow: "0 0 90px hsla(265,90%,60%,0.6)",
+        }}
+      >
+        {n}
+      </div>
+      <div style={{ fontFamily: MONO, fontSize: 26, color: MUTED, letterSpacing: 3, marginTop: 10 }}>songs, ready</div>
+    </AbsoluteFill>
+  );
+}
+
 function Music({ track }: { track: string }) {
   const frame = useCurrentFrame();
   return (
@@ -183,6 +184,9 @@ export function Promo({ track = "track.mp3", credit }: { track?: string; credit?
       </Sequence>
       <Sequence from={sec(REVEAL.at)} durationInFrames={sec(REVEAL.length)}>
         <Reveal />
+      </Sequence>
+      <Sequence from={sec(LYRICS.at)} durationInFrames={sec(LYRICS.length)}>
+        <LyricsStage />
       </Sequence>
       {SEGMENTS.map((segment, index) => {
         // Each cut after the first starts a few frames early and fades in over the one before it.
@@ -214,7 +218,12 @@ export function Promo({ track = "track.mp3", credit }: { track?: string; credit?
       <Sequence from={sec(OUTRO.at)} durationInFrames={sec(OUTRO.length)}>
         <Outro durationInFrames={sec(OUTRO.length)} credit={credit} />
       </Sequence>
+      <Sequence from={sec(26)} durationInFrames={sec(2)}>
+        <Count />
+      </Sequence>
       <Sounds />
+      <Sfx name="key1" at={sec(18)} volume={0.45} />
+      <Sfx name="whoosh" at={sec(17.8)} volume={0.35} />
       <Sfx name="ding" at={sec(26.3)} volume={0.26} />
       <Music track={track} />
     </AbsoluteFill>
