@@ -2,8 +2,8 @@
 export function BrandMark() {
   return (
     <span className="flex items-center gap-2.5 font-medium font-mono text-small">
-      <svg aria-hidden className="size-3.5 fill-foreground" viewBox="2 2 12 12">
-        <path d="M2 2h12v4H7.25v2.5H2zM2 10h6.75V7.5H14V14H2z" />
+      <svg aria-hidden className="size-3.5 fill-foreground" viewBox="8 8 48 48">
+        <path d="M8 8h48v16H29v10H8zM8 40h27V30h21v26H8z" />
       </svg>
       lodesong
     </span>

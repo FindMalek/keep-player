@@ -131,7 +131,7 @@ output to expect, and a closing checklist, so the agent can tell you what it did
   Lyterion.
 - **Keyboard first**: everything has a key, `?` shows them all, lists move with `j`/`k`. [shortcuts](docs/shortcuts.md)
 - **Fast**: a 10k-song list renders ~40 rows, the library is cached so a reload paints instantly, the first screen is
-  under 160 KB of JS (gzip).
+  under 161 KB of JS (gzip).
 
 <table>
   <tr>
