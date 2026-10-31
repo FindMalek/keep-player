@@ -29,7 +29,8 @@ The player in its own window, and an island around the notch, made to feel like 
 Download `lodesong-macos.zip` from the [latest release](https://github.com/FindMalek/lodesong/releases/latest),
 unzip, move **lodesong** to Applications. It isn't signed by Apple yet: the first time, right-click it → **Open**
 (or `xattr -dr com.apple.quarantine "/Applications/lodesong.app"`). It asks for your lodesong address once.
-macOS 14 or later.
+macOS 14 or later. On managed Macs, `apps/macos/pkg.sh` builds a pkg that installs through Fleet or any MDM: see
+[the Fleet guide](../../docs/macos/fleet.md).
 
 ## Build
 
