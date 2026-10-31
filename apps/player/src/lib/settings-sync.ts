@@ -35,6 +35,7 @@ function apply(remote: Synced): void {
       const value = sanitize(key, remote[key]);
       if (value !== undefined && JSON.stringify(value) !== JSON.stringify(getSetting(key))) setSetting(key, value as never);
     }
+    if (typeof remote.look === "string") void import("./look-apply").then((module) => module.syncLook());
     if ((remote.theme === "system" || remote.theme === "dark" || remote.theme === "light") && remote.theme !== getTheme())
       setTheme(remote.theme);
   } finally {

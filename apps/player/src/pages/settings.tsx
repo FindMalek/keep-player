@@ -38,6 +38,7 @@ import { HEADERS, logout, useUser } from "@/lib/subsonic";
 import { setTheme, type Theme, useTheme } from "@/lib/theme";
 
 const EqualizerSheet = lazy(() => import("@/components/equalizer-sheet").then((module) => ({ default: module.EqualizerSheet })));
+const ThemeBuilder = lazy(() => import("@/components/theme-builder").then((module) => ({ default: module.ThemeBuilder })));
 const StorageDialog = lazy(() => import("@/components/storage-dialog").then((module) => ({ default: module.StorageDialog })));
 const IndexDialog = lazy(() => import("@/components/index-dialog").then((module) => ({ default: module.IndexDialog })));
 const SessionsDialog = lazy(() => import("@/components/sessions-dialog").then((module) => ({ default: module.SessionsDialog })));
@@ -423,6 +424,9 @@ export function SettingsPage({ section, onClose }: { section: string | null; onC
                   </DropdownMenuContent>
                 </DropdownMenu>
               </Row>
+              <Suspense fallback={null}>
+                <ThemeBuilder />
+              </Suspense>
               <ToastsRow />
               <ToastPositionRow />
               <Toggle

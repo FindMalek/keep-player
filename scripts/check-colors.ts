@@ -8,7 +8,13 @@ const PALETTE =
   /\b(?:bg|text|border|ring|fill|stroke|outline|decoration|divide|placeholder|caret|accent|shadow|from|via|to)-(?:slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose|black|white)(?:-\d{2,3})?\b/;
 const ARBITRARY = /-\[(?:#|rgb|hsl|oklch|oklab|lab|lch|color)/;
 const LITERAL = /#[0-9a-fA-F]{3,8}\b|\b(?:rgba?|hsla?|oklch|oklab|lab|lch|hwb)\(/;
-const EXEMPT = ["apps/player/src/app.css", "apps/player/src/components/ui/", "apps/player/src/hooks/", "apps/player/src/lib/audio/"];
+const EXEMPT = [
+  "apps/player/src/app.css",
+  "apps/player/src/lib/look-code.ts",
+  "apps/player/src/components/ui/",
+  "apps/player/src/hooks/",
+  "apps/player/src/lib/audio/",
+];
 
 export function findColors(source: string): { line: number; text: string }[] {
   return source
