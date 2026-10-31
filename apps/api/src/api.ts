@@ -7,6 +7,7 @@ import type { LyricsSearch } from "@lodesong/shared/search";
 import { readTrack } from "@lodesong/shared/spotify-import";
 import type { Server } from "bun";
 import { askGroq, buildPlaylist, libraryArtists } from "./ai-playlist";
+import { audiomuseStatus, featuresFor, similarSongs, smartShuffle, syncFeatures } from "./audiomuse";
 import type { Cache } from "./cache";
 import type { Upstream } from "./config";
 import { type CoverCache, snapCoverSize } from "./covers";
@@ -144,6 +145,7 @@ export interface ApiOptions {
   feedback?: FeedbackTarget | null;
   cache?: Cache;
   groq?: { key: string; model: string; url: string } | null;
+  audiomuseUrl?: string | null;
   fetcher?: typeof fetch;
 }
 
@@ -186,6 +188,7 @@ export function createApi({
   lyterion = null,
   devices = null,
   groq = null,
+  audiomuseUrl = null,
   feedback = null,
   cache,
   fetcher = fetch,
@@ -313,6 +316,7 @@ export function createApi({
           admin: session.admin,
           oneSession: devices !== null,
           ai: groq !== null,
+          audiomuse: audiomuseUrl !== null,
           feedback: feedback !== null,
           lyterionAdd: session.admin && lyterion !== null,
         })
@@ -798,7 +802,47 @@ export function createApi({
     const limit = Math.min(50, Math.max(1, Number(params.get("limit")) || 8));
     const [folders, liked] = await Promise.all([foldersFor(session, upstream), likesFor(session, upstream)]);
     const moments = /\b(moment:|is:moment)/i.test(query) ? momentNotes(library, dataAccount(session)) : undefined;
-    return json(search(library, upstream.id, query, { folders, liked, moments }, limit), 200, { "cache-control": "private, no-cache" });
+    const features = /\b(bpm|energy|mood):/i.test(query) ? featuresFor(library, upstream.id) : undefined;
+    return json(search(library, upstream.id, query, { folders, liked, moments, features }, limit), 200, {
+      "cache-control": "private, no-cache",
+    });
+  }
+
+  /** `GET /api/audiomuse` status, `POST /api/audiomuse/sync` (admins), `GET /api/audiomuse/similar/:id`, `POST /api/audiomuse/shuffle`. */
+  async function audiomuse(request: Request & { params?: { id?: string } }): Promise<Response> {
+    const session = browserSession(request);
+    if (!session) return json({ error: "signed out" }, 401);
+    const upstream = upstreamFor(session.server);
+    if (!upstream) return json({ error: "server removed from config" }, 401);
+    const [, , , action] = new URL(request.url).pathname.split("/");
+    if (request.method !== "GET" && request.headers.get(CSRF_HEADER) !== "1") return json({ error: "missing header" }, 403);
+    if (!action)
+      return json(await audiomuseStatus(audiomuseUrl, library, upstream.id, fetcher), 200, { "cache-control": "private, no-cache" });
+    if (!audiomuseUrl) return json({ error: "no AUDIOMUSE_URL on this server" }, 404);
+    if (action === "sync") {
+      if (!session.admin) return json({ error: "admins only" }, 403);
+      return json({ stored: await syncFeatures(library, upstream.id, audiomuseUrl, fetcher) });
+    }
+    if (action === "similar" && request.params?.id) {
+      const songs = await similarSongs(
+        library,
+        upstream.id,
+        audiomuseUrl,
+        request.params.id,
+        await foldersFor(session, upstream),
+        20,
+        fetcher,
+      );
+      return json({ songs }, 200, { "cache-control": "private, no-cache" });
+    }
+    if (action === "shuffle") {
+      const body = (await request.json().catch(() => null)) as { ids?: unknown } | null;
+      const ids = body?.ids;
+      if (!Array.isArray(ids) || ids.length > 2000 || !ids.every((id) => typeof id === "string"))
+        return json({ error: "send up to 2000 song ids" }, 400);
+      return json({ ids: smartShuffle(ids, featuresFor(library, upstream.id, ids)) });
+    }
+    return json({ error: "not found" }, 404);
   }
 
   async function importMatch(request: Request): Promise<Response> {
@@ -848,5 +892,6 @@ export function createApi({
     searchLyrics,
     searchLibrary,
     importMatch,
+    audiomuse,
   };
 }

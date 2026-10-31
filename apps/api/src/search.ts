@@ -2,18 +2,28 @@ import type { Database } from "bun:sqlite";
 import { normalize, similarity } from "@lodesong/shared/normalize";
 import type { SearchResults } from "@lodesong/shared/search";
 import { type Filters, parseQuery } from "@lodesong/shared/search-query";
+import { type Features, moodOf } from "./audiomuse";
 import { type Hit, type Kind, queryIndex } from "./search-index";
 
 export interface SearchContext {
   folders: string[] | null;
   liked: Set<string>;
   moments?: Map<string, string[]>;
+  features?: Map<string, Features>;
 }
 
 const CANDIDATES = 200;
 
 const field = (data: Record<string, unknown>, key: string) => normalize(String(data[key] ?? ""));
 const has = (value: string, wanted: string) => value.includes(normalize(wanted));
+
+function sounds(id: string, { bpm, energy, mood }: Filters, features?: Map<string, Features>): boolean {
+  const song = features?.get(id);
+  if (!song) return false;
+  if (bpm && !(song.bpm >= bpm[0] && song.bpm <= bpm[1])) return false;
+  if (energy && !(song.energy >= energy[0] && song.energy <= energy[1])) return false;
+  return !mood || moodOf(song) === mood;
+}
 
 function passes(kind: Kind, id: string, data: Record<string, unknown>, filters: Filters, context: SearchContext): boolean {
   const { artist, album, genre, year, format, liked, unplayed, moment } = filters;
@@ -22,6 +32,7 @@ function passes(kind: Kind, id: string, data: Record<string, unknown>, filters: 
     const notes = kind === "song" ? context.moments?.get(id) : undefined;
     if (!notes || (moment && !notes.some((note) => has(normalize(note), moment)))) return false;
   }
+  if ((filters.bpm || filters.energy || filters.mood) && (kind !== "song" || !sounds(id, filters, context.features))) return false;
   if (unplayed && Number(data.playCount ?? 0) > 0) return false;
   if (artist && !has(field(data, kind === "artist" ? "name" : "artist"), artist)) return false;
   if (kind === "artist") return !(album || genre || year || format);

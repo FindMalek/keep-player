@@ -76,3 +76,16 @@ test("your likes, not the indexing account's: they rank first and is:liked keeps
   expect(search(db, "d", "creep", nobody).songs.find((song) => song.id === "s1")?.starred).toBeUndefined();
   expect(ids(search(db, "d", "is:liked", you).songs)).toEqual(["s1"]);
 });
+
+test("bpm:, energy: and mood: need analysed songs and only ever match songs", () => {
+  const features = new Map([
+    ["s1", { bpm: 124, key: "A minor", energy: 0.9, valence: 0.8, danceability: 0.7 }],
+    ["s3", { bpm: 80, key: "C major", energy: 0.2, valence: 0.7, danceability: 0.4 }],
+  ]);
+  const context = { ...nobody, features };
+  expect(ids(search(db, "d", "bpm:120..130", context).songs)).toEqual(["s1"]);
+  expect(ids(search(db, "d", "energy:low mood:chill", context).songs)).toEqual(["s3"]);
+  expect(ids(search(db, "d", "radiohead mood:upbeat", context).songs)).toEqual(["s1"]);
+  expect(search(db, "d", "bpm:120..130", context).albums).toEqual([]);
+  expect(search(db, "d", "bpm:120..130", nobody).songs).toEqual([]);
+});

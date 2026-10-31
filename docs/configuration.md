@@ -22,6 +22,7 @@ boot with a message naming the variable.
 | `GROQ_API_KEY` | — | Turns on playlists from a prompt ("rainy sunday, slow, warm"): Groq picks artists from your library and the player builds the list from songs you own. Kept server-side. Empty: off. |
 | `GROQ_MODEL` | `openai/gpt-oss-120b` | The Groq model for playlists from a prompt. |
 | `GROQ_URL` | `https://api.groq.com/openai/v1` | Groq's API, or any OpenAI-compatible one. |
+| `AUDIOMUSE_URL` | — | AudioMuse-AI, as this container reaches it: song features (tempo, key, energy, mood) are copied into the index for `bpm:` / `energy:` / `mood:` search filters, smart shuffle and sonic neighbours. Empty: off, everything else works as is. |
 | `FEEDBACK_GITHUB_TOKEN` | — | A GitHub token that may open issues and write contents on `FEEDBACK_REPO`: turns on "send feedback" in the user menu, filed as an issue (screenshots go to a `feedback` branch). Empty: off. |
 | `FEEDBACK_REPO` | — | Where feedback goes, as `owner/repo`. Needed with `FEEDBACK_GITHUB_TOKEN`. |
 | `ONE_SESSION` | `on` | `on`: all of an account's open players share one playback session, like Spotify Connect: one plays, the others are remotes, and the device picker moves playback. `off`: every tab plays on its own. |

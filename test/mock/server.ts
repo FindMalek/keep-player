@@ -503,6 +503,27 @@ const server = Bun.serve({
       const content = JSON.stringify({ name: "Rainy Sunday", description: "slow and warm", artists, size: 12 });
       return Response.json({ choices: [{ message: { content } }] });
     }
+    // AudioMuse-AI (AUDIOMUSE_URL points here): features derived from the song's position, neighbours are the next songs.
+    if (url.pathname === "/audiomuse/api/tracks") {
+      const offset = Number(url.searchParams.get("offset") ?? 0);
+      const limit = Math.min(Number(url.searchParams.get("limit") ?? 500), 500);
+      return Response.json(
+        library.songs.slice(offset, offset + limit).map((song, index) => ({
+          item_id: song.id,
+          tempo: 80 + ((offset + index) % 100),
+          key: ["C", "G", "D", "A", "E"][(offset + index) % 5],
+          scale: (offset + index) % 2 ? "minor" : "major",
+          energy: ((offset + index) % 10) / 10,
+          valence: ((offset + index) % 7) / 7,
+          danceability: ((offset + index) % 5) / 5,
+        })),
+      );
+    }
+    if (url.pathname === "/audiomuse/api/similar_tracks") {
+      const at = library.songs.findIndex((song) => song.id === url.searchParams.get("item_id"));
+      const count = Number(url.searchParams.get("n") ?? 10);
+      return Response.json(library.songs.slice(at + 1, at + 1 + count).map((song) => ({ item_id: song.id })));
+    }
     // Lyterion's player summary, for the import page (LYTERION_URL points here in e2e).
     if (url.pathname === "/lyterion/api/rpc/api-reference/player/summary")
       return request.headers.get("x-lyterion-token") === "e2e-lyterion-token-0123456789"

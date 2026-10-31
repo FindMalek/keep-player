@@ -24,3 +24,10 @@ test("moment: finds songs by a moment's note, is:moment any song with one", () =
   expect(parseQuery("is:moment").filters).toEqual({ moment: "" });
   expect(parseQuery("is:moment").chips).toEqual([{ key: "is", value: "moment", raw: "is:moment" }]);
 });
+
+test("bpm:, energy: and mood: take ranges, levels and a word, and ignore what they can't read", () => {
+  const parsed = parseQuery("bpm:120..130 energy:high mood:Chill");
+  expect(parsed.filters).toEqual({ bpm: [120, 130], energy: [0.7, 1], mood: "chill" });
+  expect(parseQuery("bpm:..90 energy:0.2..0.5").filters).toEqual({ bpm: [0, 90], energy: [0.2, 0.5] });
+  expect(parseQuery("bpm:fast").text).toBe("bpm:fast");
+});

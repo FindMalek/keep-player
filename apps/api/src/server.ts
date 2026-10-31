@@ -2,6 +2,7 @@ import { join } from "node:path";
 import { MAX_DEVICE_MESSAGE_BYTES } from "@lodesong/shared/devices";
 import { LEVELS_WORKLET_SOURCE } from "@lodesong/shared/levels-worklet";
 import { createApi } from "./api";
+import { syncFeatures } from "./audiomuse";
 import { LyricsBackfill, serviceAccount } from "./backfill";
 import { createCache } from "./cache";
 import { compressed } from "./compress";
@@ -40,6 +41,14 @@ if (config.demoSeed && config.indexUser && config.indexPassword) {
   const { indexUser, indexPassword } = config;
   if (first) void import("./demo-seed").then((demo) => demo.seedDemoHistory(library, first, indexUser, indexPassword));
 }
+const { audiomuseUrl } = config;
+if (audiomuseUrl) {
+  const pull = () => {
+    for (const upstream of config.upstreams) void syncFeatures(library, upstream.id, audiomuseUrl).catch(() => null);
+  };
+  setTimeout(pull, 60_000).unref();
+  setInterval(pull, 6 * 3_600_000).unref();
+}
 const lrc = config.lrcDir ? new LrcWriter(library, config.lrcDir) : null;
 if (lrc) lyrics.onLrclib = (server, song, text) => lrc.write(server, song, text);
 const backfills = new Map(
@@ -74,6 +83,7 @@ const api = createApi({
   lyterion: config.lyterion,
   devices: config.oneSession ? new DeviceHub() : null,
   groq: config.groq,
+  audiomuseUrl: config.audiomuseUrl,
   feedback: config.feedback,
   cache: createCache(config.redisUrl),
 });
@@ -122,6 +132,10 @@ const server = Bun.serve({
     "/api/lyrics/:songId": { GET: api.songLyrics },
     "/api/index": { GET: api.searchIndex, POST: api.searchIndex },
     "/api/search": { GET: api.searchLibrary },
+    "/api/audiomuse": { GET: api.audiomuse },
+    "/api/audiomuse/sync": { POST: api.audiomuse },
+    "/api/audiomuse/shuffle": { POST: api.audiomuse },
+    "/api/audiomuse/similar/:id": { GET: api.audiomuse },
     "/api/import/match": { POST: api.importMatch },
     "/api/search/lyrics": { GET: api.searchLyrics },
     "/fonts/:name": font,
