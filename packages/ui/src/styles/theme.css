@@ -177,11 +177,11 @@
 }
 
 /*
- * Square corners everywhere, the brand's one hard rule. Unlayered so it also beats registry components that hardcode
+ * Square corners everywhere unless a saved look (lib/look-code.ts) sets --look-radius, the brand's one hard rule. Unlayered so it also beats registry components that hardcode
  * `rounded-full` (audiocn thumbs and tracks), which keeps them re-addable without local edits.
  */
 *,
 *::before,
 *::after {
-  border-radius: 0;
+  border-radius: var(--look-radius, 0);
 }

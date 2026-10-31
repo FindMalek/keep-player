@@ -25,6 +25,7 @@ export interface Settings {
   preamp: number;
   eqOn: boolean;
   eqGains: number[];
+  look: string;
 }
 
 export const SYNCED = [
@@ -41,6 +42,7 @@ export const SYNCED = [
   "preamp",
   "eqOn",
   "eqGains",
+  "look",
 ] as const satisfies readonly (keyof Settings)[];
 
 const KEY = "keep-player:settings";
@@ -60,6 +62,7 @@ const DEFAULTS: Settings = {
   preamp: 0,
   eqOn: false,
   eqGains: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  look: "",
 };
 
 const NORMALIZATIONS = ["off", "track", "album", "auto"];
@@ -69,6 +72,7 @@ export function sanitize<K extends keyof Settings>(key: K, value: unknown): Sett
   if (typeof value !== typeof fallback) return undefined;
   if (key === "toasts") return ((TOAST_LEVELS as readonly unknown[]).includes(value) ? value : undefined) as Settings[K] | undefined;
   if (key === "normalization") return (NORMALIZATIONS.includes(value as string) ? value : undefined) as Settings[K] | undefined;
+  if (key === "look") return String(value).slice(0, 64) as Settings[K];
   if (key === "crossfade") return Math.max(0, Math.min(12, Number(value) || 0)) as Settings[K];
   if (key === "preamp") return Math.max(-12, Math.min(12, Number(value) || 0)) as Settings[K];
   if (key === "eqGains")
