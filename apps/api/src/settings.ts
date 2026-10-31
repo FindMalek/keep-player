@@ -75,6 +75,12 @@ const SETTINGS = [
   { name: "GROQ_MODEL", fallback: "openai/gpt-oss-120b", description: "The Groq model for playlists from a prompt." },
   { name: "GROQ_URL", fallback: "https://api.groq.com/openai/v1", description: "Groq's API, or any OpenAI-compatible one." },
   {
+    name: "AUDIOMUSE_URL",
+    fallback: "",
+    description:
+      "AudioMuse-AI, as this container reaches it: song features (tempo, key, energy, mood) are copied into the index for `bpm:` / `energy:` / `mood:` search filters, smart shuffle and sonic neighbours. Empty: off, everything else works as is.",
+  },
+  {
     name: "FEEDBACK_GITHUB_TOKEN",
     fallback: "",
     description:
@@ -147,6 +153,7 @@ export interface Config {
   lrcDir: string | null;
   uploadDir: string | null;
   lyterion: { url: string; token: string } | null;
+  audiomuseUrl: string | null;
   indexUser: string | undefined;
   indexPassword: string | undefined;
   demoSeed: boolean;
@@ -206,6 +213,8 @@ export function readConfig(env: Env): { config: Config; errors: string[] } {
   const lyterionUrl = get("LYTERION_URL").replace(/\/+$/, "");
   const lyterionToken = get("LYTERION_TOKEN");
   if (lyterionUrl && !isUrl(lyterionUrl)) errors.push(`LYTERION_URL must be http(s)://host or empty, got "${lyterionUrl}"`);
+  const audiomuseUrl = get("AUDIOMUSE_URL").replace(/\/+$/, "");
+  if (audiomuseUrl && !isUrl(audiomuseUrl)) errors.push(`AUDIOMUSE_URL must be http(s)://host or empty, got "${audiomuseUrl}"`);
   if (!!lyterionUrl !== !!lyterionToken) errors.push("LYTERION_URL and LYTERION_TOKEN go together: set both or neither");
   if (!!get("FEEDBACK_GITHUB_TOKEN") !== !!get("FEEDBACK_REPO"))
     errors.push("FEEDBACK_GITHUB_TOKEN and FEEDBACK_REPO go together: set both or neither");
@@ -234,6 +243,7 @@ export function readConfig(env: Env): { config: Config; errors: string[] } {
     lrcDir: writeLrc ? musicDir : null,
     uploadDir: uploadDir || null,
     lyterion: lyterionUrl && lyterionToken ? { url: lyterionUrl, token: lyterionToken } : null,
+    audiomuseUrl: audiomuseUrl || null,
     indexUser,
     indexPassword,
     demoSeed,

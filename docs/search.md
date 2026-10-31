@@ -30,6 +30,7 @@ Add these to any search; each shows as a chip you can remove.
 | `year:` | `year:1998`, `year:1990..1999`, `year:..1980` |
 | `format:` | `format:flac` |
 | `is:liked`, `is:unplayed` | `is:liked year:2020..` |
+| `bpm:`, `energy:`, `mood:` | `bpm:120..130`, `energy:high` (`low`, `mid`, `high` or `0.6..`), `mood:chill` (`upbeat`, `chill`, `intense`, `sad`). Songs only, and only once [AudioMuse-AI](configuration.md) (`AUDIOMUSE_URL`) has analysed them |
 | `lyrics:` | `lyrics: counting the stars` (only lyrics; the rest of the text is the phrase) |
 
 Filters alone work too: `genre:jazz year:1950..1965` lists the most played matches.

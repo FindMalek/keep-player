@@ -37,3 +37,9 @@ test("DEMO_SEED needs the account it seeds", () => {
   expect(ok.config.demoSeed).toBe(true);
   expect(readConfig({}).config.demoSeed).toBe(false);
 });
+
+test("AUDIOMUSE_URL is optional and must be a URL", () => {
+  expect(readConfig({}).config.audiomuseUrl).toBeNull();
+  expect(readConfig({ AUDIOMUSE_URL: "http://audiomuse:8000/" }).config.audiomuseUrl).toBe("http://audiomuse:8000");
+  expect(readConfig({ AUDIOMUSE_URL: "audiomuse" }).errors.map((error) => error.split(" ")[0])).toEqual(["AUDIOMUSE_URL"]);
+});

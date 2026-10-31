@@ -17,6 +17,9 @@ export interface Filters {
   liked?: boolean;
   unplayed?: boolean;
   moment?: string;
+  bpm?: [number, number];
+  energy?: [number, number];
+  mood?: string;
 }
 
 export interface Chip {
@@ -26,12 +29,22 @@ export interface Chip {
   raw: string;
 }
 
-const OPERATOR = /(?:^|\s)(artist|album|genre|year|format|is|moment):("[^"]*"|\S+)/gi;
+const OPERATOR = /(?:^|\s)(artist|album|genre|year|format|is|moment|bpm|energy|mood):("[^"]*"|\S+)/gi;
 
 function year(value: string): [number, number] | undefined {
   const range = /^(\d{4})?\.\.(\d{4})?$/.exec(value);
   if (range) return [Number(range[1] ?? 0), Number(range[2] ?? 9999)];
   return /^\d{4}$/.test(value) ? [Number(value), Number(value)] : undefined;
+}
+
+const LEVELS: Record<string, [number, number]> = { low: [0, 0.4], mid: [0.4, 0.7], high: [0.7, 1] };
+
+function span(value: string, levels = false): [number, number] | undefined {
+  const level = levels ? LEVELS[value.toLowerCase()] : undefined;
+  if (level) return level;
+  const range = /^(\d+(?:\.\d+)?)?\.\.(\d+(?:\.\d+)?)?$/.exec(value);
+  if (range) return [Number(range[1] ?? 0), Number(range[2] ?? Number.POSITIVE_INFINITY)];
+  return /^\d+(?:\.\d+)?$/.test(value) ? [Number(value), Number(value)] : undefined;
 }
 
 export function parseQuery(raw: string): ParsedQuery {
@@ -48,6 +61,10 @@ export function parseQuery(raw: string): ParsedQuery {
         const range = year(value);
         if (!range) return match;
         filters.year = range;
+      } else if (key === "bpm" || key === "energy") {
+        const range = span(value, key === "energy");
+        if (!range) return match;
+        filters[key] = range;
       } else if (key === "is") {
         if (value === "liked") filters.liked = true;
         else if (value === "unplayed") filters.unplayed = true;
@@ -55,6 +72,7 @@ export function parseQuery(raw: string): ParsedQuery {
         else return match;
       } else if (key === "format") filters.format = value.toLowerCase();
       else if (key === "moment") filters.moment = value;
+      else if (key === "mood") filters.mood = value.toLowerCase();
       else filters[key as "artist" | "album" | "genre"] = value;
       chips.push({ key, value, raw: match.trim() });
       return " ";

@@ -1,4 +1,5 @@
 import { Database } from "bun:sqlite";
+import { createFeatureTables } from "./audiomuse";
 import { createHistoryTables } from "./history";
 import { createMomentTables } from "./moments";
 import { createPrefTables } from "./prefs";
@@ -22,6 +23,7 @@ export function openLibraryDb(path: string): Database {
     offset_ms integer not null,
     primary key (user, song_id)
   )`);
+  createFeatureTables(db);
   createHistoryTables(db);
   createMomentTables(db);
   createPrefTables(db);
